@@ -1,0 +1,17 @@
+{
+  "name": "open-deutsch",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A local-first German-learning companion for Codex.",
+  "type": "module",
+  "packageManager": "pnpm@11.0.9",
+  "engines": {
+    "node": ">=24.18.1 <25",
+    "pnpm": "11.0.9"
+  },
+  "scripts": {
+    "toolchain:check": "node scripts/check-toolchain.mjs",
+    "toolchain:check:integration": "node scripts/check-toolchain.mjs --require-codex",
+    "test:toolchain": "node --test tests/toolchain-diagnostics.test.mjs"
+  }
+}

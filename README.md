@@ -2,7 +2,11 @@
 
 A local-first German-learning companion built entirely around the Codex desktop experience.
 
-Product discovery is complete and the full dependency-ordered implementation plan is ready. Implementation has not been scaffolded yet.
+Product discovery is complete and implementation follows the dependency-ordered canonical plan. The repository currently contains the pinned toolchain foundation; subsequent workspace and product capabilities are tracked in that plan.
+
+## Toolchain
+
+Development uses Node.js 24.18.1 and pnpm 11.0.9. A compatible existing Codex CLI (currently 0.146.0 or newer) is required only for desktop AI and Codex integration workflows; local non-AI behavior remains available without it. See [the toolchain baseline](docs/toolchain.md).
 
 ## Planning documents
 
