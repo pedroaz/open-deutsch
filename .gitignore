@@ -1,0 +1,83 @@
+# Dependencies and package-manager state
+node_modules/
+.pnpm-store/
+
+# Generated build and packaging output
+dist/
+build/
+out/
+release/
+.vite/
+*.AppImage
+*.AppImage.zsync
+*.deb
+
+# Coverage and deterministic test artifacts
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+blob-report/
+traces/
+screenshots/
+artifacts/
+diagnostics/
+diagnostic-bundles/
+.test-data/
+.tmp/
+tmp/
+
+# Repository-owned runtime state, PIDs, and logs
+.runtime/
+runtime/
+run/
+logs/
+*.pid
+*.log
+
+# Local environment and machine-specific configuration
+.env
+.env.*
+!.env.example
+!.env.*.example
+.open-deutsch/
+
+# Mutable databases and SQLite sidecars
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-shm
+*.sqlite3-wal
+
+# Data-root bootstrap pointers and private learner datasets
+bootstrap.json
+bootstrap-pointer.json
+.open-deutsch-bootstrap.json
+learner-data/
+data-root/
+open-deutsch-data/
+
+# Unreviewed curriculum research and private caches
+research-staging/
+.research-staging/
+research-cache/
+.research-cache/
+.research/
+content/.staging/
+
+# Reviewed Markdown/YAML under content/curriculum remains version controlled;
+# generated staging, databases, logs, and test artifacts stay ignored there too.
+
+# Local editor and operating-system noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~

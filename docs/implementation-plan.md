@@ -74,7 +74,8 @@ The checklist is incomplete unless it implements and verifies all of the followi
 
 ## Ordered TODO
 
-- [ ] **IMP-001 `[repo]` Add a privacy-aware `.gitignore` before the first commit.** Ignore dependencies, build output, AppImages, coverage, Playwright artifacts, runtime/PID/log directories, environment files, SQLite/WAL files, bootstrap files, learner data roots, and research staging while allowing reviewed `content/curriculum` files.
+- [x] **IMP-001 `[repo]` Add a privacy-aware `.gitignore` before the first commit.** Ignore dependencies, build output, AppImages, coverage, Playwright artifacts, runtime/PID/log directories, environment files, SQLite/WAL files, bootstrap files, learner data roots, and research staging while allowing reviewed `content/curriculum` files.
+  - Verified with `git check-ignore -v --no-index` probes for every private/generated class, explicit allow probes for reviewed curriculum/docs/environment examples, and `git diff --check`.
 - [ ] **IMP-002 `[repo]` Initialize the Git repository safely.** Preserve all discovery documents, add an initial branch, confirm ignored/private artifacts cannot be staged, commit the planning baseline, and verify repository status is clean.
 - [ ] **IMP-003 `[toolchain]` Pin and diagnose required runtimes.** Declare supported Node.js and pnpm versions plus the minimum compatible existing `codex` version; local non-AI behavior may run without Codex, but desktop AI and integration installation must fail with a clear upgrade/setup message when it is missing or unsupported.
 - [ ] **IMP-004 `[workspace]` Create the pnpm workspace skeleton.** Add `apps/desktop`, `apps/mcp-server`, `packages/domain`, `packages/contracts`, `packages/persistence`, `packages/codex-client`, `plugins/open-deutsch`, `content/curriculum`, and shared test/support directories without duplicating domain code.
