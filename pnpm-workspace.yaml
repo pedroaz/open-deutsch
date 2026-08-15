@@ -4,6 +4,4 @@ packages:
   - plugins/*
 
 allowBuilds:
-  unrs-resolver: set this to true or false
-
-onlyBuiltDependencies: []
+  unrs-resolver: true
