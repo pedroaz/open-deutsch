@@ -11,6 +11,7 @@ release/
 *.AppImage
 *.AppImage.zsync
 *.deb
+*.tsbuildinfo
 
 # Coverage and deterministic test artifacts
 coverage/

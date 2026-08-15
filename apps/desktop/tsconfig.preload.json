@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.node.json",
+  "compilerOptions": {
+    "rootDir": "src/preload",
+    "outDir": "dist/preload"
+  },
+  "include": ["src/preload/**/*.ts"],
+  "references": [{ "path": "../../packages/contracts" }]
+}

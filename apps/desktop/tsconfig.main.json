@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.node.json",
+  "compilerOptions": {
+    "rootDir": "src/main",
+    "outDir": "dist/main"
+  },
+  "include": ["src/main/**/*.ts"],
+  "references": [
+    { "path": "../../packages/contracts" },
+    { "path": "../../packages/domain" },
+    { "path": "../../packages/persistence" },
+    { "path": "../../packages/codex-client" }
+  ]
+}
