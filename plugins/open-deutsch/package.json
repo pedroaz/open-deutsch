@@ -1,0 +1,7 @@
+{
+  "name": "@open-deutsch/plugin",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Versioned Open Deutsch Codex plugin payload workspace.",
+  "type": "module"
+}

@@ -1,0 +1,61 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .: {}
+
+  apps/desktop:
+    dependencies:
+      '@open-deutsch/codex-client':
+        specifier: workspace:*
+        version: link:../../packages/codex-client
+      '@open-deutsch/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@open-deutsch/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
+      '@open-deutsch/persistence':
+        specifier: workspace:*
+        version: link:../../packages/persistence
+
+  apps/mcp-server:
+    dependencies:
+      '@open-deutsch/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@open-deutsch/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
+      '@open-deutsch/persistence':
+        specifier: workspace:*
+        version: link:../../packages/persistence
+
+  packages/codex-client:
+    dependencies:
+      '@open-deutsch/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+
+  packages/contracts: {}
+
+  packages/domain:
+    dependencies:
+      '@open-deutsch/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+
+  packages/persistence:
+    dependencies:
+      '@open-deutsch/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@open-deutsch/domain':
+        specifier: workspace:*
+        version: link:../domain
+
+  plugins/open-deutsch: {}

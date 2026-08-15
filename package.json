@@ -12,6 +12,7 @@
   "scripts": {
     "toolchain:check": "node scripts/check-toolchain.mjs",
     "toolchain:check:integration": "node scripts/check-toolchain.mjs --require-codex",
-    "test:toolchain": "node --test tests/toolchain-diagnostics.test.mjs"
+    "test:toolchain": "node --test tests/toolchain-diagnostics.test.mjs",
+    "test:workspace": "node --test tests/workspace-layout.test.mjs"
   }
 }
