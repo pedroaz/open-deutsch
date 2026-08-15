@@ -9,9 +9,7 @@ import {
   parseVersion,
 } from "../scripts/lib/toolchain-diagnostics.mjs";
 
-const policy = JSON.parse(
-  readFileSync(new URL("../toolchain.json", import.meta.url), "utf8"),
-);
+const policy = JSON.parse(readFileSync(new URL("../toolchain.json", import.meta.url), "utf8"));
 
 const valid = {
   nodeVersion: "v24.18.1",
@@ -75,11 +73,9 @@ test("fails integration checks clearly for missing or old Codex", () => {
   assert.equal(missing.ok, false);
   assert.equal(missing.checks.at(-1).code, "CODEX_MISSING");
 
-  const old = diagnoseToolchain(
-    { ...valid, codexVersion: "codex-cli 0.145.9" },
-    policy,
-    { requireCodex: true },
-  );
+  const old = diagnoseToolchain({ ...valid, codexVersion: "codex-cli 0.145.9" }, policy, {
+    requireCodex: true,
+  });
   assert.equal(old.ok, false);
   assert.equal(old.checks.at(-1).code, "CODEX_UNSUPPORTED");
   assert.match(old.checks.at(-1).message, /Upgrade to 0\.146\.0 or newer/);
@@ -97,11 +93,9 @@ test("fails integration checks when app-server is unavailable", () => {
 });
 
 test("distinguishes an app-server capability timeout", () => {
-  const result = diagnoseToolchain(
-    { ...valid, appServerStatus: "timeout" },
-    policy,
-    { requireCodex: true },
-  );
+  const result = diagnoseToolchain({ ...valid, appServerStatus: "timeout" }, policy, {
+    requireCodex: true,
+  });
   assert.equal(result.ok, false);
   assert.equal(result.checks.at(-1).code, "CODEX_APP_SERVER_TIMEOUT");
 });
@@ -120,10 +114,7 @@ test("rejects unsupported Node.js and unpinned pnpm versions", () => {
 });
 
 test("reports a missing pnpm executable with an install action", () => {
-  const result = diagnoseToolchain(
-    { ...valid, pnpmAvailable: false, pnpmVersion: "" },
-    policy,
-  );
+  const result = diagnoseToolchain({ ...valid, pnpmAvailable: false, pnpmVersion: "" }, policy);
   assert.equal(result.ok, false);
   assert.equal(result.integrationReady, false);
   assert.equal(result.checks[1].code, "PNPM_MISSING");

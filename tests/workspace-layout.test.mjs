@@ -54,7 +54,11 @@ test("keeps internal dependency direction aligned with component ownership", asy
     const internalDependencies = Object.keys(manifest.dependencies ?? {})
       .filter((name) => name.startsWith("@open-deutsch/"))
       .sort();
-    assert.deepEqual(internalDependencies, [...allowedInternalDependencies[expectedName]].sort(), path);
+    assert.deepEqual(
+      internalDependencies,
+      [...allowedInternalDependencies[expectedName]].sort(),
+      path,
+    );
     for (const name of internalDependencies) {
       assert.equal(manifest.dependencies[name], "workspace:*", `${path} -> ${name}`);
     }

@@ -25,10 +25,7 @@ export function compareVersions(left, right) {
 
 function isSupportedNode(version, policy) {
   const minimum = parseVersion(policy.node.minimumVersion, "configured Node.js minimum");
-  const maximum = parseVersion(
-    policy.node.maximumExclusiveVersion,
-    "configured Node.js maximum",
-  );
+  const maximum = parseVersion(policy.node.maximumExclusiveVersion, "configured Node.js maximum");
   return compareVersions(version, minimum) >= 0 && compareVersions(version, maximum) < 0;
 }
 
@@ -140,14 +137,13 @@ export function diagnoseToolchain(observed, policy, options = {}) {
   }
 
   const ok = !checks.some((item) => item.status === "fail");
-  const integrationReady =
-    !checks.some(
-      (item) =>
-        (item.code.startsWith("NODE_") ||
-          item.code.startsWith("PNPM_") ||
-          item.code.startsWith("CODEX_")) &&
-        item.status !== "pass",
-    );
+  const integrationReady = !checks.some(
+    (item) =>
+      (item.code.startsWith("NODE_") ||
+        item.code.startsWith("PNPM_") ||
+        item.code.startsWith("CODEX_")) &&
+      item.status !== "pass",
+  );
 
   return {
     ok,

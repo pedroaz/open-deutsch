@@ -71,7 +71,10 @@ test("every leaf project discovers future source files", async () => {
     "apps/desktop/tsconfig.renderer.json",
   ]) {
     const config = await readJson(path);
-    assert.ok(config.include?.some((pattern) => pattern.includes("**/*.ts")), path);
+    assert.ok(
+      config.include?.some((pattern) => pattern.includes("**/*.ts")),
+      path,
+    );
     assert.equal(config.files, undefined, path);
   }
 });

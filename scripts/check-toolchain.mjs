@@ -10,7 +10,9 @@ import { diagnoseToolchain } from "./lib/toolchain-diagnostics.mjs";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const policy = JSON.parse(readFileSync(resolve(root, "toolchain.json"), "utf8"));
 const allowedArguments = new Set(["--require-codex", "--json"]);
-const unknownArguments = process.argv.slice(2).filter((argument) => !allowedArguments.has(argument));
+const unknownArguments = process.argv
+  .slice(2)
+  .filter((argument) => !allowedArguments.has(argument));
 if (unknownArguments.length > 0) {
   process.stderr.write(
     `Unknown argument${unknownArguments.length === 1 ? "" : "s"}: ${unknownArguments.join(", ")}\nUsage: node scripts/check-toolchain.mjs [--require-codex] [--json]\n`,

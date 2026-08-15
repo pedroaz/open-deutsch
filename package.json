@@ -14,10 +14,24 @@
     "toolchain:check:integration": "node scripts/check-toolchain.mjs --require-codex",
     "test:toolchain": "node --test tests/toolchain-diagnostics.test.mjs",
     "test:workspace": "node --test tests/workspace-layout.test.mjs",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix --max-warnings=0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@eslint/js": "9.39.5",
     "@types/node": "24.13.3",
-    "typescript": "7.0.2"
+    "eslint": "9.39.5",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-import-x": "4.17.1",
+    "eslint-plugin-jsx-a11y": "6.10.2",
+    "eslint-plugin-react": "7.37.5",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.11.0",
+    "prettier": "3.9.6",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.67.0"
   }
 }
