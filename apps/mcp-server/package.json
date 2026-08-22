@@ -4,9 +4,16 @@
   "private": true,
   "description": "Separately launchable local STDIO MCP entry point for Open Deutsch.",
   "type": "module",
+  "scripts": {
+    "build": "tsc -b --force",
+    "test": "pnpm --workspace-root exec vitest run --config vitest.config.mjs --project mcp-server"
+  },
   "dependencies": {
+    "@modelcontextprotocol/server": "2.0.0",
     "@open-deutsch/contracts": "workspace:*",
     "@open-deutsch/domain": "workspace:*",
-    "@open-deutsch/persistence": "workspace:*"
+    "@open-deutsch/persistence": "workspace:*",
+    "yaml": "2.9.0",
+    "zod": "4.4.3"
   }
 }

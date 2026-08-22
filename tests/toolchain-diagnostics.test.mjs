@@ -64,7 +64,7 @@ test("keeps local non-AI behavior available when Codex is missing", () => {
   assert.match(result.checks.at(-1).message, /Local non-AI features remain available/);
 });
 
-test("fails integration checks clearly for missing or old Codex", () => {
+test("fails integration checks clearly for missing or out-of-range Codex", () => {
   const missing = diagnoseToolchain(
     { ...valid, codexAvailable: false, codexVersion: "", appServerStatus: "failed" },
     policy,
@@ -78,7 +78,14 @@ test("fails integration checks clearly for missing or old Codex", () => {
   });
   assert.equal(old.ok, false);
   assert.equal(old.checks.at(-1).code, "CODEX_UNSUPPORTED");
-  assert.match(old.checks.at(-1).message, /Upgrade to 0\.146\.0 or newer/);
+  assert.match(old.checks.at(-1).message, />=0\.146\.0 <0\.146\.1/);
+
+  const newerPatch = diagnoseToolchain({ ...valid, codexVersion: "codex-cli 0.146.1" }, policy, {
+    requireCodex: true,
+  });
+  assert.equal(newerPatch.ok, false);
+  assert.equal(newerPatch.checks.at(-1).code, "CODEX_UNSUPPORTED");
+  assert.match(newerPatch.checks.at(-1).message, />=0\.146\.0 <0\.146\.1/);
 });
 
 test("fails integration checks when app-server is unavailable", () => {

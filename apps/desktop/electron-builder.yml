@@ -1,0 +1,48 @@
+appId: dev.opendeutsch.app
+productName: Open Deutsch
+artifactName: Open-Deutsch-${version}-${arch}.${ext}
+icon: apps/desktop/assets/open-deutsch.svg
+npmRebuild: false
+toolsets:
+  appimage: 1.0.3
+directories:
+  app: apps/desktop
+  output: release/appimage-spike
+files:
+  - package.json
+  - dist/**
+extraResources:
+  - from: content/curriculum
+    to: curriculum
+    filter:
+      - "**/*"
+  - from: plugins/open-deutsch
+    to: plugin
+    filter:
+      - .codex-plugin/**
+      - .mcp.json
+      - bin/**
+      - scripts/plugin-lifecycle.mjs
+      - skills/**
+  - from: release/mcp-helper
+    to: mcp-helper
+    filter:
+      - "**/*"
+  - from: docs/third-party-notices.md
+    to: notices/THIRD-PARTY-NOTICES.md
+  - from: docs/licensing.md
+    to: notices/OPEN-DEUTSCH-LICENSING.md
+linux:
+  description: A local-first German-learning companion for Codex.
+  synopsis: Practice German with Open Deutsch and Codex.
+  desktop:
+    entry:
+      Name: Open Deutsch
+      Comment: Practice German locally with Codex.
+      Categories: Education;
+      MimeType: x-scheme-handler/open-deutsch;
+  target:
+    - AppImage
+  category: Education
+  executableName: open-deutsch
+  syncDesktopName: true

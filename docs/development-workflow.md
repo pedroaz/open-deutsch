@@ -1,7 +1,7 @@
 # Development workflow
 
-Status: accepted engineering direction  
-Last updated: 2026-08-15
+Status: accepted engineering guidance
+Last updated: 2026-08-22
 
 ## Command boundary
 
@@ -39,7 +39,7 @@ Development and production-like runs record exact PIDs and mode-specific state i
 - `make doctor`
 - `make package`
 
-`make test-fast` is the everyday sub-20-second target where practical. `make test` is an exact convenience alias for `make test-fast`. `make check` is deterministic and combines formatting, linting, strict types, and the appropriate fast validations. `make test-all` includes every deterministic local gate, including Electron journeys, and never invokes a real OpenAI account.
+`make test-fast` is the everyday sub-20-second target where practical. `make test` is an exact convenience alias for `make test-fast`. `make check` is deterministic and combines formatting, linting, strict types, and the complete fast gate. `make test-all` includes every deterministic local gate, including Electron journeys and plugin/MCP checks, and never invokes a real OpenAI account. Lifecycle readiness uses a bounded 30-second startup window so the Electron watch build can initialize without weakening failure cleanup.
 
 ## Explicit live verification targets
 
@@ -56,6 +56,8 @@ Neither target is called by normal tests, CI, `make check`, `make test-all`, or 
 - `make uninstall-plugin`
 
 Use only documented stable local marketplace and CLI behavior. Do not use App Server plugin operations documented as under development in production. Commands must scope changes to the Open Deutsch marketplace/plugin and preserve unrelated configuration. When a stable automatic action is unavailable, print the exact supported installation step; the product must not pretend installation succeeded.
+
+The repository-scoped source is `.agents/plugins/marketplace.json` with the `open-deutsch` payload under `plugins/open-deutsch`. The adapter verifies version and MCP discovery after install/refresh and reports failures explicitly. See [setup and recovery](setup.md) for the disposable reset boundary and the exact user workflow.
 
 ## Code quality baseline
 

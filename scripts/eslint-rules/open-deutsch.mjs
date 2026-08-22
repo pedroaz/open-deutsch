@@ -237,6 +237,18 @@ const noElectronRemote = {
     },
   },
   create(context) {
+    const electronNamespaceBindings = new Set(["electron"]);
+
+    function isElectronRequire(node) {
+      return (
+        node?.type === "CallExpression" &&
+        node.callee.type === "Identifier" &&
+        node.callee.name === "require" &&
+        node.arguments.length === 1 &&
+        literalSource(node.arguments[0]) === "electron"
+      );
+    }
+
     return {
       ImportDeclaration(node) {
         const source = literalSource(node.source);
@@ -249,6 +261,12 @@ const noElectronRemote = {
           )
         ) {
           context.report({ node, messageId: "remote" });
+        }
+        if (source === "electron") {
+          for (const specifier of node.specifiers) {
+            if (specifier.type === "ImportNamespaceSpecifier")
+              electronNamespaceBindings.add(specifier.local.name);
+          }
         }
       },
       ImportExpression(node) {
@@ -267,12 +285,38 @@ const noElectronRemote = {
           node.arguments.length === 1
         ) {
           const source = literalSource(node.arguments[0]);
-          if (source === "electron" || source === "@electron/remote") {
-            context.report({
-              node,
-              messageId: source === "@electron/remote" ? "remote" : "dynamicImport",
-            });
-          }
+          if (source === "@electron/remote") context.report({ node, messageId: "remote" });
+        }
+      },
+      VariableDeclarator(node) {
+        if (isElectronRequire(node.init) && node.id.type === "Identifier")
+          electronNamespaceBindings.add(node.id.name);
+        if (
+          node.id.type === "Identifier" &&
+          node.init?.type === "Identifier" &&
+          electronNamespaceBindings.has(node.init.name)
+        ) {
+          electronNamespaceBindings.add(node.id.name);
+        }
+        const destructuresRemote =
+          node.id.type === "ObjectPattern" &&
+          node.id.properties.some(
+            (property) => property.type === "Property" && staticPropertyName(property) === "remote",
+          );
+        const electronSource =
+          isElectronRequire(node.init) ||
+          (node.init?.type === "Identifier" && electronNamespaceBindings.has(node.init.name));
+        if (destructuresRemote && electronSource) {
+          context.report({ node, messageId: "remote" });
+        }
+      },
+      AssignmentExpression(node) {
+        if (
+          node.left.type === "Identifier" &&
+          (isElectronRequire(node.right) ||
+            (node.right.type === "Identifier" && electronNamespaceBindings.has(node.right.name)))
+        ) {
+          electronNamespaceBindings.add(node.left.name);
         }
       },
       MemberExpression(node) {
@@ -280,23 +324,10 @@ const noElectronRemote = {
           !node.computed && node.property.type === "Identifier"
             ? node.property.name
             : literalSource(node.property);
-        if (
-          node.object.type === "Identifier" &&
-          node.object.name === "electron" &&
-          propertyName === "remote"
-        ) {
-          context.report({ node, messageId: "remote" });
-        }
-      },
-      VariableDeclarator(node) {
-        if (
-          node.id.type === "ObjectPattern" &&
-          node.id.properties.some(
-            (property) => property.type === "Property" && staticPropertyName(property) === "remote",
-          ) &&
-          node.init?.type === "Identifier" &&
-          node.init.name === "electron"
-        ) {
+        const electronNamespace =
+          (node.object.type === "Identifier" && electronNamespaceBindings.has(node.object.name)) ||
+          isElectronRequire(node.object);
+        if (electronNamespace && propertyName === "remote") {
           context.report({ node, messageId: "remote" });
         }
       },

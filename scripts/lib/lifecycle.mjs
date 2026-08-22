@@ -56,6 +56,19 @@ async function readJson(target) {
   return JSON.parse(await readFile(target, "utf8"));
 }
 
+async function readReadinessJson(target) {
+  let lastError;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      return await readJson(target);
+    } catch (error) {
+      lastError = error;
+      if (attempt < 2) await delay(10);
+    }
+  }
+  throw lastError;
+}
+
 async function processStartTicks(pid) {
   try {
     const contents = await readFile(`/proc/${pid}/stat`, "utf8");
@@ -180,7 +193,7 @@ export async function startMode({
   runtimeRoot,
   command,
   cwd,
-  timeoutMs = 15_000,
+  timeoutMs = 30_000,
   environment = process.env,
   detached = true,
 }) {
@@ -269,7 +282,7 @@ export async function startMode({
     if (await pathExists(paths.ready)) {
       let ready;
       try {
-        ready = await readJson(paths.ready);
+        ready = await readReadinessJson(paths.ready);
       } catch (error) {
         await terminateStartedProcess(state, { requireLeaderIdentity: false });
         await rm(paths.state, { force: true });

@@ -3,5 +3,19 @@
   "version": "0.0.0",
   "private": true,
   "description": "Runtime-validated IPC, MCP, AI-output, and persisted-data contracts.",
-  "type": "module"
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b --force",
+    "test": "pnpm --workspace-root exec vitest run --config vitest.config.mjs --project contracts"
+  },
+  "dependencies": {
+    "zod": "4.4.3"
+  }
 }

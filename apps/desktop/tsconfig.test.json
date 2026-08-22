@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.renderer.json",
+  "compilerOptions": {
+    "composite": false,
+    "noEmit": true,
+    "rootDir": "../..",
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/renderer/**/*.ts",
+    "src/renderer/**/*.tsx",
+    "src/renderer/**/*.json",
+    "test/**/*.ts",
+    "test/**/*.tsx"
+  ],
+  "references": [{ "path": "../../packages/contracts" }, { "path": "../../packages/domain" }]
+}

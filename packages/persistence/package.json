@@ -4,8 +4,20 @@
   "private": true,
   "description": "SQLite migrations, repositories, and data-root persistence adapters.",
   "type": "module",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b --force",
+    "test": "pnpm --workspace-root exec vitest run --config vitest.config.mjs --project persistence"
+  },
   "dependencies": {
     "@open-deutsch/contracts": "workspace:*",
-    "@open-deutsch/domain": "workspace:*"
+    "@open-deutsch/domain": "workspace:*",
+    "zod": "4.4.3"
   }
 }

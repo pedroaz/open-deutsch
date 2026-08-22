@@ -1,0 +1,19 @@
+{
+  "name": "open-deutsch",
+  "version": "0.1.0",
+  "description": "Local German-learning workflows and bounded learner-state tools for Codex.",
+  "author": {
+    "name": "Open Deutsch"
+  },
+  "interface": {
+    "displayName": "Open Deutsch",
+    "shortDescription": "Practice German with local learner context.",
+    "longDescription": "Open Deutsch connects Codex to bounded local German-learning workflows and learner-state tools.",
+    "developerName": "Open Deutsch",
+    "category": "Education",
+    "capabilities": ["Read", "Write"],
+    "defaultPrompt": ["Help me plan my next German practice activity."]
+  },
+  "mcpServers": "./.mcp.json",
+  "skills": "./skills/"
+}

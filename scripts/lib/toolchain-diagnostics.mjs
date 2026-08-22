@@ -83,19 +83,23 @@ export function diagnoseToolchain(observed, policy, options = {}) {
       check(
         codexFailureStatus,
         "CODEX_MISSING",
-        `Codex CLI >=${policy.codex.minimumVersion} was not found. Local non-AI features remain available; desktop AI and Codex integration installation are disabled until Codex is installed.`,
+        `Codex CLI >=${policy.codex.minimumVersion} <${policy.codex.maximumExclusiveVersion} was not found. Local non-AI features remain available; desktop AI and Codex integration installation are disabled until Codex is installed.`,
       ),
     );
   } else {
     try {
       const codex = parseVersion(observed.codexVersion, "Codex CLI");
       const minimumCodex = parseVersion(policy.codex.minimumVersion, "configured Codex minimum");
-      if (compareVersions(codex, minimumCodex) < 0) {
+      const maximumCodex = parseVersion(
+        policy.codex.maximumExclusiveVersion,
+        "configured Codex maximum",
+      );
+      if (compareVersions(codex, minimumCodex) < 0 || compareVersions(codex, maximumCodex) >= 0) {
         checks.push(
           check(
             codexFailureStatus,
             "CODEX_UNSUPPORTED",
-            `Codex CLI ${codex.text} is unsupported. Upgrade to ${policy.codex.minimumVersion} or newer; local non-AI features remain available.`,
+            `Codex CLI ${codex.text} is unsupported. Install a version in the verified range >=${policy.codex.minimumVersion} <${policy.codex.maximumExclusiveVersion}; local non-AI features remain available.`,
           ),
         );
       } else if (observed.appServerStatus === "timeout") {

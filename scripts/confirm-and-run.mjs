@@ -28,7 +28,10 @@ if (answer !== "yes") {
 const result = spawnSync(
   process.execPath,
   ["scripts/run-required-workspace-script.mjs", scriptName, "--require-codex"],
-  { stdio: "inherit", env: process.env },
+  {
+    stdio: "inherit",
+    env: { ...process.env, OPEN_DEUTSCH_INTERACTIVE_CONFIRMATION: "yes" },
+  },
 );
 if (result.error) throw result.error;
 process.exitCode = result.status ?? 1;

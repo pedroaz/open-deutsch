@@ -1,0 +1,276 @@
+import type { AppServerCandidateOutputMap } from "@open-deutsch/contracts";
+import { alignCorrectionTexts } from "@open-deutsch/domain";
+import { useMemo, useState } from "react";
+import { ArrowRight, CircleAlert, Minus, Plus } from "lucide-react";
+import { Button } from "react-aria-components";
+import { useTranslation } from "react-i18next";
+
+import styles from "./App.module.css";
+import { Disclosure } from "./components/Foundation.js";
+
+type CorrectionOutput = AppServerCandidateOutputMap["writing-correction"];
+type ChangedSegment = Exclude<
+  ReturnType<typeof alignCorrectionTexts>[number],
+  { readonly kind: "unchanged" }
+>;
+
+function ChangedText({
+  segment,
+  side,
+}: {
+  segment: ChangedSegment;
+  side: "inline" | "original" | "corrected";
+}) {
+  const { t } = useTranslation();
+  if (side === "original") {
+    return segment.originalText ? (
+      <del>{segment.originalText}</del>
+    ) : (
+      <em>{t("writing.inserted")}</em>
+    );
+  }
+  if (side === "corrected") {
+    return segment.correctedText ? (
+      <ins>{segment.correctedText}</ins>
+    ) : (
+      <em>{t("writing.removed")}</em>
+    );
+  }
+  return (
+    <>
+      {segment.kind === "insertion" ? <Plus aria-hidden="true" /> : null}
+      {segment.originalText ? <del>{segment.originalText}</del> : null}
+      {segment.kind === "replacement" ? <ArrowRight aria-hidden="true" /> : null}
+      {segment.correctedText ? <ins>{segment.correctedText}</ins> : null}
+      {segment.kind === "deletion" ? <Minus aria-hidden="true" /> : null}
+    </>
+  );
+}
+
+function AlignedPane({
+  alignment,
+  selectedId,
+  side,
+  onSelect,
+}: {
+  alignment: ReturnType<typeof alignCorrectionTexts>;
+  selectedId: string | undefined;
+  side: "original" | "corrected";
+  onSelect: (changeId: string) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <p className={styles.correctionText}>
+      {alignment.map((segment, index) =>
+        segment.kind === "unchanged" ? (
+          <span key={`unchanged-${String(index)}`}>{segment.text}</span>
+        ) : (
+          <Button
+            aria-label={t("writing.selectChange", { number: Number(segment.changeId.slice(7)) })}
+            aria-pressed={selectedId === segment.changeId}
+            className={styles.correctionChange}
+            key={segment.changeId}
+            onPress={() => {
+              onSelect(segment.changeId);
+            }}
+          >
+            <ChangedText segment={segment} side={side} />
+          </Button>
+        ),
+      )}
+    </p>
+  );
+}
+
+export function CorrectionComparison({
+  originalText,
+  correction,
+  onHelperSelection,
+}: {
+  originalText: string;
+  correction: CorrectionOutput;
+  onHelperSelection?: (selectedText: string) => void;
+}) {
+  const { t } = useTranslation();
+  const alignment = useMemo(
+    () => alignCorrectionTexts(originalText, correction.correctedText, correction.changes),
+    [correction, originalText],
+  );
+  const changes = alignment.filter((segment) => segment.kind !== "unchanged");
+  const [selectedId, setSelectedId] = useState(changes[0]?.changeId);
+  const selected = changes.find((segment) => segment.changeId === selectedId) ?? changes[0];
+  const candidate =
+    selected && selected.candidateIndex !== null
+      ? correction.changes[selected.candidateIndex]
+      : undefined;
+
+  const candidateFor = (segment: ChangedSegment) =>
+    segment.candidateIndex === null ? undefined : correction.changes[segment.candidateIndex];
+  const selectChange = (segment: ChangedSegment) => {
+    setSelectedId(segment.changeId);
+    const selectedText = [segment.originalText, segment.correctedText].filter(Boolean).join(" → ");
+    if (selectedText) onHelperSelection?.(selectedText);
+  };
+
+  return (
+    <article className={styles.correctionReady} aria-label={t("writing.correctionReady")}>
+      <p className={styles.eyebrow}>{t("writing.correctionReady")}</p>
+      <h2>{t("writing.correctedText")}</h2>
+      <p className={styles.correctedPriority}>{correction.correctedText}</p>
+      <p className={styles.muted}>{correction.summary}</p>
+      {changes.length > 0 ? (
+        <>
+          <h3>{t("writing.inlineCorrection")}</h3>
+          <p
+            aria-label={t("writing.changeSelectionHelp")}
+            className={`${styles.correctionText} ${styles.inlineCorrection}`}
+          >
+            {alignment.map((segment, index) =>
+              segment.kind === "unchanged" ? (
+                <span key={`unchanged-${String(index)}`}>{segment.text}</span>
+              ) : (
+                <Button
+                  aria-label={t("writing.selectChange", {
+                    number: Number(segment.changeId.slice(7)),
+                  })}
+                  aria-pressed={selected?.changeId === segment.changeId}
+                  className={styles.correctionChange}
+                  key={segment.changeId}
+                  onPress={() => {
+                    selectChange(segment);
+                  }}
+                >
+                  <ChangedText segment={segment} side="inline" />
+                </Button>
+              ),
+            )}
+          </p>
+          <section aria-labelledby="mistake-list-heading">
+            <h3 id="mistake-list-heading">{t("writing.mistakes", { count: changes.length })}</h3>
+            <ul className={styles.correctionMistakes}>
+              {changes.map((segment) => {
+                const itemCandidate = candidateFor(segment);
+                return (
+                  <li key={segment.changeId}>
+                    <Button
+                      aria-pressed={selected?.changeId === segment.changeId}
+                      className={styles.correctionMistake}
+                      onPress={() => {
+                        selectChange(segment);
+                      }}
+                    >
+                      <strong>
+                        {t("writing.changeHeading", {
+                          number: Number(segment.changeId.slice(7)),
+                        })}
+                      </strong>
+                      <span>
+                        {itemCandidate
+                          ? t(`writing.changeCategories.${itemCandidate.category}`)
+                          : t("writing.changedText")}
+                      </span>
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+          <section className={styles.correctionHelper} aria-live="polite">
+            <h3>{t("writing.changeHeading", { number: Number(selected?.changeId.slice(7)) })}</h3>
+            <p>
+              <strong>
+                {candidate
+                  ? t(`writing.changeCategories.${candidate.category}`)
+                  : t("writing.changedText")}
+              </strong>
+              {candidate ? ` · ${t(`writing.changeSeverities.${candidate.severity}`)}` : ""}
+            </p>
+            <p>{candidate?.explanation ?? correction.summary}</p>
+            {candidate?.uncertainty.level !== undefined &&
+            candidate.uncertainty.level !== "none" ? (
+              <p className={styles.warningText}>
+                <CircleAlert aria-hidden="true" /> {candidate.uncertainty.explanation}
+              </p>
+            ) : null}
+          </section>
+          <section aria-labelledby="side-by-side-heading">
+            <h3 id="side-by-side-heading">{t("writing.sideBySide")}</h3>
+            <div className={styles.correctionGrid}>
+              <article className={styles.correctionPane}>
+                <h4>{t("writing.originalText")}</h4>
+                <AlignedPane
+                  alignment={alignment}
+                  onSelect={(changeId) => {
+                    const segment = changes.find((item) => item.changeId === changeId);
+                    if (segment) selectChange(segment);
+                  }}
+                  selectedId={selected?.changeId}
+                  side="original"
+                />
+              </article>
+              <article className={styles.correctionPane}>
+                <h4>{t("writing.correctedText")}</h4>
+                <AlignedPane
+                  alignment={alignment}
+                  onSelect={(changeId) => {
+                    const segment = changes.find((item) => item.changeId === changeId);
+                    if (segment) selectChange(segment);
+                  }}
+                  selectedId={selected?.changeId}
+                  side="corrected"
+                />
+              </article>
+            </div>
+          </section>
+        </>
+      ) : (
+        <div className={styles.noChanges} role="status">
+          <strong>{t("writing.noChanges")}</strong>
+          <p>{correction.correctedText}</p>
+        </div>
+      )}
+      {correction.naturalAlternative ? (
+        <Disclosure label={t("writing.naturalAlternative")}>
+          <p>{correction.naturalAlternative}</p>
+        </Disclosure>
+      ) : null}
+      {correction.vocabularyCandidates.length > 0 ? (
+        <Disclosure
+          label={t("writing.vocabularyCandidates", {
+            count: correction.vocabularyCandidates.length,
+          })}
+        >
+          <ul className={styles.compactList}>
+            {correction.vocabularyCandidates.map((item) => (
+              <li key={`${item.lemma}-${item.sourceExcerpt}`}>
+                <strong>{item.lemma}</strong> — {item.meaning}
+                <p className={styles.muted}>{item.rationale}</p>
+              </li>
+            ))}
+          </ul>
+        </Disclosure>
+      ) : null}
+      {correction.nextPracticeSuggestion ? (
+        <Disclosure label={t("writing.nextPractice")}>
+          <p>{correction.nextPracticeSuggestion}</p>
+        </Disclosure>
+      ) : null}
+      {correction.overallUncertainty.level !== "none" || correction.caveats.length > 0 ? (
+        <Disclosure label={t("writing.uncertaintyAndCaveats")}>
+          {correction.overallUncertainty.level !== "none" ? (
+            <p className={styles.warningText}>
+              <CircleAlert aria-hidden="true" /> {correction.overallUncertainty.explanation}
+            </p>
+          ) : null}
+          {correction.caveats.length > 0 ? (
+            <ul className={styles.compactList}>
+              {correction.caveats.map((caveat) => (
+                <li key={caveat}>{caveat}</li>
+              ))}
+            </ul>
+          ) : null}
+        </Disclosure>
+      ) : null}
+    </article>
+  );
+}

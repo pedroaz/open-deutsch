@@ -97,6 +97,12 @@ test("rejects dynamic, required, destructured, and computed Electron remote acce
     'const remoteModule = await import("@electron/remote");',
     'electron["remote"].getCurrentWindow();',
     "const { remote: remoteApi } = electron;",
+    'const electronApi = require("electron"); electronApi.remote.getCurrentWindow();',
+    'const electronApi = require("electron"); const alias = electronApi; alias.remote.getCurrentWindow();',
+    'let alias; alias = require("electron"); alias.remote.getCurrentWindow();',
+    'require("electron")["remote"].getCurrentWindow();',
+    'import * as electronApi from "electron"; electronApi.remote.getCurrentWindow();',
+    'import * as electronApi from "electron"; const alias = electronApi; alias.remote.getCurrentWindow();',
   ];
 
   for (const code of cases) {
@@ -106,4 +112,13 @@ test("rejects dynamic, required, destructured, and computed Electron remote acce
       code,
     );
   }
+});
+
+test("allows the sandboxed preload to require narrow Electron bridges", () => {
+  const messages = messagesFor(
+    'const { contextBridge, ipcRenderer } = require("electron"); contextBridge.exposeInMainWorld("app", { invoke: () => ipcRenderer.invoke("safe") });',
+    "apps/desktop/src/preload/index.cjs",
+    electronRules,
+  );
+  assert.deepEqual(messages, []);
 });

@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { appendFile, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 
 const behavior = process.argv[2];
@@ -11,6 +11,7 @@ if (behavior === "invalid-ready") {
   );
 } else if (
   behavior !== "ready" &&
+  behavior !== "partial-ready" &&
   behavior !== "stubborn" &&
   behavior !== "stubborn-timeout" &&
   behavior !== "orphan"
@@ -27,12 +28,26 @@ if (behavior === "stubborn" || behavior === "stubborn-timeout" || behavior === "
   });
 }
 
-if (behavior === "ready" || behavior === "stubborn" || behavior === "orphan") {
-  await writeFile(
-    process.env.OPEN_DEUTSCH_READY_FILE,
-    `${JSON.stringify({ status: "ready", runId: process.env.OPEN_DEUTSCH_RUN_ID })}\n`,
-    { mode: 0o600 },
-  );
+if (behavior === "partial-ready") {
+  const readiness = `${JSON.stringify({ status: "ready", runId: process.env.OPEN_DEUTSCH_RUN_ID })}\n`;
+  await writeFile(process.env.OPEN_DEUTSCH_READY_FILE, readiness.slice(0, 1), { mode: 0o600 });
+  await new Promise((resolve) => setTimeout(resolve, 15));
+  await appendFile(process.env.OPEN_DEUTSCH_READY_FILE, readiness.slice(1));
+}
+
+if (
+  behavior === "ready" ||
+  behavior === "partial-ready" ||
+  behavior === "stubborn" ||
+  behavior === "orphan"
+) {
+  if (behavior !== "partial-ready") {
+    await writeFile(
+      process.env.OPEN_DEUTSCH_READY_FILE,
+      `${JSON.stringify({ status: "ready", runId: process.env.OPEN_DEUTSCH_RUN_ID })}\n`,
+      { mode: 0o600 },
+    );
+  }
   process.stdout.write("fixture service ready\n");
 }
 if (behavior === "orphan") setTimeout(() => process.exit(0), 50);

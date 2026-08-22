@@ -1,7 +1,7 @@
 # Baseline architecture
 
-Status: accepted planning direction  
-Last updated: 2026-08-15
+Status: accepted implementation architecture
+Last updated: 2026-08-22
 
 ## Technology baseline
 
@@ -13,7 +13,7 @@ Last updated: 2026-08-15
 - **Codex integration:** personal plugin containing skills and a local MCP connection
 - **Desktop-native AI:** Codex App Server over STDIO from the Electron backend
 - **Renderer system:** accessible React primitives, CSS Modules, shared design tokens, Lucide icons, and i18next-compatible EN/DE catalogs
-- **Initial packaging:** Linux AppImage, with `.deb` as an optional second format and manual update instructions
+- **Initial packaging:** Linux x86_64 AppImage only, with manual replacement and no updater
 - **Supported platform:** Linux only for the current implementation goal
 - **Product identity:** Open Deutsch; technical package, application, protocol, and plugin identifiers use `open-deutsch`
 
@@ -77,7 +77,7 @@ Local MCP server
 - Desktop and MCP entry points reuse domain and persistence packages rather than reimplementing learner rules.
 - SQLite access must use migrations, short transactions, and a concurrency mode appropriate for the desktop and MCP processes sharing one database.
 - The plugin owns Codex-facing instructions and tool registration, not desktop UI or the canonical learner database.
-- A compatible, authenticated Codex installation is a prerequisite. Open Deutsch does not bundle Codex, collect an API key, or provide an alternate model provider.
+- A compatible, authenticated Codex installation is a prerequisite for AI actions. Open Deutsch does not bundle Codex, collect an API key, or provide an alternate model provider; local non-AI behavior remains available without it.
 - App Server operations run with a bounded working directory, explicit sandbox/approval policy, minimal tools, and only the context required by the selected learning action.
 - All processes share a redacted structured-event vocabulary that renders to bounded, human-readable local logs with correlation IDs.
 
@@ -110,7 +110,7 @@ The first implementation should prove:
 3. The desktop can run one bounded correction through App Server and persist the validated result.
 4. The renderer receives only typed application data through preload/IPC.
 5. An AppImage and the MCP helper can resolve the user-selected data root after restart through the shared bootstrap configuration.
-6. Open Deutsch opens or creates the exact related Codex task for desktop-originated Voice work, while Codex creates an exact persistent desktop activity through MCP; direct Codex-to-app launch is optional and used only when supported. Neither direction uses clipboard/manual continuation UI.
+6. Open Deutsch prepares structured listening/speaking context and returns an explicit unsupported-handoff state until the host exposes a supported exact Codex Voice bridge, while Codex creates an exact persistent desktop activity through MCP. Neither direction uses clipboard/manual continuation UI or generic launch fallbacks.
 
 ## Testability boundary
 

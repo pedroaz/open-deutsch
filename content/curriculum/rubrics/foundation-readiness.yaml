@@ -1,0 +1,13 @@
+schemaVersion: 1
+name: foundation-readiness
+requiredFields:
+  - reviewed-objectives
+  - four-skill-cefr-outcomes
+  - grammar-foundations
+  - vocabulary-foundations
+  - lesson-foundation
+  - exercise-concepts
+  - prerequisites
+  - source-and-freshness-metadata
+releaseRule: Every required A1-B2 band/domain cell must satisfy every field before release.
+reviewGate: Canonical changes require source summary, validation report, and explicit approval.

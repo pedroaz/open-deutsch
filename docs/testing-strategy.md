@@ -1,7 +1,7 @@
 # Agent-oriented testing strategy
 
-Status: accepted planning direction  
-Last updated: 2026-08-15
+Status: accepted implementation guidance
+Last updated: 2026-08-22
 
 ## Objectives
 
@@ -34,14 +34,16 @@ The default loop must be:
 
 Expose stable Make targets so a learner or agent does not need to discover package commands. Each Make target delegates to an exact pnpm workspace script:
 
-- `make test-fast` — static checks, unit tests, SQLite integration, contracts, and MCP protocol tests.
+- `make test-fast` — artifact validation, unit tests, SQLite integration, contracts, and MCP protocol tests.
+- `make check` — formatting, linting, strict type checks, and the complete fast gate.
 - `make test-e2e` — deterministic Electron Playwright journeys with fake AI/auth.
 - `make test-plugin` — deterministic plugin manifest, schema, fixture, and prompt-corpus contract checks; no host account and no model usage.
 - `make verify-plugin` — manually verify the installed plugin and one fixed live Codex workflow; warn and require confirmation because it consumes account usage.
 - `make verify-live` — manually invoke one real App Server correction verification; warn and require confirmation because it consumes account usage.
 - `make test` — exact convenience alias for `make test-fast`.
-- `make doctor` — verify required binaries, compatible Codex installation/auth state, Playwright/Electron launch support, plugin development installation, and writable temporary paths.
+- `make doctor` — verify required binaries, pinned Codex/App Server readiness, Playwright/Electron launch support, the packaged eight-tool MCP helper, scoped plugin status, and writable disposable paths without changing user state.
 - `make check` — formatting, linting, strict type checking, deterministic tests, plugin/curriculum validation, and other completion gates.
+- `make test-all` — `test-fast`, deterministic Electron journeys, and deterministic plugin/MCP checks; it never invokes live verification.
 
 Target `make test-fast` at well under one minute, preferably under 20 seconds once the project is warm. Keep slow tests separately tagged and runnable by name or affected package.
 
@@ -54,6 +56,8 @@ Target `make test-fast` at well under one minute, preferably under 20 seconds on
 - Use real SQLite for persistence tests rather than mocking repository behavior.
 - Keep small, reviewed German correction fixtures for deterministic UI tests.
 - Clean temporary data after success and preserve the failing fixture path when it helps diagnosis.
+
+Repository artifacts are checked before the test suites by `pnpm run test:artifacts`; the enforced formats, fixture inventory, UI catalog/token rules, and privacy boundaries are documented in `docs/artifact-validation.md`.
 
 ## Testing desktop-native AI without spending usage
 
@@ -92,6 +96,10 @@ Test seams should include:
 - an Xvfb-compatible command for headless Linux environments.
 
 Playwright MCP may be added as an exploratory tool so an agent can inspect and manipulate a running app through CDP when useful. It should not replace committed Playwright tests: scripted assertions, fixtures, and artifacts are the reproducible acceptance gate.
+
+### Optional Playwright MCP exploration
+
+For exploratory inspection only, start a disposable development instance with `make dev`, attach the agent's Playwright MCP tooling to that instance, and inspect the first Electron window at the standard and narrow sizes. Use only a disposable data root and fake App Server fixture; do not paste learner text, credentials, or raw protocol output into the exploration transcript. Close the owned instance with `make kill` when finished. MCP exploration may guide a fix or screenshot review, but only the committed `make test-e2e` journeys and their retained redacted artifacts determine pass/fail.
 
 ## MCP server testing
 
@@ -134,7 +142,7 @@ When implementation begins, add concise repository instructions—preferably in 
 ## Required breadth and quality cases
 
 - Cover Dashboard, Practice, Writing, Vocabulary, History, Weekly plan, and Settings/Account in both English and German, with English verified as the default. Include grammar, reading, Codex listening/speaking, and optional diagnostics within Practice.
-- Exercise all four learning areas. Speaking and listening journeys assert an exact structured handoff to Codex and return/result handling; they never emulate local audio.
+- Exercise all four learning areas. Speaking and listening journeys assert structured preparation/result handling, the exact unsupported-handoff blocker, and the absence of local audio; they never emulate Voice or offer clipboard/manual fallbacks.
 - Cover conversational-partner and strict-corrector behavior, optional placement tests, weekly planning, writing correction/comparison, the selection-aware explanation helper, grammar/vocabulary/custom lessons, simple spaced repetition, and model/reasoning preferences.
 - Add accessibility checks for keyboard operation, focus restoration, labels, reduced motion, and contrast, plus visual acceptance screenshots for the component gallery and principal light-mode screens.
 - Exercise cancellation, retry, incompatible/missing Codex, model unavailability, rate limits, denied approvals, App Server crashes, schema failures, corrupted local records, unsafe data roots, and stale MCP generations.
@@ -145,7 +153,7 @@ When implementation begins, add concise repository instructions—preferably in 
 
 - Playwright MCP as a CI dependency.
 - Live model calls from automated unit, integration, end-to-end, or CI test suites.
-- Automated Voice UI testing.
+- Automated Voice UI testing or account-consuming Voice automation. Exact Voice handoff remains a release-blocking host capability boundary.
 - Public HTTPS/tunnel testing for a personal local STDIO plugin.
 - Pixel-perfect screenshot testing for every state; representative visual acceptance coverage is required.
 - A cloud CI service before local deterministic commands are stable.

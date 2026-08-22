@@ -1,0 +1,4 @@
+interface:
+  display_name: "Curriculum Research"
+  short_description: "Research reviewed A1-B2 curriculum gaps"
+  default_prompt: "Find the next reviewed German curriculum gap and prepare a cited proposal."

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "open-deutsch": {
+      "type": "stdio",
+      "command": "open-deutsch-mcp"
+    }
+  }
+}

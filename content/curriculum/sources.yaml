@@ -1,0 +1,70 @@
+schemaVersion: 1
+sources:
+  - sourceId: curriculum-source_0000000000000001
+    title: Open Deutsch product requirements
+    repositoryPath: docs/product-requirements.md
+    publisher: Open Deutsch
+    sourceClass: repository-original
+    supportedClaims:
+      - The product requirements define the accepted everyday-life domain progression and learning boundaries.
+    retrievedOn: 2026-08-21
+    reviewedOn: 2026-08-21
+    freshness:
+      status: stable
+  - sourceId: curriculum-source_0000000000000002
+    title: Open Deutsch curriculum research mode
+    repositoryPath: docs/research-mode.md
+    publisher: Open Deutsch
+    sourceClass: repository-original
+    supportedClaims:
+      - The research mode defines A1-B2 progression, source order, staging, validation, and approval boundaries.
+    retrievedOn: 2026-08-21
+    reviewedOn: 2026-08-21
+    freshness:
+      status: stable
+  - sourceId: curriculum-source_0000000000000003
+    title: Open Deutsch accepted decisions
+    repositoryPath: docs/decisions.md
+    publisher: Open Deutsch
+    sourceClass: repository-original
+    supportedClaims:
+      - Accepted product decisions define the teaching profiles, activity boundaries, and review-gated curriculum policy.
+    retrievedOn: 2026-08-21
+    reviewedOn: 2026-08-21
+    freshness:
+      status: stable
+  - sourceId: curriculum-source_0000000000000004
+    title: "Common European Framework of Reference for Languages: CEFR Companion Volume"
+    url: https://www.coe.int/en/web/common-european-framework-reference-languages/cefr-companion-volume-and-its-language-versions
+    publisher: Council of Europe
+    sourceClass: official-framework
+    supportedClaims:
+      - The CEFR Companion Volume provides the reviewed framework and descriptor resources used to map reception, production, interaction, and mediation outcomes.
+    retrievedOn: 2026-08-21
+    reviewedOn: 2026-08-21
+    freshness:
+      status: stable
+  - sourceId: curriculum-source_0000000000000005
+    title: Anmeldung der alleinigen Wohnung oder der Hauptwohnung
+    url: https://verwaltung.bund.de/leistungsverzeichnis/DE/leistung/99115005104001/herausgeber/HH-S1000020010000000079/region/020000000000
+    publisher: Bundesportal / Freie und Hansestadt Hamburg
+    sourceClass: german-public-service
+    supportedClaims:
+      - The public-service page describes the address-registration process, the two-week registration period after moving, and region-dependent online-service requirements.
+    retrievedOn: 2026-08-21
+    reviewedOn: 2026-08-21
+    freshness:
+      status: time-sensitive
+      reviewDueOn: 2027-08-21
+  - sourceId: curriculum-source_0000000000000006
+    title: Bundesmeldegesetz § 17 Anmeldung, Abmeldung
+    url: https://www.gesetze-im-internet.de/bmg/__17.html
+    publisher: Bundesministerium der Justiz / Bundesamt für Justiz
+    sourceClass: german-public-service
+    supportedClaims:
+      - The federal statute is the primary legal source for the registration duty after moving into a dwelling.
+    retrievedOn: 2026-08-21
+    reviewedOn: 2026-08-21
+    freshness:
+      status: time-sensitive
+      reviewDueOn: 2027-08-21

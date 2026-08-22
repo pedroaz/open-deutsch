@@ -1,0 +1,14 @@
+schemaVersion: 1
+fixtures:
+  - path: tests/fixtures/fake-app-server-hang.mjs
+    purpose: Simulates bounded Codex version and initialization timeouts for cleanup tests.
+  - path: tests/fixtures/fake-codex-plugin-cli.mjs
+    purpose: Simulates scoped Codex plugin lifecycle commands while enforcing disposable configuration.
+  - path: tests/fixtures/import-time-data-environment.ts
+    purpose: Captures data-root variables at import time for isolation tests.
+  - path: tests/fixtures/lifecycle-service.mjs
+    purpose: Simulates lifecycle readiness and failure behavior.
+  - path: tests/fixtures/mcp-activity-writer.mjs
+    purpose: Writes one disposable prepared activity through the MCP-side handoff boundary.
+  - path: tests/fixtures/stubborn-child.mjs
+    purpose: Simulates a descendant that requires escalated process-group cleanup.

@@ -1,0 +1,33 @@
+appId: dev.opendeutsch.app
+productName: Open Deutsch
+artifactName: Open-Deutsch-${version}-${arch}.${ext}
+npmRebuild: false
+toolsets:
+  appimage: 1.0.3
+directories:
+  app: apps/desktop
+  output: release/appimage-spike
+extraMetadata:
+  main: spike/main.mjs
+files:
+  - package.json
+  - spike/**
+extraResources:
+  - from: content/curriculum
+    to: curriculum
+    filter:
+      - README.md
+  - from: plugins/open-deutsch
+    to: plugin
+    filter:
+      - .codex-plugin/**
+      - .mcp.json
+  - from: apps/desktop/spike/open-deutsch-mcp-spike.cjs
+    to: bin/open-deutsch-mcp-spike.cjs
+linux:
+  target:
+    - AppImage
+  category: Education
+  executableName: open-deutsch
+  syncDesktopName: true
+  synopsis: Local-first German learning companion for Codex

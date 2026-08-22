@@ -43,6 +43,19 @@ test("starts in the background, waits for readiness, reports status, and stops e
   assert.equal((await killMode({ mode: "dev", runtimeRoot })).status, "already-stopped");
 });
 
+test("waits through a readiness file write in progress", async () => {
+  const runtimeRoot = await temporaryRuntime();
+  const state = await startMode({
+    mode: "dev",
+    runtimeRoot,
+    cwd: process.cwd(),
+    command: [process.execPath, fixture, "partial-ready"],
+    timeoutMs: 2_000,
+  });
+  assert.equal(state.status, "ready");
+  assert.equal((await killMode({ mode: "dev", runtimeRoot })).status, "stopped");
+});
+
 test("cleans state when a service exits before readiness", async () => {
   const runtimeRoot = await temporaryRuntime();
   await assert.rejects(

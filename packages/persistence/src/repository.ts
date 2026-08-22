@@ -1,0 +1,3058 @@
+import { createHash, randomUUID } from "node:crypto";
+import type { DatabaseSync } from "node:sqlite";
+
+import {
+  activityIdSchema,
+  attemptIdSchema,
+  type attemptFeedbackSaveInputSchema,
+  calendarDateSchema,
+  correctionIdSchema,
+  curriculumTopicIdSchema,
+  exerciseGenerationCandidateSchema,
+  exerciseFeedbackCandidateSchema,
+  historyEntryIdSchema,
+  listeningResultSchema,
+  learnerIdSchema,
+  mistakeIdSchema,
+  modelRequestIdSchema,
+  placementResultSchema,
+  persistentHandoffIdSchema,
+  readingResultSchema,
+  reviewIdSchema,
+  sessionIdSchema,
+  strictBoundaryObject,
+  type PlacementResult,
+  type ReadingResult,
+  type ListeningResult,
+  voiceActivityContextSchema,
+  utcInstantSchema,
+  vocabularyIdSchema,
+  z,
+  type AttemptId,
+} from "@open-deutsch/contracts";
+import {
+  aiProvenanceSchema,
+  attemptFeedbackSchema,
+  correctionVocabularyCandidateSchema,
+  defaultModelPreferences,
+  exerciseAnswerSchema,
+  evaluateExerciseAnswer,
+  materializeGeneratedExerciseSet,
+  materializeGeneratedLesson,
+  learnerProfileSchema,
+  mistakeCategorySchema,
+  modelPreferencesSchema,
+  modelWorkloads,
+  objectiveEvaluationSchema,
+  scheduleVocabularyReview,
+  vocabularyEntrySchema,
+  vocabularyExampleSchema,
+  vocabularyLessonSetRequestSchema,
+  type VocabularyLessonSetRequest,
+  vocabularyReviewSchema,
+  voiceSummarySchema,
+  weeklyPlanSchema,
+  startedExerciseSnapshotSchema,
+  type MistakeCategory,
+  type LearnerProfile,
+  type ModelPreferences,
+  type VocabularyEntry,
+  type VocabularyReview,
+  type VoiceSummary,
+  type WeeklyPlan,
+} from "@open-deutsch/domain";
+
+import { type OpenDeutschDatabase, withLeasedConnection, withLeasedTransaction } from "./sqlite.js";
+import { claimIdempotentWrite, type IdempotentWriteResult } from "./idempotency.js";
+import { saveWritingAttempt, type WritingAttemptPersistence } from "./writing-attempt.js";
+
+export const preparedActivitySchema = z.strictObject({
+  activityId: activityIdSchema,
+  activityType: z.enum([
+    "writing",
+    "grammar",
+    "vocabulary-review",
+    "reading",
+    "codex-listening",
+    "voice-speaking",
+    "placement",
+    "custom-lesson",
+  ]),
+  title: z.string().min(1).max(160),
+  originSurface: z.enum(["desktop", "codex"]),
+  context: z.strictObject({
+    naturalRequest: z.string().min(1).max(1_000),
+    instructions: z.string().min(1).max(2_000).optional(),
+    curriculumTopicIds: z.array(curriculumTopicIdSchema).max(12),
+    mistakeIds: z.array(mistakeIdSchema).max(12),
+    vocabularyIds: z.array(vocabularyIdSchema).max(24),
+    voiceContext: voiceActivityContextSchema.optional(),
+  }),
+  preparedAt: utcInstantSchema,
+});
+
+const handoffOriginSurfaceSchema = z.enum(["desktop", "codex"]);
+const handoffDestinationSurfaceSchema = z.enum(["desktop", "codex", "voice"]);
+const handoffTargetKindSchema = z.enum(["desktop-activity", "codex-task", "voice-session"]);
+const handoffStatusSchema = z.enum(["prepared", "opened", "completed", "failed"]);
+
+export const persistentHandoffSchema = strictBoundaryObject({
+  handoffId: persistentHandoffIdSchema,
+  activityId: activityIdSchema,
+  originSurface: handoffOriginSurfaceSchema,
+  destinationSurface: handoffDestinationSurfaceSchema,
+  targetKind: handoffTargetKindSchema,
+  targetReference: z.string().min(1).max(256).nullable(),
+  status: handoffStatusSchema,
+  payloadVersion: z.literal(1),
+  continuationSummary: z.string().min(1).max(2_000).regex(/\S/u),
+  createdAt: utcInstantSchema,
+  updatedAt: utcInstantSchema,
+  rootGeneration: z.int().positive(),
+});
+export const persistentHandoffCreateSchema = strictBoundaryObject({
+  handoffId: persistentHandoffIdSchema,
+  activityId: activityIdSchema,
+  originSurface: handoffOriginSurfaceSchema,
+  destinationSurface: handoffDestinationSurfaceSchema,
+  targetKind: handoffTargetKindSchema,
+  payloadVersion: z.literal(1),
+  continuationSummary: z.string().min(1).max(2_000).regex(/\S/u),
+  createdAt: utcInstantSchema,
+});
+export const persistentHandoffUpdateSchema = strictBoundaryObject({
+  handoffId: persistentHandoffIdSchema,
+  targetReference: z.string().min(1).max(256).nullable(),
+  status: z.enum(["opened", "completed", "failed"]),
+  continuationSummary: z.string().min(1).max(2_000).regex(/\S/u),
+  updatedAt: utcInstantSchema,
+});
+export type PersistentHandoffRecord = z.infer<typeof persistentHandoffSchema>;
+export type PersistentHandoffCreate = z.infer<typeof persistentHandoffCreateSchema>;
+export type PersistentHandoffUpdate = z.infer<typeof persistentHandoffUpdateSchema>;
+
+const historyActivityTypeSchema = z.enum([
+  "writing",
+  "grammar",
+  "vocabulary-review",
+  "reading",
+  "codex-listening",
+  "voice-speaking",
+  "placement",
+  "custom-lesson",
+  "plan-generation",
+]);
+
+const historyFilterSchema = z.strictObject({
+  skill: z.enum(["writing", "reading", "listening", "speaking"]).optional(),
+  activityType: historyActivityTypeSchema.optional(),
+  fromDate: calendarDateSchema.optional(),
+  toDate: calendarDateSchema.optional(),
+  curriculumTopicId: curriculumTopicIdSchema.optional(),
+  mistakeCategory: z.string().min(1).max(120).optional(),
+  maximum: z.int().min(1).max(200).default(50),
+});
+const mistakePatternFilterSchema = z.strictObject({
+  fromDate: calendarDateSchema.optional(),
+  toDate: calendarDateSchema.optional(),
+  curriculumTopicId: curriculumTopicIdSchema.optional(),
+  mistakeCategory: z.string().min(1).max(120).optional(),
+  maximum: z.int().min(1).max(50).default(50),
+});
+
+export type PreparedActivityRecord = z.infer<typeof preparedActivitySchema>;
+export type HistoryFilter = z.input<typeof historyFilterSchema>;
+export type HistoryEntryRecord = Readonly<{
+  historyEntryId: string;
+  entityKind:
+    "attempt" | "correction" | "vocabulary-review" | "voice-summary" | "placement" | "plan";
+  entityId: string;
+  skill: "writing" | "reading" | "listening" | "speaking";
+  activityType: PreparedActivityRecord["activityType"] | "plan-generation";
+  title: string;
+  occurredAt: string;
+  curriculumTopicIds: readonly string[];
+  mistakeCategories: readonly string[];
+  detail:
+    | Readonly<{
+        kind: "writing-correction";
+        learnerText: string;
+        correctedText: string;
+        feedback: ReturnType<typeof attemptFeedbackSchema.parse>;
+        aiProvenance: ReturnType<typeof aiProvenanceSchema.parse>;
+        vocabularyCandidates: readonly ReturnType<
+          typeof correctionVocabularyCandidateSchema.parse
+        >[];
+        changes: readonly Readonly<{
+          category: string;
+          explanation: string;
+        }>[];
+      }>
+    | Readonly<{
+        kind: "exercise-attempt";
+        activityId: string;
+        snapshot: ReturnType<typeof startedExerciseSnapshotSchema.parse>;
+        answer: ReturnType<typeof exerciseAnswerSchema.parse>;
+        objectiveEvaluations: readonly ReturnType<typeof objectiveEvaluationSchema.parse>[];
+        feedback: ReturnType<typeof attemptFeedbackSchema.parse>;
+        suggestedAnswer: string | null;
+      }>
+    | Readonly<{
+        kind: "voice-summary";
+        scenario: VoiceSummary["scenario"];
+        duration: VoiceSummary["duration"];
+        observedIssues: VoiceSummary["observedIssues"];
+        vocabulary: VoiceSummary["vocabulary"];
+        feedback: VoiceSummary["feedback"];
+        nextSteps: VoiceSummary["nextSteps"];
+      }>
+    | Readonly<PlacementResult & { kind: "placement" }>
+    | Readonly<ReadingResult & { kind: "reading" }>
+    | Readonly<ListeningResult & { kind: "listening" }>
+    | Readonly<{ kind: "reference" }>;
+  rootGeneration: number;
+}>;
+
+export const learnerSettingsRecordSchema = strictBoundaryObject({
+  profile: learnerProfileSchema,
+  modelPreferences: modelPreferencesSchema,
+});
+export const learnerSettingsUpdateSchema = strictBoundaryObject({
+  expectedUpdatedAt: utcInstantSchema,
+  settings: learnerSettingsRecordSchema,
+});
+export type LearnerSettingsRecord = z.infer<typeof learnerSettingsRecordSchema>;
+export type LearnerSettingsUpdate = z.infer<typeof learnerSettingsUpdateSchema>;
+
+export type DashboardSnapshot = Readonly<{
+  rootGeneration: number;
+  weeklyPlan: WeeklyPlan | null;
+  preparedActivities: readonly Readonly<{
+    activityId: string;
+    activityType: PreparedActivityRecord["activityType"];
+    title: string;
+    originSurface: PreparedActivityRecord["originSurface"];
+    preparedAt: string;
+  }>[];
+  dueVocabulary: readonly Readonly<{
+    vocabularyId: string;
+    lemma: string;
+    meaning: string;
+    dueOn: string;
+    stage: number;
+  }>[];
+  recentCorrections: readonly Readonly<{
+    correctionId: string;
+    createdAt: string;
+    changedSegmentCount: number;
+  }>[];
+  recurringMistakes: readonly Readonly<{
+    mistakeId: string;
+    category: MistakeCategory;
+    occurrenceCount: number;
+    lastObservedOn: string;
+  }>[];
+}>;
+
+export type CorrectionMistakeSample = Readonly<
+  | {
+      kind: "grammar";
+      categoryKey: string;
+      occurrenceCount: number;
+      lastObservedOn: string;
+    }
+  | {
+      kind: "vocabulary";
+      categoryKey: string;
+      lemma: string;
+      occurrenceCount: number;
+      lastObservedOn: string;
+    }
+>;
+
+export type MistakePatternRecord = Readonly<{
+  category: MistakeCategory;
+  status: "single-occurrence" | "recurring";
+  occurrenceCount: number;
+  classificationSource: "inferred" | "learner-amended" | "mixed";
+  occurrences: readonly Readonly<{
+    mistakeId: string;
+    observedOn: string;
+    evidence: Readonly<{
+      beforeContext: string;
+      evidenceText: string;
+      afterContext: string;
+    }>;
+    explanation: string;
+    classificationSource: "inferred" | "learner-amended";
+  }>[];
+  targetedPractice:
+    | Readonly<{ status: "not-created" }>
+    | Readonly<{ status: "created"; activityId: string; createdAt: string }>;
+}>;
+
+export const targetedPracticeActivitySchema = strictBoundaryObject({
+  activity: preparedActivitySchema,
+  category: mistakeCategorySchema,
+  aiProvenance: aiProvenanceSchema,
+  output: exerciseGenerationCandidateSchema,
+  vocabularyEntries: z.array(vocabularyEntrySchema).max(50).default([]),
+});
+export type TargetedPracticeActivity = z.infer<typeof targetedPracticeActivitySchema>;
+export const generatedPracticeActivitySchema = strictBoundaryObject({
+  activity: preparedActivitySchema,
+  aiProvenance: aiProvenanceSchema,
+  output: exerciseGenerationCandidateSchema,
+  vocabularyEntries: z.array(vocabularyEntrySchema).max(50).default([]),
+});
+export type GeneratedPracticeActivity = z.infer<typeof generatedPracticeActivitySchema>;
+
+export const generatedActivityReadSchema = strictBoundaryObject({
+  activityId: activityIdSchema,
+  title: z.string().min(1).max(160),
+  context: preparedActivitySchema.shape.context,
+  aiProvenance: aiProvenanceSchema,
+  output: exerciseGenerationCandidateSchema,
+});
+export const generatedExerciseSetStartSchema = strictBoundaryObject({
+  activityId: activityIdSchema,
+  startedAt: utcInstantSchema,
+  feedbackModeOverride: z.enum(["immediate", "submit-at-end"]).optional(),
+  exercises: z
+    .array(
+      z.strictObject({
+        attemptId: attemptIdSchema,
+        snapshot: startedExerciseSnapshotSchema,
+      }),
+    )
+    .min(1)
+    .max(20),
+});
+export type GeneratedActivityRead = z.infer<typeof generatedActivityReadSchema>;
+export const activeGeneratedExerciseSetSchema = strictBoundaryObject({
+  startedAt: utcInstantSchema,
+  attemptIds: z.array(attemptIdSchema).min(1).max(20),
+});
+export type ActiveGeneratedExerciseSet = z.infer<typeof activeGeneratedExerciseSetSchema>;
+export type GeneratedExerciseSetStart = z.infer<typeof generatedExerciseSetStartSchema>;
+export const generatedExerciseSetCompleteSchema = strictBoundaryObject({
+  activityId: activityIdSchema,
+  completedAt: utcInstantSchema,
+  answers: z
+    .array(
+      z.strictObject({
+        attemptId: attemptIdSchema,
+        historyEntryId: historyEntryIdSchema,
+        answer: exerciseAnswerSchema,
+        aiFeedback: z
+          .strictObject({
+            modelRequestId: modelRequestIdSchema,
+            output: exerciseFeedbackCandidateSchema,
+          })
+          .optional(),
+      }),
+    )
+    .min(1)
+    .max(20),
+});
+export type GeneratedExerciseSetComplete = z.infer<typeof generatedExerciseSetCompleteSchema>;
+export const generatedExerciseSetAbandonSchema = strictBoundaryObject({
+  activityId: activityIdSchema,
+  abandonedAt: utcInstantSchema,
+});
+export type GeneratedExerciseSetAbandon = z.infer<typeof generatedExerciseSetAbandonSchema>;
+export type VocabularyRecord = Readonly<{
+  entry: VocabularyEntry;
+  revision: number;
+  updatedAt: string;
+}>;
+
+export const vocabularyReviewSessionCardSchema = strictBoundaryObject({
+  vocabularyId: vocabularyIdSchema,
+  direction: z.enum(["recognition", "production"]),
+  cue: z.string().min(1).max(500).regex(/\S/u),
+  example: vocabularyExampleSchema,
+  sourceContext: z.string().min(1).max(500).regex(/\S/u),
+  expectedAnswer: z.string().min(1).max(500).regex(/\S/u),
+  dueOn: calendarDateSchema,
+});
+export type VocabularyReviewSessionCard = z.infer<typeof vocabularyReviewSessionCardSchema>;
+
+export const vocabularyReviewSessionSchema = strictBoundaryObject({
+  sessionId: sessionIdSchema,
+  onDate: calendarDateSchema,
+  items: z.array(vocabularyReviewSessionCardSchema).max(50),
+});
+export type VocabularyReviewSession = z.infer<typeof vocabularyReviewSessionSchema>;
+
+export const vocabularyLessonSetRecordSchema = strictBoundaryObject({
+  setId: activityIdSchema,
+  title: z.string().min(1).max(160).regex(/\S/u),
+  requestedFrom: z.enum(["desktop", "codex"]),
+  naturalRequest: z.string().min(1).max(1_000).regex(/\S/u),
+  goal: z.string().min(1).max(500).nullable(),
+  topic: z.string().min(1).max(160).nullable(),
+  curriculumTopicIds: z.array(curriculumTopicIdSchema).max(12),
+  mistakeCategories: z.array(z.string().min(1).max(120).regex(/\S/u)).max(12),
+  createdAt: utcInstantSchema,
+  items: z
+    .array(
+      strictBoundaryObject({
+        position: z.int().min(0).max(49),
+        vocabularyId: vocabularyIdSchema,
+      }),
+    )
+    .max(50),
+});
+export type VocabularyLessonSetRecord = z.infer<typeof vocabularyLessonSetRecordSchema>;
+const generatedExerciseHistorySchema = strictBoundaryObject({
+  kind: z.literal("exercise-attempt"),
+  snapshot: startedExerciseSnapshotSchema,
+  answer: exerciseAnswerSchema,
+  objectiveEvaluations: z.array(objectiveEvaluationSchema).min(1).max(12),
+  feedback: attemptFeedbackSchema,
+  suggestedAnswer: z.string().min(1).max(12_000).nullable(),
+});
+export const generatedExerciseAnswerSaveSchema = strictBoundaryObject({
+  activityId: activityIdSchema,
+  attemptId: attemptIdSchema,
+  submittedAt: utcInstantSchema,
+  answer: exerciseAnswerSchema,
+});
+export type GeneratedExerciseAnswerSave = z.infer<typeof generatedExerciseAnswerSaveSchema>;
+
+function stringifyBounded(value: unknown, maximumBytes = 262_144): string {
+  if (value === undefined) throw new Error("OD_REPOSITORY_JSON_INVALID");
+  const serialized = JSON.stringify(value);
+  if (Buffer.byteLength(serialized, "utf8") > maximumBytes) {
+    throw new Error("OD_REPOSITORY_JSON_TOO_LARGE");
+  }
+  return serialized;
+}
+
+function insertActivityVocabularyCandidates(
+  connection: DatabaseSync,
+  entries: readonly VocabularyEntry[],
+  activityId: string,
+  createdAt: string,
+): void {
+  const insert = connection.prepare(
+    `INSERT INTO vocabulary_entries (
+      vocabulary_id, lemma, meaning, lexeme_json, examples_json, source_json,
+      created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  );
+  for (const entryValue of entries) {
+    const entry = vocabularyEntrySchema.parse(entryValue);
+    if (
+      entry.state.status !== "candidate" ||
+      entry.source.kind !== "activity" ||
+      entry.source.activityId !== activityId
+    ) {
+      throw new Error("OD_GENERATED_PRACTICE_VOCABULARY_INVALID");
+    }
+    insert.run(
+      entry.vocabularyId,
+      entry.lemma,
+      entry.meaning,
+      stringifyBounded(entry.lexeme),
+      stringifyBounded(entry.examples),
+      stringifyBounded(entry.source),
+      createdAt,
+      createdAt,
+    );
+  }
+}
+
+function parseJson(value: unknown): unknown {
+  return JSON.parse(String(value)) as unknown;
+}
+
+function persistentHandoffFromRow(row: Record<string, unknown>): PersistentHandoffRecord {
+  return persistentHandoffSchema.parse({
+    handoffId: row["handoff_id"],
+    activityId: row["activity_id"],
+    originSurface: row["origin_surface"],
+    destinationSurface: row["destination_surface"],
+    targetKind: row["target_kind"],
+    targetReference: row["target_reference"],
+    status: row["status"],
+    payloadVersion: row["payload_version"],
+    continuationSummary: row["continuation_summary"],
+    createdAt: row["created_at"],
+    updatedAt: row["updated_at"],
+    rootGeneration: row["root_generation"],
+  });
+}
+
+function booleanFromSqlite(value: unknown): boolean {
+  if (value === 0) return false;
+  if (value === 1) return true;
+  throw new Error("OD_LEARNER_SETTINGS_INVALID");
+}
+
+function modelPreferenceColumns(preference: ModelPreferences[(typeof modelWorkloads)[number]]) {
+  return {
+    modelMode: preference.model.mode,
+    modelId: preference.model.mode === "exact" ? preference.model.modelId : null,
+    effortMode: preference.effort.mode,
+    semanticEffort: preference.effort.mode === "semantic" ? preference.effort.effort : null,
+    effortId: preference.effort.mode === "exact" ? preference.effort.effortId : null,
+  };
+}
+
+function writeModelPreferences(
+  connection: DatabaseSync,
+  learnerId: string,
+  preferences: ModelPreferences,
+  updatedAt: string,
+) {
+  connection.prepare(`DELETE FROM model_preference_overrides WHERE learner_id = ?`).run(learnerId);
+  const insert = connection.prepare(
+    `INSERT INTO model_preference_overrides (
+      learner_id, workload, model_mode, model_id, effort_mode,
+      semantic_effort, effort_id, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  );
+  for (const workload of modelWorkloads) {
+    const preference = preferences[workload];
+    if (JSON.stringify(preference) === JSON.stringify(defaultModelPreferences[workload])) continue;
+    const columns = modelPreferenceColumns(preference);
+    insert.run(
+      learnerId,
+      workload,
+      columns.modelMode,
+      columns.modelId,
+      columns.effortMode,
+      columns.semanticEffort,
+      columns.effortId,
+      updatedAt,
+    );
+  }
+}
+
+function readLearnerSettingsFromConnection(
+  connection: DatabaseSync,
+  learnerId: string,
+): LearnerSettingsRecord | undefined {
+  const row = connection
+    .prepare(
+      `SELECT p.*, s.ui_locale, s.teaching_language, s.teaching_profile_id,
+        s.correction_timing, s.correction_coverage, s.show_concise_explanation,
+        s.show_natural_alternative
+       FROM learner_profiles p
+       JOIN learner_settings s ON s.learner_id = p.learner_id
+       WHERE p.learner_id = ?`,
+    )
+    .get(learnerId) as Record<string, unknown> | undefined;
+  if (!row) return undefined;
+
+  const strings = (table: "learner_interests" | "learner_preferred_topics") =>
+    connection
+      .prepare(`SELECT value FROM ${table} WHERE learner_id = ? ORDER BY position`)
+      .all(learnerId)
+      .map((entry) => String(entry["value"]));
+  const insights = (group: "strength" | "weakness") =>
+    connection
+      .prepare(
+        `SELECT curriculum_topic_id, label, note, confidence, source, learner_edited, updated_at
+         FROM learner_profile_insights
+         WHERE learner_id = ? AND insight_group = ? ORDER BY position`,
+      )
+      .all(learnerId, group)
+      .map((entry) => ({
+        ...(entry["curriculum_topic_id"] === null ? {} : { topicId: entry["curriculum_topic_id"] }),
+        label: entry["label"],
+        ...(entry["note"] === null ? {} : { note: entry["note"] }),
+        confidence: entry["confidence"],
+        source: entry["source"],
+        learnerEdited: booleanFromSqlite(entry["learner_edited"]),
+        updatedAt: entry["updated_at"],
+      }));
+
+  const levelEstimate = {
+    currentLevel: row["current_level"],
+    targetLevel: row["target_level"],
+    basis: row["level_basis"],
+    ...(row["optional_diagnostic_completed_on"] === null
+      ? {}
+      : { optionalDiagnosticCompletedOn: row["optional_diagnostic_completed_on"] }),
+    updatedAt: row["level_updated_at"],
+  };
+  const profile = learnerProfileSchema.parse({
+    schemaVersion: row["schema_version"],
+    learnerId: row["learner_id"],
+    levelEstimate,
+    everydayGermanyGoal: row["everyday_germany_goal"],
+    motivation: row["motivation"],
+    interests: strings("learner_interests"),
+    preferredTopics: strings("learner_preferred_topics"),
+    availableStudyMinutesPerWeek: row["available_study_minutes_per_week"],
+    correctionPreferences: {
+      timing: row["correction_timing"],
+      coverage: row["correction_coverage"],
+      showConciseExplanation: booleanFromSqlite(row["show_concise_explanation"]),
+      showNaturalAlternative: booleanFromSqlite(row["show_natural_alternative"]),
+    },
+    onboardingState: row["onboarding_state"],
+    inferredStrengths: insights("strength"),
+    inferredWeaknesses: insights("weakness"),
+    uiLocale: row["ui_locale"],
+    teachingLanguage: row["teaching_language"],
+    defaultTeachingProfileId: row["teaching_profile_id"],
+    createdAt: row["created_at"],
+    updatedAt: row["updated_at"],
+  });
+
+  const preferenceRows = connection
+    .prepare(
+      `SELECT d.workload,
+        COALESCE(o.model_mode, d.model_mode) AS model_mode,
+        COALESCE(o.model_id, d.model_id) AS model_id,
+        COALESCE(o.effort_mode, d.effort_mode) AS effort_mode,
+        COALESCE(o.semantic_effort, d.semantic_effort) AS semantic_effort,
+        COALESCE(o.effort_id, d.effort_id) AS effort_id
+       FROM model_preference_defaults d
+       LEFT JOIN model_preference_overrides o
+         ON o.workload = d.workload AND o.learner_id = ?
+       ORDER BY d.workload`,
+    )
+    .all(learnerId);
+  const preferenceEntries = preferenceRows.map((entry) => [
+    entry["workload"],
+    {
+      model:
+        entry["model_mode"] === "automatic"
+          ? { mode: "automatic" }
+          : { mode: "exact", modelId: entry["model_id"] },
+      effort:
+        entry["effort_mode"] === "semantic"
+          ? { mode: "semantic", effort: entry["semantic_effort"] }
+          : { mode: "exact", effortId: entry["effort_id"] },
+    },
+  ]);
+  const modelPreferences = modelPreferencesSchema.parse({
+    schemaVersion: 1,
+    ...Object.fromEntries(preferenceEntries),
+  });
+  return learnerSettingsRecordSchema.parse({ profile, modelPreferences });
+}
+
+function insertOrderedStrings(
+  connection: DatabaseSync,
+  table: "learner_interests" | "learner_preferred_topics",
+  learnerId: string,
+  values: readonly string[],
+) {
+  const statement = connection.prepare(
+    `INSERT INTO ${table} (learner_id, position, value) VALUES (?, ?, ?)`,
+  );
+  for (const [position, value] of values.entries()) statement.run(learnerId, position, value);
+}
+
+function insertInsights(
+  connection: DatabaseSync,
+  learnerId: string,
+  group: "strength" | "weakness",
+  values: LearnerProfile["inferredStrengths"],
+) {
+  const statement = connection.prepare(
+    `INSERT INTO learner_profile_insights (
+      learner_id, insight_group, position, curriculum_topic_id, label, note,
+      confidence, source, learner_edited, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  );
+  for (const [position, insight] of values.entries()) {
+    statement.run(
+      learnerId,
+      group,
+      position,
+      insight.topicId ?? null,
+      insight.label,
+      insight.note ?? null,
+      insight.confidence,
+      insight.source,
+      insight.learnerEdited ? 1 : 0,
+      insight.updatedAt,
+    );
+  }
+}
+
+export class OpenDeutschRepository {
+  readonly #database: OpenDeutschDatabase;
+
+  constructor(database: OpenDeutschDatabase) {
+    this.#database = database;
+  }
+
+  async saveWritingAttempt(record: WritingAttemptPersistence): Promise<void> {
+    await saveWritingAttempt(this.#database, record);
+  }
+
+  async hasAcknowledgedFirstAiDisclosure(): Promise<boolean> {
+    return withLeasedConnection(
+      this.#database,
+      (connection) =>
+        connection
+          .prepare(`SELECT 1 FROM privacy_acknowledgements WHERE disclosure = 'first-ai-action'`)
+          .get() !== undefined,
+    );
+  }
+
+  async acknowledgeFirstAiDisclosure(acknowledgedAtValue: string): Promise<void> {
+    const acknowledgedAt = utcInstantSchema.parse(acknowledgedAtValue);
+    await withLeasedTransaction(this.#database, (connection) => {
+      connection
+        .prepare(
+          `INSERT OR IGNORE INTO privacy_acknowledgements (disclosure, acknowledged_at)
+           VALUES ('first-ai-action', ?)`,
+        )
+        .run(acknowledgedAt);
+    });
+  }
+
+  async readLearnerSettings(learnerIdValue: string): Promise<LearnerSettingsRecord | undefined> {
+    const learnerId = learnerIdSchema.parse(learnerIdValue);
+    return withLeasedConnection(this.#database, (connection) =>
+      readLearnerSettingsFromConnection(connection, learnerId),
+    );
+  }
+
+  async readCurrentLearnerSettings(): Promise<LearnerSettingsRecord | undefined> {
+    return withLeasedConnection(this.#database, (connection) => {
+      const row = connection
+        .prepare(
+          `SELECT learner_id FROM learner_profiles
+           ORDER BY created_at ASC, learner_id ASC LIMIT 1`,
+        )
+        .get() as { learner_id: string } | undefined;
+      return row
+        ? readLearnerSettingsFromConnection(connection, learnerIdSchema.parse(row.learner_id))
+        : undefined;
+    });
+  }
+
+  async createLearnerSettings(
+    settingsValue: LearnerSettingsRecord,
+  ): Promise<LearnerSettingsRecord> {
+    const settings = learnerSettingsRecordSchema.parse(settingsValue);
+    const profile = settings.profile;
+    return withLeasedTransaction(this.#database, (connection) => {
+      connection
+        .prepare(
+          `INSERT INTO learner_profiles (
+            learner_id, schema_version, current_level, target_level, level_basis,
+            optional_diagnostic_completed_on, level_updated_at, everyday_germany_goal,
+            motivation, available_study_minutes_per_week, onboarding_state, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          profile.learnerId,
+          profile.schemaVersion,
+          profile.levelEstimate.currentLevel,
+          profile.levelEstimate.targetLevel,
+          profile.levelEstimate.basis,
+          profile.levelEstimate.optionalDiagnosticCompletedOn ?? null,
+          profile.levelEstimate.updatedAt,
+          profile.everydayGermanyGoal,
+          profile.motivation,
+          profile.availableStudyMinutesPerWeek,
+          profile.onboardingState,
+          profile.createdAt,
+          profile.updatedAt,
+        );
+      connection
+        .prepare(
+          `INSERT INTO learner_settings (
+            learner_id, ui_locale, teaching_language, teaching_profile_id,
+            correction_timing, correction_coverage, show_concise_explanation,
+            show_natural_alternative, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          profile.learnerId,
+          profile.uiLocale,
+          profile.teachingLanguage,
+          profile.defaultTeachingProfileId,
+          profile.correctionPreferences.timing,
+          profile.correctionPreferences.coverage,
+          profile.correctionPreferences.showConciseExplanation ? 1 : 0,
+          profile.correctionPreferences.showNaturalAlternative ? 1 : 0,
+          profile.updatedAt,
+        );
+      insertOrderedStrings(connection, "learner_interests", profile.learnerId, profile.interests);
+      insertOrderedStrings(
+        connection,
+        "learner_preferred_topics",
+        profile.learnerId,
+        profile.preferredTopics,
+      );
+      insertInsights(connection, profile.learnerId, "strength", profile.inferredStrengths);
+      insertInsights(connection, profile.learnerId, "weakness", profile.inferredWeaknesses);
+      writeModelPreferences(
+        connection,
+        profile.learnerId,
+        settings.modelPreferences,
+        profile.updatedAt,
+      );
+      const stored = readLearnerSettingsFromConnection(connection, profile.learnerId);
+      if (!stored) throw new Error("OD_LEARNER_SETTINGS_NOT_FOUND");
+      return stored;
+    });
+  }
+
+  async updateLearnerSettings(updateValue: LearnerSettingsUpdate): Promise<LearnerSettingsRecord> {
+    const update = learnerSettingsUpdateSchema.parse(updateValue);
+    const profile = update.settings.profile;
+    if (profile.updatedAt <= update.expectedUpdatedAt) {
+      throw new Error("OD_LEARNER_SETTINGS_TIMESTAMP_NOT_ADVANCING");
+    }
+    return withLeasedTransaction(this.#database, (connection) => {
+      const result = connection
+        .prepare(
+          `UPDATE learner_profiles SET
+            current_level = ?, target_level = ?, level_basis = ?,
+            optional_diagnostic_completed_on = ?, level_updated_at = ?,
+            everyday_germany_goal = ?, motivation = ?, available_study_minutes_per_week = ?,
+            onboarding_state = ?, updated_at = ?
+           WHERE learner_id = ? AND created_at = ? AND updated_at = ?`,
+        )
+        .run(
+          profile.levelEstimate.currentLevel,
+          profile.levelEstimate.targetLevel,
+          profile.levelEstimate.basis,
+          profile.levelEstimate.optionalDiagnosticCompletedOn ?? null,
+          profile.levelEstimate.updatedAt,
+          profile.everydayGermanyGoal,
+          profile.motivation,
+          profile.availableStudyMinutesPerWeek,
+          profile.onboardingState,
+          profile.updatedAt,
+          profile.learnerId,
+          profile.createdAt,
+          update.expectedUpdatedAt,
+        );
+      if (result.changes !== 1) throw new Error("OD_LEARNER_SETTINGS_CONFLICT");
+      const settingsResult = connection
+        .prepare(
+          `UPDATE learner_settings SET ui_locale = ?, teaching_language = ?,
+            teaching_profile_id = ?, correction_timing = ?, correction_coverage = ?,
+            show_concise_explanation = ?, show_natural_alternative = ?, updated_at = ?
+           WHERE learner_id = ?`,
+        )
+        .run(
+          profile.uiLocale,
+          profile.teachingLanguage,
+          profile.defaultTeachingProfileId,
+          profile.correctionPreferences.timing,
+          profile.correctionPreferences.coverage,
+          profile.correctionPreferences.showConciseExplanation ? 1 : 0,
+          profile.correctionPreferences.showNaturalAlternative ? 1 : 0,
+          profile.updatedAt,
+          profile.learnerId,
+        );
+      if (settingsResult.changes !== 1) throw new Error("OD_LEARNER_SETTINGS_CONFLICT");
+      for (const table of [
+        "learner_interests",
+        "learner_preferred_topics",
+        "learner_profile_insights",
+      ] as const) {
+        connection.prepare(`DELETE FROM ${table} WHERE learner_id = ?`).run(profile.learnerId);
+      }
+      insertOrderedStrings(connection, "learner_interests", profile.learnerId, profile.interests);
+      insertOrderedStrings(
+        connection,
+        "learner_preferred_topics",
+        profile.learnerId,
+        profile.preferredTopics,
+      );
+      insertInsights(connection, profile.learnerId, "strength", profile.inferredStrengths);
+      insertInsights(connection, profile.learnerId, "weakness", profile.inferredWeaknesses);
+      writeModelPreferences(
+        connection,
+        profile.learnerId,
+        update.settings.modelPreferences,
+        profile.updatedAt,
+      );
+      const stored = readLearnerSettingsFromConnection(connection, profile.learnerId);
+      if (!stored) throw new Error("OD_LEARNER_SETTINGS_NOT_FOUND");
+      return stored;
+    });
+  }
+
+  async addVocabularyCandidate(
+    entryValue: VocabularyEntry,
+    createdAtValue: string,
+    idempotencyKey: string,
+  ): Promise<IdempotentWriteResult> {
+    const entry = vocabularyEntrySchema.parse(entryValue);
+    const createdAt = utcInstantSchema.parse(createdAtValue);
+    if (entry.state.status !== "candidate") throw new Error("OD_VOCABULARY_CANDIDATE_REQUIRED");
+    return withLeasedTransaction(this.#database, (connection) => {
+      const claim = claimIdempotentWrite(connection, {
+        operation: "vocabulary-candidate",
+        idempotencyKey,
+        request: entry,
+        entityId: entry.vocabularyId,
+        recordedAt: createdAt,
+      });
+      if (claim.replayed) return claim;
+      connection
+        .prepare(
+          `INSERT INTO vocabulary_entries (
+            vocabulary_id, lemma, meaning, lexeme_json, examples_json, source_json,
+            created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          entry.vocabularyId,
+          entry.lemma,
+          entry.meaning,
+          stringifyBounded(entry.lexeme),
+          stringifyBounded(entry.examples),
+          stringifyBounded(entry.source),
+          createdAt,
+          createdAt,
+        );
+      return claim;
+    });
+  }
+
+  async saveVocabularyLessonSet(
+    requestValue: VocabularyLessonSetRequest,
+    entriesValue: readonly VocabularyEntry[],
+    setIdValue: string,
+    createdAtValue: string,
+    idempotencyKey: string,
+  ): Promise<IdempotentWriteResult> {
+    const request = vocabularyLessonSetRequestSchema.parse(requestValue);
+    const entries = z.array(vocabularyEntrySchema).max(50).parse(entriesValue);
+    const setId = activityIdSchema.parse(setIdValue);
+    const createdAt = utcInstantSchema.parse(createdAtValue);
+    if (entries.length === 0) throw new Error("OD_VOCABULARY_LESSON_SET_EMPTY");
+    if (
+      new Set(entries.map(({ vocabularyId }) => vocabularyId)).size !== entries.length ||
+      entries.some(({ state }) => state.status !== "candidate")
+    ) {
+      throw new Error("OD_VOCABULARY_LESSON_SET_ENTRIES_INVALID");
+    }
+    return withLeasedTransaction(this.#database, (connection) => {
+      const claim = claimIdempotentWrite(connection, {
+        operation: "vocabulary-candidate",
+        idempotencyKey,
+        request: { request, entries, setId },
+        entityId: setId,
+        recordedAt: createdAt,
+      });
+      if (claim.replayed) return claim;
+      connection
+        .prepare(
+          `INSERT INTO vocabulary_lesson_sets (
+            set_id, title, requested_from, natural_request, source_json, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          setId,
+          request.title,
+          request.requestedFrom,
+          request.naturalRequest,
+          stringifyBounded({
+            goal: request.goal ?? null,
+            topic: request.topic ?? null,
+            curriculumTopicIds: request.curriculumTopicIds,
+            mistakeCategories: request.mistakeCategories,
+          }),
+          createdAt,
+        );
+      const insertEntry = connection.prepare(
+        `INSERT INTO vocabulary_entries (
+          vocabulary_id, lemma, meaning, lexeme_json, examples_json, source_json,
+          created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      );
+      const insertItem = connection.prepare(
+        `INSERT INTO vocabulary_lesson_set_items (set_id, position, vocabulary_id)
+         VALUES (?, ?, ?)`,
+      );
+      for (const [position, entry] of entries.entries()) {
+        const existing = connection
+          .prepare(`SELECT status, lemma, meaning FROM vocabulary_entries WHERE vocabulary_id = ?`)
+          .get(entry.vocabularyId) as Record<string, unknown> | undefined;
+        if (existing === undefined) {
+          insertEntry.run(
+            entry.vocabularyId,
+            entry.lemma,
+            entry.meaning,
+            stringifyBounded(entry.lexeme),
+            stringifyBounded(entry.examples),
+            stringifyBounded(entry.source),
+            createdAt,
+            createdAt,
+          );
+        } else if (
+          existing["status"] !== "candidate" ||
+          existing["lemma"] !== entry.lemma ||
+          existing["meaning"] !== entry.meaning
+        ) {
+          throw new Error("OD_VOCABULARY_LESSON_SET_ENTRY_CONFLICT");
+        }
+        insertItem.run(setId, position, entry.vocabularyId);
+      }
+      return claim;
+    });
+  }
+
+  async listVocabularyLessonSets(): Promise<readonly VocabularyLessonSetRecord[]> {
+    return withLeasedConnection(this.#database, (connection) => {
+      const sets = connection
+        .prepare(
+          `SELECT set_id, title, requested_from, natural_request, source_json, created_at
+           FROM vocabulary_lesson_sets ORDER BY created_at DESC, set_id LIMIT 50`,
+        )
+        .all() as Record<string, unknown>[];
+      return Object.freeze(
+        sets.map((row) => {
+          const items = connection
+            .prepare(
+              `SELECT position, vocabulary_id FROM vocabulary_lesson_set_items
+               WHERE set_id = ? ORDER BY position`,
+            )
+            .all(z.string().parse(row["set_id"]))
+            .map((item) => ({
+              position: z.int().min(0).max(49).parse(item["position"]),
+              vocabularyId: vocabularyIdSchema.parse(item["vocabulary_id"]),
+            }));
+          const source = strictBoundaryObject({
+            goal: z.string().min(1).max(500).nullable(),
+            topic: z.string().min(1).max(160).nullable(),
+            curriculumTopicIds: z.array(curriculumTopicIdSchema).max(12),
+            mistakeCategories: z.array(z.string().min(1).max(120)).max(12),
+          }).parse(parseJson(row["source_json"]));
+          return vocabularyLessonSetRecordSchema.parse({
+            setId: row["set_id"],
+            title: row["title"],
+            requestedFrom: row["requested_from"],
+            naturalRequest: row["natural_request"],
+            ...source,
+            createdAt: row["created_at"],
+            items,
+          });
+        }),
+      );
+    });
+  }
+
+  async reviewVocabularyCard(
+    input: Readonly<{
+      vocabularyId: string;
+      grade: VocabularyReview["transition"]["result"]["grade"];
+      reviewedAt: string;
+      reviewId: string;
+      historyEntryId?: string;
+      idempotencyKey: string;
+    }>,
+  ): Promise<IdempotentWriteResult> {
+    const vocabularyId = vocabularyIdSchema.parse(input.vocabularyId);
+    const reviewedAt = utcInstantSchema.parse(input.reviewedAt);
+    const reviewId = reviewIdSchema.parse(input.reviewId);
+    const entry = await withLeasedConnection(this.#database, (connection) => {
+      const row = connection
+        .prepare(`SELECT * FROM vocabulary_entries WHERE vocabulary_id = ? AND status = 'active'`)
+        .get(vocabularyId) as Record<string, unknown> | undefined;
+      if (!row) throw new Error("OD_VOCABULARY_NOT_ACTIVE");
+      return vocabularyEntryFromRow(row);
+    });
+    if (entry.state.status !== "active") throw new Error("OD_VOCABULARY_NOT_ACTIVE");
+    const review = scheduleVocabularyReview({
+      vocabularyId,
+      expectedActiveState: entry.state,
+      reviewId,
+      reviewedAt,
+      grade: input.grade,
+    });
+    return this.applyVocabularyReview(review, input.idempotencyKey, input.historyEntryId);
+  }
+
+  async confirmVocabulary(
+    vocabularyId: string,
+    confirmedAtValue: string,
+    dueOnValue: string,
+    idempotencyKey: string,
+  ): Promise<IdempotentWriteResult> {
+    vocabularyId = vocabularyIdSchema.parse(vocabularyId);
+    const confirmedAt = utcInstantSchema.parse(confirmedAtValue);
+    const dueOn = calendarDateSchema.parse(dueOnValue);
+    if (dueOn < confirmedAt.slice(0, 10)) {
+      throw new Error("OD_VOCABULARY_CONFIRM_DATE_INVALID");
+    }
+    return withLeasedTransaction(this.#database, (connection) => {
+      const claim = claimIdempotentWrite(connection, {
+        operation: "vocabulary-confirmation",
+        idempotencyKey,
+        request: { vocabularyId, confirmedAt, dueOn },
+        entityId: vocabularyId,
+        recordedAt: confirmedAt,
+      });
+      if (claim.replayed) return claim;
+      const result = connection
+        .prepare(
+          `UPDATE vocabulary_entries SET status = 'active', confirmed_at = ?, due_on = ?, stage = 1,
+            updated_at = ? WHERE vocabulary_id = ? AND status = 'candidate'`,
+        )
+        .run(confirmedAt, dueOn, confirmedAt, vocabularyId);
+      if (result.changes !== 1) throw new Error("OD_VOCABULARY_CONFIRM_STATE_CONFLICT");
+      return claim;
+    });
+  }
+
+  async listVocabularyRecords(
+    status?: "candidate" | "active" | "suspended",
+  ): Promise<readonly VocabularyRecord[]> {
+    return withLeasedConnection(this.#database, (connection) => {
+      const rows = status
+        ? connection
+            .prepare(
+              `SELECT * FROM vocabulary_entries WHERE status = ? ORDER BY lemma, vocabulary_id`,
+            )
+            .all(status)
+        : connection
+            .prepare(`SELECT * FROM vocabulary_entries ORDER BY lemma, vocabulary_id`)
+            .all();
+      return rows.map((row) => {
+        const record = row as Record<string, unknown>;
+        return Object.freeze({
+          entry: vocabularyEntryFromRow(record),
+          revision: z.int().nonnegative().parse(record["revision"]),
+          updatedAt: utcInstantSchema.parse(record["updated_at"]),
+        });
+      });
+    });
+  }
+
+  async editVocabulary(
+    input: Readonly<{
+      vocabularyId: string;
+      expectedRevision: number;
+      lemma: string;
+      meaning: string;
+      example: { german: string; meaning: string };
+      updatedAt: string;
+    }>,
+  ): Promise<void> {
+    const vocabularyId = vocabularyIdSchema.parse(input.vocabularyId);
+    const updatedAt = utcInstantSchema.parse(input.updatedAt);
+    const lemma = z.string().min(1).max(160).regex(/\S/u).parse(input.lemma);
+    const meaning = z.string().min(1).max(500).regex(/\S/u).parse(input.meaning);
+    const examples = z.array(vocabularyExampleSchema).length(1).parse([input.example]);
+    await withLeasedTransaction(this.#database, (connection) => {
+      const result = connection
+        .prepare(
+          `UPDATE vocabulary_entries SET lemma = ?, meaning = ?, examples_json = ?,
+            revision = revision + 1, updated_at = ?
+           WHERE vocabulary_id = ? AND revision = ? AND updated_at < ?`,
+        )
+        .run(
+          lemma,
+          meaning,
+          stringifyBounded(examples),
+          updatedAt,
+          vocabularyId,
+          z.int().nonnegative().parse(input.expectedRevision),
+          updatedAt,
+        );
+      if (result.changes !== 1) throw new Error("OD_VOCABULARY_STATE_CONFLICT");
+    });
+  }
+
+  async suspendVocabulary(
+    input: Readonly<{
+      vocabularyId: string;
+      expectedRevision: number;
+      suspendedAt: string;
+      reason: "learner-paused" | "duplicate" | "not-useful" | "other";
+    }>,
+  ): Promise<void> {
+    const vocabularyId = vocabularyIdSchema.parse(input.vocabularyId);
+    const suspendedAt = utcInstantSchema.parse(input.suspendedAt);
+    await withLeasedTransaction(this.#database, (connection) => {
+      const result = connection
+        .prepare(
+          `UPDATE vocabulary_entries SET status = 'suspended', suspended_at = ?,
+            suspension_reason = ?, revision = revision + 1, updated_at = ?
+           WHERE vocabulary_id = ? AND status = 'active' AND revision = ?`,
+        )
+        .run(
+          suspendedAt,
+          input.reason,
+          suspendedAt,
+          vocabularyId,
+          z.int().nonnegative().parse(input.expectedRevision),
+        );
+      if (result.changes !== 1) throw new Error("OD_VOCABULARY_STATE_CONFLICT");
+    });
+  }
+
+  async resumeVocabulary(
+    input: Readonly<{
+      vocabularyId: string;
+      expectedRevision: number;
+      resumedAt: string;
+    }>,
+  ): Promise<void> {
+    const vocabularyId = vocabularyIdSchema.parse(input.vocabularyId);
+    const resumedAt = utcInstantSchema.parse(input.resumedAt);
+    await withLeasedTransaction(this.#database, (connection) => {
+      const result = connection
+        .prepare(
+          `UPDATE vocabulary_entries SET status = 'active', suspended_at = NULL,
+            suspension_reason = NULL, revision = revision + 1, updated_at = ?
+           WHERE vocabulary_id = ? AND status = 'suspended' AND revision = ?`,
+        )
+        .run(resumedAt, vocabularyId, z.int().nonnegative().parse(input.expectedRevision));
+      if (result.changes !== 1) throw new Error("OD_VOCABULARY_STATE_CONFLICT");
+    });
+  }
+
+  async deleteVocabulary(vocabularyIdValue: string, deletedAtValue: string): Promise<void> {
+    const vocabularyId = vocabularyIdSchema.parse(vocabularyIdValue);
+    const deletedAt = utcInstantSchema.parse(deletedAtValue);
+    await withLeasedTransaction(this.#database, (connection) => {
+      connection
+        .prepare(`INSERT INTO vocabulary_deletions (vocabulary_id, deleted_at) VALUES (?, ?)`)
+        .run(vocabularyId, deletedAt);
+      const result = connection
+        .prepare(`DELETE FROM vocabulary_entries WHERE vocabulary_id = ?`)
+        .run(vocabularyId);
+      if (result.changes !== 1) throw new Error("OD_VOCABULARY_NOT_FOUND");
+    });
+  }
+
+  async deleteAttempt(
+    attemptIdValue: string,
+    deletedAtValue: string,
+  ): Promise<IdempotentWriteResult> {
+    const attemptId = attemptIdSchema.parse(attemptIdValue);
+    const deletedAt = utcInstantSchema.parse(deletedAtValue);
+    return withLeasedTransaction(this.#database, (connection) => {
+      const prior = connection
+        .prepare(`SELECT deleted_at FROM attempt_deletions WHERE attempt_id = ?`)
+        .get(attemptId);
+      if (prior !== undefined) return Object.freeze({ replayed: true });
+      connection
+        .prepare(`INSERT INTO attempt_deletions (attempt_id, deleted_at) VALUES (?, ?) `)
+        .run(attemptId, deletedAt);
+      const result = connection.prepare(`DELETE FROM attempts WHERE attempt_id = ?`).run(attemptId);
+      if (result.changes !== 1) throw new Error("OD_ATTEMPT_NOT_FOUND");
+      return Object.freeze({ replayed: false });
+    });
+  }
+
+  async amendMistakeClassification(
+    input: Readonly<{
+      amendmentId: string;
+      mistakeId: string;
+      effectiveCategory: MistakeCategory;
+      note?: string;
+      amendedAt: string;
+    }>,
+  ): Promise<void> {
+    if (!/^amendment_[0-9a-z]{16,64}$/u.test(input.amendmentId)) {
+      throw new Error("OD_MISTAKE_AMENDMENT_ID_INVALID");
+    }
+    const mistakeId = mistakeIdSchema.parse(input.mistakeId);
+    const amendedAt = utcInstantSchema.parse(input.amendedAt);
+    const parsedCategory = mistakeCategorySchema.safeParse(input.effectiveCategory);
+    if (!parsedCategory.success) throw new Error("OD_MISTAKE_CATEGORY_INVALID");
+    const nextCategory = stringifyBounded(parsedCategory.data, 16_384);
+    if (input.note !== undefined && (input.note.trim().length === 0 || input.note.length > 500)) {
+      throw new Error("OD_MISTAKE_AMENDMENT_NOTE_INVALID");
+    }
+    await withLeasedTransaction(this.#database, (connection) => {
+      const current = connection
+        .prepare(`SELECT effective_category_json FROM mistakes WHERE mistake_id = ?`)
+        .get(mistakeId) as { effective_category_json: string } | undefined;
+      if (current === undefined) throw new Error("OD_MISTAKE_NOT_FOUND");
+      const currentCategory = mistakeCategorySchema.safeParse(
+        parseJson(current.effective_category_json),
+      );
+      if (!currentCategory.success) throw new Error("OD_MISTAKE_CATEGORY_INVALID");
+      if (stringifyBounded(currentCategory.data, 16_384) === nextCategory) {
+        throw new Error("OD_MISTAKE_AMENDMENT_NO_CHANGE");
+      }
+      connection
+        .prepare(
+          `INSERT INTO mistake_amendments (
+            amendment_id, mistake_id, previous_category_json, amended_category_json, note, amended_at
+          ) VALUES (?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          input.amendmentId,
+          mistakeId,
+          current.effective_category_json,
+          nextCategory,
+          input.note ?? null,
+          amendedAt,
+        );
+      connection
+        .prepare(
+          `UPDATE mistakes SET effective_category_json = ?, classification_source = 'learner-amended',
+            learner_amended_at = ?, learner_amendment_note = ? WHERE mistake_id = ?`,
+        )
+        .run(nextCategory, amendedAt, input.note ?? null, mistakeId);
+    });
+  }
+
+  async deleteProfileInsight(
+    learnerIdValue: string,
+    insightGroup: "strength" | "weakness",
+    position: number,
+  ): Promise<void> {
+    const learnerId = learnerIdSchema.parse(learnerIdValue);
+    if (!Number.isInteger(position) || position < 0 || position > 49) {
+      throw new Error("OD_PROFILE_INSIGHT_POSITION_INVALID");
+    }
+    await withLeasedTransaction(this.#database, (connection) => {
+      const result = connection
+        .prepare(
+          `DELETE FROM learner_profile_insights
+           WHERE learner_id = ? AND insight_group = ? AND position = ?`,
+        )
+        .run(learnerId, insightGroup, position);
+      if (result.changes !== 1) throw new Error("OD_PROFILE_INSIGHT_NOT_FOUND");
+    });
+  }
+
+  async applyVocabularyReview(
+    reviewValue: VocabularyReview,
+    idempotencyKey: string,
+    historyEntryIdValue?: string,
+  ): Promise<IdempotentWriteResult> {
+    const review = vocabularyReviewSchema.parse(reviewValue);
+    return withLeasedTransaction(this.#database, (connection) => {
+      const claim = claimIdempotentWrite(connection, {
+        operation: "vocabulary-review",
+        idempotencyKey,
+        request: review,
+        entityId: review.transition.result.reviewId,
+        recordedAt: review.transition.result.reviewedAt,
+      });
+      if (claim.replayed) return claim;
+      const expected = review.transition.expectedActiveState;
+      const row = connection
+        .prepare(
+          `SELECT revision, confirmed_at, due_on, stage, last_review_id
+           FROM vocabulary_entries WHERE vocabulary_id = ? AND status = 'active'`,
+        )
+        .get(review.vocabularyId) as Record<string, unknown> | undefined;
+      const expectedLastReviewId =
+        expected.schedule.status === "reviewed" ? expected.schedule.lastReview.reviewId : null;
+      if (
+        row === undefined ||
+        row["confirmed_at"] !== expected.confirmedAt ||
+        row["due_on"] !== expected.schedule.dueOn ||
+        row["stage"] !== expected.schedule.stage ||
+        row["last_review_id"] !== expectedLastReviewId ||
+        !Number.isSafeInteger(row["revision"])
+      ) {
+        throw new Error("OD_VOCABULARY_REVIEW_STATE_CONFLICT");
+      }
+      const revision = row["revision"] as number;
+      const result = review.transition.result;
+      connection
+        .prepare(
+          `INSERT INTO vocabulary_reviews (
+            review_id, vocabulary_id, expected_revision, reviewed_at, grade, next_due_on, next_stage
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          result.reviewId,
+          review.vocabularyId,
+          revision,
+          result.reviewedAt,
+          result.grade,
+          result.nextSchedule.dueOn,
+          result.nextSchedule.stage,
+        );
+      if (historyEntryIdValue !== undefined) {
+        const historyEntryId = historyEntryIdSchema.parse(historyEntryIdValue);
+        const entryRow = connection
+          .prepare(`SELECT lemma FROM vocabulary_entries WHERE vocabulary_id = ?`)
+          .get(review.vocabularyId) as { lemma: string } | undefined;
+        if (!entryRow) throw new Error("OD_VOCABULARY_NOT_FOUND");
+        connection
+          .prepare(
+            `INSERT INTO history_entries (
+              history_entry_id, entity_kind, entity_id, skill, activity_type, title,
+              occurred_at, reconstruction_json, root_generation
+            ) VALUES (?, 'vocabulary-review', ?, 'reading', 'vocabulary-review', ?, ?, ?, ?)`,
+          )
+          .run(
+            historyEntryId,
+            result.reviewId,
+            entryRow.lemma,
+            result.reviewedAt,
+            stringifyBounded({
+              vocabularyId: review.vocabularyId,
+              grade: result.grade,
+              nextDueOn: result.nextSchedule.dueOn,
+              nextStage: result.nextSchedule.stage,
+            }),
+            this.#database.rootGeneration,
+          );
+      }
+      return claim;
+    });
+  }
+
+  async listDueVocabulary(onDateValue: string): Promise<readonly VocabularyEntry[]> {
+    const onDate = calendarDateSchema.parse(onDateValue);
+    return withLeasedConnection(this.#database, (connection) =>
+      connection
+        .prepare(
+          `SELECT * FROM vocabulary_entries
+           WHERE status = 'active' AND due_on <= ? ORDER BY due_on, vocabulary_id LIMIT 500`,
+        )
+        .all(onDate)
+        .map((row) => vocabularyEntryFromRow(row as Record<string, unknown>)),
+    );
+  }
+
+  async createVocabularyReviewSession(
+    onDateValue: string,
+    sessionIdValue: string,
+    maximumItems = 20,
+  ): Promise<VocabularyReviewSession> {
+    const onDate = calendarDateSchema.parse(onDateValue);
+    const sessionId = sessionIdSchema.parse(sessionIdValue);
+    if (!Number.isInteger(maximumItems) || maximumItems < 1 || maximumItems > 50) {
+      throw new Error("OD_VOCABULARY_SESSION_SIZE_INVALID");
+    }
+    const entries = await withLeasedConnection(this.#database, (connection) =>
+      connection
+        .prepare(
+          `SELECT * FROM vocabulary_entries
+           WHERE status = 'active' AND due_on <= ? ORDER BY due_on, vocabulary_id LIMIT ?`,
+        )
+        .all(onDate, maximumItems)
+        .map((row) => vocabularyEntryFromRow(row as Record<string, unknown>)),
+    );
+    return vocabularyReviewSessionSchema.parse({
+      sessionId,
+      onDate,
+      items: entries.map((entry, index) => {
+        if (entry.state.status !== "active") throw new Error("OD_VOCABULARY_SESSION_STATE_INVALID");
+        const example = entry.examples[0];
+        const recognition = index % 2 === 0;
+        return {
+          vocabularyId: entry.vocabularyId,
+          direction: recognition ? "recognition" : "production",
+          cue: recognition ? entry.lemma : entry.meaning,
+          example,
+          sourceContext: entry.source.context,
+          expectedAnswer: recognition ? entry.meaning : entry.lemma,
+          dueOn: entry.state.schedule.dueOn,
+        };
+      }),
+    });
+  }
+
+  async readDashboardSnapshot(onDateValue: string): Promise<DashboardSnapshot> {
+    const onDate = calendarDateSchema.parse(onDateValue);
+    return withLeasedConnection(this.#database, (connection) => {
+      const weeklyPlanRow = connection
+        .prepare(`SELECT plan_json FROM weekly_plans WHERE is_current = 1`)
+        .get() as Record<string, unknown> | undefined;
+      const weeklyPlan =
+        weeklyPlanRow === undefined
+          ? null
+          : weeklyPlanSchema.parse(parseJson(weeklyPlanRow["plan_json"]));
+
+      const preparedActivities = connection
+        .prepare(
+          `SELECT activity_id, activity_type, title, origin_surface, prepared_at
+           FROM prepared_activities
+           WHERE status = 'prepared'
+           ORDER BY prepared_at DESC, activity_id
+           LIMIT 20`,
+        )
+        .all()
+        .map((rawRow) => {
+          const row = rawRow as Record<string, unknown>;
+          return Object.freeze({
+            activityId: activityIdSchema.parse(row["activity_id"]),
+            activityType: preparedActivitySchema.shape.activityType.parse(row["activity_type"]),
+            title: preparedActivitySchema.shape.title.parse(row["title"]),
+            originSurface: preparedActivitySchema.shape.originSurface.parse(row["origin_surface"]),
+            preparedAt: utcInstantSchema.parse(row["prepared_at"]),
+          });
+        });
+
+      const dueVocabulary = connection
+        .prepare(
+          `SELECT vocabulary_id, lemma, meaning, due_on, stage
+           FROM vocabulary_entries
+           WHERE status = 'active' AND due_on <= ?
+           ORDER BY due_on, vocabulary_id
+           LIMIT 20`,
+        )
+        .all(onDate)
+        .map((rawRow) => {
+          const row = rawRow as Record<string, unknown>;
+          return Object.freeze({
+            vocabularyId: vocabularyIdSchema.parse(row["vocabulary_id"]),
+            lemma: z.string().min(1).max(160).parse(row["lemma"]),
+            meaning: z.string().min(1).max(500).parse(row["meaning"]),
+            dueOn: calendarDateSchema.parse(row["due_on"]),
+            stage: z.int().min(1).max(12).parse(row["stage"]),
+          });
+        });
+
+      const recentCorrections = connection
+        .prepare(
+          `SELECT c.correction_id, c.created_at,
+            SUM(CASE WHEN cc.kind = 'unchanged' THEN 0 ELSE 1 END) AS changed_segment_count
+           FROM corrections c
+           JOIN correction_changes cc ON cc.correction_id = c.correction_id
+           WHERE c.state = 'final'
+           GROUP BY c.correction_id, c.created_at
+           ORDER BY c.created_at DESC, c.correction_id
+           LIMIT 10`,
+        )
+        .all()
+        .map((rawRow) => {
+          const row = rawRow as Record<string, unknown>;
+          return Object.freeze({
+            correctionId: correctionIdSchema.parse(row["correction_id"]),
+            createdAt: utcInstantSchema.parse(row["created_at"]),
+            changedSegmentCount: z.int().min(0).max(500).parse(row["changed_segment_count"]),
+          });
+        });
+
+      const recurringMistakes = connection
+        .prepare(
+          `SELECT m.mistake_id, m.effective_category_json, COUNT(*) AS occurrence_count,
+            MAX(o.observed_on) AS last_observed_on
+           FROM mistakes m
+           JOIN mistake_occurrences o ON o.mistake_id = m.mistake_id
+           WHERE m.disposition = 'active'
+           GROUP BY m.mistake_id, m.effective_category_json
+           HAVING COUNT(*) >= 2
+           ORDER BY last_observed_on DESC, m.mistake_id
+           LIMIT 10`,
+        )
+        .all()
+        .map((rawRow) => {
+          const row = rawRow as Record<string, unknown>;
+          return Object.freeze({
+            mistakeId: mistakeIdSchema.parse(row["mistake_id"]),
+            category: mistakeCategorySchema.parse(parseJson(row["effective_category_json"])),
+            occurrenceCount: z.int().min(2).max(100).parse(row["occurrence_count"]),
+            lastObservedOn: calendarDateSchema.parse(row["last_observed_on"]),
+          });
+        });
+
+      return Object.freeze({
+        rootGeneration: this.#database.rootGeneration,
+        weeklyPlan,
+        preparedActivities: Object.freeze(preparedActivities),
+        dueVocabulary: Object.freeze(dueVocabulary),
+        recentCorrections: Object.freeze(recentCorrections),
+        recurringMistakes: Object.freeze(recurringMistakes),
+      });
+    });
+  }
+
+  async readCorrectionMistakeSample(maximumValue = 6): Promise<readonly CorrectionMistakeSample[]> {
+    const maximum = z.int().min(0).max(6).parse(maximumValue);
+    if (maximum === 0) return Object.freeze([]);
+    return withLeasedConnection(this.#database, (connection) =>
+      Object.freeze(
+        connection
+          .prepare(
+            `SELECT m.effective_category_json, COUNT(*) AS occurrence_count,
+              MAX(o.observed_on) AS last_observed_on
+             FROM mistakes m
+             JOIN mistake_occurrences o ON o.mistake_id = m.mistake_id
+             WHERE m.disposition = 'active'
+             GROUP BY m.mistake_id, m.effective_category_json
+             HAVING COUNT(*) >= 2
+             ORDER BY last_observed_on DESC, m.mistake_id
+             LIMIT ?`,
+          )
+          .all(maximum)
+          .map((rawRow) => {
+            const row = rawRow as Record<string, unknown>;
+            const category = mistakeCategorySchema.parse(parseJson(row["effective_category_json"]));
+            const shared = {
+              kind: category.kind,
+              categoryKey: category.categoryKey,
+              occurrenceCount: z.int().min(2).max(100).parse(row["occurrence_count"]),
+              lastObservedOn: calendarDateSchema.parse(row["last_observed_on"]),
+            } as const;
+            return Object.freeze(
+              category.kind === "vocabulary"
+                ? { ...shared, kind: "vocabulary" as const, lemma: category.lemma }
+                : { ...shared, kind: "grammar" as const },
+            );
+          }),
+      ),
+    );
+  }
+
+  async listMistakePatterns(
+    filterValue: z.input<typeof mistakePatternFilterSchema> = {},
+  ): Promise<readonly MistakePatternRecord[]> {
+    const filter = mistakePatternFilterSchema.parse(filterValue);
+    if (filter.fromDate && filter.toDate && filter.fromDate > filter.toDate) {
+      throw new Error("OD_HISTORY_DATE_RANGE_INVALID");
+    }
+    return withLeasedConnection(this.#database, (connection) => {
+      const clauses = ["m.disposition = 'active'"];
+      const parameters: string[] = [];
+      if (filter.fromDate) {
+        clauses.push("o.observed_on >= ?");
+        parameters.push(filter.fromDate);
+      }
+      if (filter.toDate) {
+        clauses.push("o.observed_on <= ?");
+        parameters.push(filter.toDate);
+      }
+      if (filter.curriculumTopicId) {
+        clauses.push(
+          "EXISTS (SELECT 1 FROM json_each(m.effective_category_json, '$.curriculumTopicIds') WHERE value = ?)",
+        );
+        parameters.push(filter.curriculumTopicId);
+      }
+      if (filter.mistakeCategory) {
+        clauses.push("json_extract(m.effective_category_json, '$.categoryKey') = ?");
+        parameters.push(filter.mistakeCategory);
+      }
+      const rows = connection
+        .prepare(
+          `WITH ranked AS (
+             SELECT m.mistake_id, m.effective_category_json, m.classification_source,
+               o.observed_on, o.before_context, o.evidence_text, o.after_context, o.explanation,
+               (SELECT l.activity_id FROM targeted_practice_links l
+                 WHERE l.category_json = m.effective_category_json
+                 ORDER BY l.created_at DESC, l.activity_id DESC LIMIT 1) AS targeted_activity_id,
+               (SELECT l.created_at FROM targeted_practice_links l
+                 WHERE l.category_json = m.effective_category_json
+                 ORDER BY l.created_at DESC, l.activity_id DESC LIMIT 1) AS targeted_activity_created_at,
+               COUNT(*) OVER (PARTITION BY m.effective_category_json) AS occurrence_count,
+               MAX(o.observed_on) OVER (PARTITION BY m.effective_category_json) AS last_observed_on,
+               ROW_NUMBER() OVER (
+                 PARTITION BY m.effective_category_json
+                 ORDER BY o.observed_on DESC, m.mistake_id, o.correction_id,
+                   o.alignment_segment_position
+               ) AS occurrence_position
+             FROM mistakes m
+             JOIN mistake_occurrences o ON o.mistake_id = m.mistake_id
+             WHERE ${clauses.join(" AND ")}
+           ), selected_categories AS (
+             SELECT effective_category_json, last_observed_on
+             FROM ranked
+             GROUP BY effective_category_json, last_observed_on
+             ORDER BY last_observed_on DESC, effective_category_json
+             LIMIT ?
+           )
+           SELECT r.* FROM ranked r
+           JOIN selected_categories s USING (effective_category_json, last_observed_on)
+           WHERE r.occurrence_position <= 100
+           ORDER BY r.last_observed_on DESC, r.effective_category_json,
+             r.observed_on DESC, r.mistake_id, r.occurrence_position`,
+        )
+        .all(...parameters, filter.maximum) as Record<string, unknown>[];
+      const groups = new Map<
+        string,
+        {
+          category: MistakeCategory;
+          occurrenceCount: number;
+          occurrences: Array<MistakePatternRecord["occurrences"][number]>;
+          sources: Set<"inferred" | "learner-amended">;
+          targetedPractice: MistakePatternRecord["targetedPractice"];
+        }
+      >();
+      for (const row of rows) {
+        const categoryJson = z.string().parse(row["effective_category_json"]);
+        const classificationSource = z
+          .enum(["inferred", "learner-amended"])
+          .parse(row["classification_source"]);
+        const group = groups.get(categoryJson) ?? {
+          category: mistakeCategorySchema.parse(parseJson(categoryJson)),
+          occurrenceCount: z.int().min(1).parse(row["occurrence_count"]),
+          occurrences: [],
+          sources: new Set<"inferred" | "learner-amended">(),
+          targetedPractice:
+            row["targeted_activity_id"] === null
+              ? Object.freeze({ status: "not-created" as const })
+              : Object.freeze({
+                  status: "created" as const,
+                  activityId: activityIdSchema.parse(row["targeted_activity_id"]),
+                  createdAt: utcInstantSchema.parse(row["targeted_activity_created_at"]),
+                }),
+        };
+        group.sources.add(classificationSource);
+        group.occurrences.push(
+          Object.freeze({
+            mistakeId: mistakeIdSchema.parse(row["mistake_id"]),
+            observedOn: calendarDateSchema.parse(row["observed_on"]),
+            evidence: Object.freeze({
+              beforeContext: z.string().max(500).parse(row["before_context"]),
+              evidenceText: z.string().min(1).max(1_000).parse(row["evidence_text"]),
+              afterContext: z.string().max(500).parse(row["after_context"]),
+            }),
+            explanation: z.string().min(1).max(800).parse(row["explanation"]),
+            classificationSource,
+          }),
+        );
+        groups.set(categoryJson, group);
+      }
+      return Object.freeze(
+        [...groups.values()].map((group) => {
+          const classificationSource: MistakePatternRecord["classificationSource"] =
+            group.sources.size === 2
+              ? "mixed"
+              : (group.sources.values().next().value ?? "inferred");
+          return Object.freeze({
+            category: group.category,
+            status: group.occurrenceCount >= 2 ? "recurring" : "single-occurrence",
+            occurrenceCount: group.occurrenceCount,
+            classificationSource,
+            occurrences: Object.freeze(group.occurrences),
+            targetedPractice: group.targetedPractice,
+          });
+        }),
+      );
+    });
+  }
+
+  async replaceWeeklyPlan(
+    planValue: WeeklyPlan,
+    createdAtValue: string,
+    idempotencyKey: string,
+  ): Promise<IdempotentWriteResult> {
+    const plan = weeklyPlanSchema.parse(planValue);
+    const createdAt = utcInstantSchema.parse(createdAtValue);
+    return withLeasedTransaction(this.#database, (connection) => {
+      const claim = claimIdempotentWrite(connection, {
+        operation: "weekly-plan",
+        idempotencyKey,
+        request: {
+          ...plan,
+          aiProvenance: { ...plan.aiProvenance, generatedAt: null },
+        },
+        entityId: plan.planId,
+        recordedAt: createdAt,
+      });
+      if (claim.replayed) return claim;
+      connection
+        .prepare(
+          `INSERT INTO weekly_plans (
+            plan_id, week_starts_on, requested_from, plan_json, created_at
+          ) VALUES (?, ?, ?, ?, ?)`,
+        )
+        .run(plan.planId, plan.weekStartsOn, plan.requestedFrom, stringifyBounded(plan), createdAt);
+      return claim;
+    });
+  }
+
+  async saveVoiceSummary(
+    summaryValue: VoiceSummary,
+    idempotencyKey: string,
+  ): Promise<IdempotentWriteResult> {
+    const summary = voiceSummarySchema.parse(summaryValue);
+    return withLeasedTransaction(this.#database, (connection) => {
+      const claim = claimIdempotentWrite(connection, {
+        operation: "voice-summary",
+        idempotencyKey,
+        request: summary,
+        entityId: summary.voiceSessionId,
+        recordedAt: summary.summarizedAt,
+      });
+      if (claim.replayed) return claim;
+      connection
+        .prepare(
+          `INSERT INTO voice_summaries (
+            voice_session_id, summarized_at, scenario_title, target_level, summary_json
+          ) VALUES (?, ?, ?, ?, ?)`,
+        )
+        .run(
+          summary.voiceSessionId,
+          summary.summarizedAt,
+          summary.scenario.title,
+          summary.scenario.targetLevel,
+          stringifyBounded(summary),
+        );
+      const historyEntryId = historyEntryIdSchema.parse(
+        `history-entry_${randomUUID().replaceAll("-", "")}`,
+      );
+      connection
+        .prepare(
+          `INSERT INTO history_entries (
+            history_entry_id, entity_kind, entity_id, skill, activity_type, title,
+            occurred_at, reconstruction_json, root_generation
+          ) VALUES (?, 'voice-summary', ?, 'speaking', 'voice-speaking', ?, ?, ?, ?)`,
+        )
+        .run(
+          historyEntryId,
+          summary.voiceSessionId,
+          summary.scenario.title,
+          summary.summarizedAt,
+          stringifyBounded(summary),
+          this.#database.rootGeneration,
+        );
+      return claim;
+    });
+  }
+
+  async savePlacementResult(
+    resultValue: PlacementResult,
+    idempotencyKeyValue: string,
+  ): Promise<Readonly<{ historyEntryId: string; replayed: boolean }>> {
+    const result = placementResultSchema.parse(resultValue);
+    const idempotencyKey = z.string().min(8).max(128).parse(idempotencyKeyValue);
+    const digest = createHash("sha256").update(idempotencyKey, "utf8").digest("hex").slice(0, 32);
+    const entityId = `placement_${digest}`;
+    const historyEntryId = historyEntryIdSchema.parse(`history-entry_${digest}`);
+    return withLeasedTransaction(this.#database, (connection) => {
+      const existing = connection
+        .prepare(
+          `SELECT reconstruction_json FROM history_entries
+           WHERE entity_kind = 'placement' AND entity_id = ?`,
+        )
+        .get(entityId) as { reconstruction_json: string } | undefined;
+      if (existing) {
+        if (
+          JSON.stringify(placementResultSchema.parse(parseJson(existing.reconstruction_json))) !==
+          JSON.stringify(result)
+        ) {
+          throw new Error("OD_PLACEMENT_RESULT_CONFLICT");
+        }
+        return { historyEntryId, replayed: true };
+      }
+      connection
+        .prepare(
+          `INSERT INTO history_entries (
+            history_entry_id, entity_kind, entity_id, skill, activity_type, title,
+            occurred_at, reconstruction_json, root_generation
+          ) VALUES (?, 'placement', ?, 'writing', 'placement', ?, ?, ?, ?)`,
+        )
+        .run(
+          historyEntryId,
+          entityId,
+          "Optional diagnostic",
+          `${result.completedOn}T12:00:00.000Z`,
+          stringifyBounded(result),
+          this.#database.rootGeneration,
+        );
+      return { historyEntryId, replayed: false };
+    });
+  }
+
+  async saveReadingResult(
+    resultValue: ReadingResult,
+    idempotencyKeyValue: string,
+  ): Promise<Readonly<{ historyEntryId: string; replayed: boolean }>> {
+    const result = readingResultSchema.parse(resultValue);
+    const idempotencyKey = z.string().min(8).max(128).parse(idempotencyKeyValue);
+    const digest = createHash("sha256").update(idempotencyKey, "utf8").digest("hex").slice(0, 32);
+    const entityId = `reading_${digest}`;
+    const historyEntryId = historyEntryIdSchema.parse(`history-entry_${digest}`);
+    return withLeasedTransaction(this.#database, (connection) => {
+      const existing = connection
+        .prepare(
+          `SELECT reconstruction_json FROM history_entries
+           WHERE entity_kind = 'attempt' AND entity_id = ?`,
+        )
+        .get(entityId) as { reconstruction_json: string } | undefined;
+      if (existing) {
+        if (
+          JSON.stringify(readingResultSchema.parse(parseJson(existing.reconstruction_json))) !==
+          JSON.stringify(result)
+        ) {
+          throw new Error("OD_READING_RESULT_CONFLICT");
+        }
+        return { historyEntryId, replayed: true };
+      }
+      connection
+        .prepare(
+          `INSERT INTO history_entries (
+            history_entry_id, entity_kind, entity_id, skill, activity_type, title,
+            occurred_at, reconstruction_json, root_generation
+          ) VALUES (?, 'attempt', ?, 'reading', 'reading', ?, ?, ?, ?)`,
+        )
+        .run(
+          historyEntryId,
+          entityId,
+          result.title,
+          `${result.source.retrievedOn ?? "2026-08-20"}T12:00:00.000Z`,
+          stringifyBounded(result),
+          this.#database.rootGeneration,
+        );
+      return { historyEntryId, replayed: false };
+    });
+  }
+
+  async savePreparedActivity(
+    activityValue: PreparedActivityRecord,
+    idempotencyKey: string,
+  ): Promise<IdempotentWriteResult> {
+    const activity = preparedActivitySchema.parse(activityValue);
+    return withLeasedTransaction(this.#database, (connection) => {
+      const claim = claimIdempotentWrite(connection, {
+        operation: "prepared-activity",
+        idempotencyKey,
+        request: { ...activity, preparedAt: null },
+        entityId: activity.activityId,
+        recordedAt: activity.preparedAt,
+      });
+      if (claim.replayed) return claim;
+      connection
+        .prepare(
+          `INSERT INTO prepared_activities (
+            activity_id, activity_type, title, origin_surface, context_json,
+            prepared_at, root_generation
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          activity.activityId,
+          activity.activityType,
+          activity.title,
+          activity.originSurface,
+          stringifyBounded(activity.context),
+          activity.preparedAt,
+          this.#database.rootGeneration,
+        );
+      return claim;
+    });
+  }
+
+  async readPreparedActivity(activityIdValue: string): Promise<PreparedActivityRecord | undefined> {
+    const activityId = activityIdSchema.parse(activityIdValue);
+    return withLeasedConnection(this.#database, (connection) => {
+      const row = connection
+        .prepare(
+          `SELECT activity_id, activity_type, title, origin_surface, context_json, prepared_at
+           FROM prepared_activities
+           WHERE activity_id = ? AND status IN ('prepared', 'completed')`,
+        )
+        .get(activityId) as Record<string, unknown> | undefined;
+      if (!row) return undefined;
+      return preparedActivitySchema.parse({
+        activityId: row["activity_id"],
+        activityType: row["activity_type"],
+        title: row["title"],
+        originSurface: row["origin_surface"],
+        context: parseJson(row["context_json"]),
+        preparedAt: row["prepared_at"],
+      });
+    });
+  }
+
+  async createPersistentHandoff(value: PersistentHandoffCreate): Promise<PersistentHandoffRecord> {
+    const record = persistentHandoffCreateSchema.parse(value);
+    return withLeasedTransaction(this.#database, (connection) => {
+      const activity = connection
+        .prepare(`SELECT activity_id FROM prepared_activities WHERE activity_id = ?`)
+        .get(record.activityId) as { activity_id: string } | undefined;
+      if (!activity) throw new Error("OD_HANDOFF_ACTIVITY_NOT_FOUND");
+      connection
+        .prepare(
+          `INSERT INTO persistent_handoffs (
+            handoff_id, activity_id, origin_surface, destination_surface, target_kind,
+            target_reference, status, created_at, updated_at, root_generation,
+            payload_version, continuation_summary
+          ) VALUES (?, ?, ?, ?, ?, NULL, 'prepared', ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          record.handoffId,
+          record.activityId,
+          record.originSurface,
+          record.destinationSurface,
+          record.targetKind,
+          record.createdAt,
+          record.createdAt,
+          this.#database.rootGeneration,
+          record.payloadVersion,
+          record.continuationSummary,
+        );
+      return persistentHandoffSchema.parse({
+        ...record,
+        targetReference: null,
+        status: "prepared",
+        updatedAt: record.createdAt,
+        rootGeneration: this.#database.rootGeneration,
+      });
+    });
+  }
+
+  async readPersistentHandoff(
+    handoffIdValue: string,
+  ): Promise<PersistentHandoffRecord | undefined> {
+    const handoffId = persistentHandoffIdSchema.parse(handoffIdValue);
+    return withLeasedConnection(this.#database, (connection) => {
+      const row = connection
+        .prepare(`SELECT * FROM persistent_handoffs WHERE handoff_id = ?`)
+        .get(handoffId) as Record<string, unknown> | undefined;
+      return row ? persistentHandoffFromRow(row) : undefined;
+    });
+  }
+
+  async updatePersistentHandoff(value: PersistentHandoffUpdate): Promise<PersistentHandoffRecord> {
+    const update = persistentHandoffUpdateSchema.parse(value);
+    return withLeasedTransaction(this.#database, (connection) => {
+      const row = connection
+        .prepare(`SELECT * FROM persistent_handoffs WHERE handoff_id = ?`)
+        .get(update.handoffId) as Record<string, unknown> | undefined;
+      if (!row) throw new Error("OD_HANDOFF_NOT_FOUND");
+      const current = persistentHandoffFromRow(row);
+      if (current.status === "completed" || current.status === "failed") {
+        throw new Error("OD_HANDOFF_TERMINAL");
+      }
+      if (update.status === "opened" && update.targetReference === null) {
+        throw new Error("OD_HANDOFF_TARGET_REQUIRED");
+      }
+      if (update.status === "completed" && update.targetReference === null) {
+        throw new Error("OD_HANDOFF_TARGET_REQUIRED");
+      }
+      connection
+        .prepare(
+          `UPDATE persistent_handoffs
+           SET target_reference = ?, status = ?, updated_at = ?, continuation_summary = ?
+           WHERE handoff_id = ?`,
+        )
+        .run(
+          update.targetReference,
+          update.status,
+          update.updatedAt,
+          update.continuationSummary,
+          update.handoffId,
+        );
+      return persistentHandoffSchema.parse({
+        ...current,
+        targetReference: update.targetReference,
+        status: update.status,
+        updatedAt: update.updatedAt,
+        continuationSummary: update.continuationSummary,
+      });
+    });
+  }
+
+  async deletePreparedActivity(activityIdValue: string): Promise<void> {
+    const activityId = activityIdSchema.parse(activityIdValue);
+    await withLeasedTransaction(this.#database, (connection) => {
+      const result = connection
+        .prepare(`DELETE FROM prepared_activities WHERE activity_id = ?`)
+        .run(activityId);
+      if (result.changes !== 1) throw new Error("OD_PREPARED_ACTIVITY_NOT_FOUND");
+    });
+  }
+
+  async saveMcpAttemptFeedback(
+    value: Omit<
+      z.input<typeof attemptFeedbackSaveInputSchema>,
+      "dataRootGeneration" | "idempotencyKey"
+    > & {
+      attemptId: string;
+      savedAt: string;
+      idempotencyKey: string;
+    },
+  ): Promise<IdempotentWriteResult> {
+    const record = strictBoundaryObject({
+      attemptId: attemptIdSchema,
+      activityId: activityIdSchema,
+      expectedActivityRevision: z.int().positive(),
+      feedback: z.strictObject({
+        outcome: z.enum(["completed", "partially-completed", "abandoned"]),
+        summary: z.string().min(1).max(1_000).regex(/\S/u),
+        objectiveResults: z
+          .array(z.enum(["met", "partially-met", "not-met", "not-evaluated"]))
+          .max(20),
+        evidence: z.array(z.string().min(1).max(500).regex(/\S/u)).max(20),
+      }),
+      savedAt: utcInstantSchema,
+      idempotencyKey: z.string().min(16).max(128),
+    }).parse(value);
+    return withLeasedTransaction(this.#database, (connection) => {
+      const activity = connection
+        .prepare(
+          `SELECT title, activity_type, status FROM prepared_activities
+           WHERE activity_id = ?`,
+        )
+        .get(record.activityId) as
+        { title: string; activity_type: string; status: "prepared" | "completed" } | undefined;
+      if (!activity) throw new Error("OD_MCP_ACTIVITY_NOT_FOUND");
+      const claim = claimIdempotentWrite(connection, {
+        operation: "attempt-completion",
+        idempotencyKey: record.idempotencyKey,
+        request: {
+          attemptId: record.attemptId,
+          activityId: record.activityId,
+          expectedActivityRevision: record.expectedActivityRevision,
+          feedback: record.feedback,
+        },
+        entityId: record.attemptId,
+        recordedAt: record.savedAt,
+      });
+      if (claim.replayed) return claim;
+      if (record.expectedActivityRevision !== 1 || activity.status === "completed") {
+        throw new Error("OD_MCP_ACTIVITY_REVISION_CONFLICT");
+      }
+      connection
+        .prepare(
+          `INSERT INTO mcp_attempt_feedback (
+            attempt_id, activity_id, expected_activity_revision, feedback_json,
+            saved_at, root_generation
+          ) VALUES (?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          record.attemptId,
+          record.activityId,
+          record.expectedActivityRevision,
+          stringifyBounded(record.feedback),
+          record.savedAt,
+          this.#database.rootGeneration,
+        );
+      const historyEntryId = historyEntryIdSchema.parse(
+        `history-entry_${randomUUID().replaceAll("-", "")}`,
+      );
+      const activityType = historyActivityTypeSchema.parse(activity.activity_type);
+      const skill =
+        activityType === "reading"
+          ? "reading"
+          : activityType === "codex-listening"
+            ? "listening"
+            : activityType === "voice-speaking"
+              ? "speaking"
+              : "writing";
+      connection
+        .prepare(
+          `INSERT INTO history_entries (
+            history_entry_id, entity_kind, entity_id, skill, activity_type, title,
+            occurred_at, reconstruction_json, root_generation
+          ) VALUES (?, 'attempt', ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          historyEntryId,
+          record.attemptId,
+          skill,
+          activityType,
+          activity.title,
+          record.savedAt,
+          stringifyBounded({ kind: "reference" }),
+          this.#database.rootGeneration,
+        );
+      if (record.feedback.outcome === "completed") {
+        connection
+          .prepare(
+            `UPDATE prepared_activities SET status = 'completed', completed_at = ?
+             WHERE activity_id = ? AND status = 'prepared'`,
+          )
+          .run(record.savedAt, record.activityId);
+      }
+      return claim;
+    });
+  }
+
+  async saveTargetedPracticeActivity(
+    value: TargetedPracticeActivity,
+    idempotencyKey: string,
+  ): Promise<IdempotentWriteResult> {
+    const record = targetedPracticeActivitySchema.parse(value);
+    if (
+      record.activity.activityType !== "grammar" ||
+      record.activity.context.mistakeIds.length < 1
+    ) {
+      throw new Error("OD_TARGETED_PRACTICE_ACTIVITY_INVALID");
+    }
+    if (record.aiProvenance.producer !== "desktop-app-server") {
+      throw new Error("OD_TARGETED_PRACTICE_PROVENANCE_INVALID");
+    }
+    const modelSelection = record.aiProvenance.modelSelection;
+    const categoryJson = stringifyBounded(record.category, 16_384);
+    return withLeasedTransaction(this.#database, (connection) => {
+      const placeholders = record.activity.context.mistakeIds.map(() => "?").join(", ");
+      const mistakes = connection
+        .prepare(
+          `SELECT mistake_id, effective_category_json FROM mistakes
+           WHERE disposition = 'active' AND mistake_id IN (${placeholders})`,
+        )
+        .all(...record.activity.context.mistakeIds) as Record<string, unknown>[];
+      if (
+        mistakes.length !== record.activity.context.mistakeIds.length ||
+        mistakes.some(({ effective_category_json }) => effective_category_json !== categoryJson)
+      ) {
+        throw new Error("OD_TARGETED_PRACTICE_PATTERN_STALE");
+      }
+      const claim = claimIdempotentWrite(connection, {
+        operation: "prepared-activity",
+        idempotencyKey,
+        request: record,
+        entityId: record.activity.activityId,
+        recordedAt: record.activity.preparedAt,
+      });
+      if (claim.replayed) return claim;
+      connection
+        .prepare(
+          `INSERT INTO prepared_activities (
+            activity_id, activity_type, title, origin_surface, context_json,
+            prepared_at, root_generation
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          record.activity.activityId,
+          record.activity.activityType,
+          record.activity.title,
+          record.activity.originSurface,
+          stringifyBounded(record.activity.context),
+          record.activity.preparedAt,
+          this.#database.rootGeneration,
+        );
+      connection
+        .prepare(
+          `INSERT INTO generated_activity_payloads (
+            activity_id, workload, model_request_id, model_id, effort_id, generated_at, output_json
+          ) VALUES (?, 'exercise-generation', ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          record.activity.activityId,
+          record.aiProvenance.modelRequestId,
+          modelSelection.modelId,
+          modelSelection.effortId,
+          record.aiProvenance.generatedAt,
+          stringifyBounded(record.output),
+        );
+      const insertReference = connection.prepare(
+        `INSERT INTO activity_context_references (activity_id, reference_kind, reference_id)
+         VALUES (?, ?, ?)`,
+      );
+      const insertLink = connection.prepare(
+        `INSERT INTO targeted_practice_links (activity_id, mistake_id, category_json, created_at)
+         VALUES (?, ?, ?, ?)`,
+      );
+      for (const mistakeId of record.activity.context.mistakeIds) {
+        insertReference.run(record.activity.activityId, "mistake", mistakeId);
+        insertLink.run(
+          record.activity.activityId,
+          mistakeId,
+          categoryJson,
+          record.activity.preparedAt,
+        );
+      }
+      for (const topicId of record.activity.context.curriculumTopicIds) {
+        insertReference.run(record.activity.activityId, "curriculum-topic", topicId);
+      }
+      insertActivityVocabularyCandidates(
+        connection,
+        record.vocabularyEntries,
+        record.activity.activityId,
+        record.activity.preparedAt,
+      );
+      return claim;
+    });
+  }
+
+  async saveGeneratedPracticeActivity(
+    value: GeneratedPracticeActivity,
+    idempotencyKey: string,
+  ): Promise<IdempotentWriteResult> {
+    const record = generatedPracticeActivitySchema.parse(value);
+    if (record.aiProvenance.producer !== "desktop-app-server") {
+      throw new Error("OD_GENERATED_PRACTICE_PROVENANCE_INVALID");
+    }
+    const modelSelection = record.aiProvenance.modelSelection;
+    return withLeasedTransaction(this.#database, (connection) => {
+      const claim = claimIdempotentWrite(connection, {
+        operation: "prepared-activity",
+        idempotencyKey,
+        request: record,
+        entityId: record.activity.activityId,
+        recordedAt: record.activity.preparedAt,
+      });
+      if (claim.replayed) return claim;
+      connection
+        .prepare(
+          `INSERT INTO prepared_activities (
+            activity_id, activity_type, title, origin_surface, context_json,
+            prepared_at, root_generation
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          record.activity.activityId,
+          record.activity.activityType,
+          record.activity.title,
+          record.activity.originSurface,
+          stringifyBounded(record.activity.context),
+          record.activity.preparedAt,
+          this.#database.rootGeneration,
+        );
+      connection
+        .prepare(
+          `INSERT INTO generated_activity_payloads (
+            activity_id, workload, model_request_id, model_id, effort_id, generated_at, output_json
+          ) VALUES (?, 'exercise-generation', ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          record.activity.activityId,
+          record.aiProvenance.modelRequestId,
+          modelSelection.modelId,
+          modelSelection.effortId,
+          record.aiProvenance.generatedAt,
+          stringifyBounded(record.output),
+        );
+      const insertReference = connection.prepare(
+        `INSERT INTO activity_context_references (activity_id, reference_kind, reference_id)
+         VALUES (?, ?, ?)`,
+      );
+      for (const topicId of record.activity.context.curriculumTopicIds) {
+        insertReference.run(record.activity.activityId, "curriculum-topic", topicId);
+      }
+      for (const mistakeId of record.activity.context.mistakeIds) {
+        insertReference.run(record.activity.activityId, "mistake", mistakeId);
+      }
+      for (const vocabularyId of record.activity.context.vocabularyIds) {
+        insertReference.run(record.activity.activityId, "vocabulary", vocabularyId);
+      }
+      insertActivityVocabularyCandidates(
+        connection,
+        record.vocabularyEntries,
+        record.activity.activityId,
+        record.activity.preparedAt,
+      );
+      return claim;
+    });
+  }
+
+  async readGeneratedActivity(activityIdValue: string): Promise<GeneratedActivityRead | undefined> {
+    const activityId = activityIdSchema.parse(activityIdValue);
+    return withLeasedConnection(this.#database, (connection) => {
+      const row = connection
+        .prepare(
+          `SELECT a.activity_id, a.title, a.context_json, p.model_request_id,
+            p.model_id, p.effort_id, p.generated_at, p.output_json
+           FROM prepared_activities a
+           JOIN generated_activity_payloads p ON p.activity_id = a.activity_id
+           WHERE a.activity_id = ? AND a.status IN ('prepared', 'completed')`,
+        )
+        .get(activityId) as Record<string, unknown> | undefined;
+      if (!row) return undefined;
+      return generatedActivityReadSchema.parse({
+        activityId: row["activity_id"],
+        title: row["title"],
+        context: parseJson(row["context_json"]),
+        aiProvenance: {
+          source: "ai",
+          producer: "desktop-app-server",
+          modelRequestId: row["model_request_id"],
+          generatedAt: row["generated_at"],
+          modelSelection: {
+            availability: "reported",
+            modelId: row["model_id"],
+            effortId: row["effort_id"],
+          },
+        },
+        output: parseJson(row["output_json"]),
+      });
+    });
+  }
+
+  async readActiveGeneratedExerciseSet(
+    activityIdValue: string,
+  ): Promise<ActiveGeneratedExerciseSet | undefined> {
+    const activityId = activityIdSchema.parse(activityIdValue);
+    return withLeasedConnection(this.#database, (connection) => {
+      const rows = connection
+        .prepare(
+          `SELECT a.attempt_id, a.started_at FROM attempts a
+           JOIN exercises e ON e.exercise_id = a.exercise_id
+           WHERE e.activity_id = ? AND a.status = 'in-progress'
+           ORDER BY e.rowid`,
+        )
+        .all(activityId) as Record<string, unknown>[];
+      if (rows.length === 0) return undefined;
+      const startedAt = utcInstantSchema.parse(rows[0]?.["started_at"]);
+      if (rows.some((row) => row["started_at"] !== startedAt)) {
+        throw new Error("OD_EXERCISE_ATTEMPT_SET_INVALID");
+      }
+      return activeGeneratedExerciseSetSchema.parse({
+        startedAt,
+        attemptIds: rows.map((row) => attemptIdSchema.parse(row["attempt_id"])),
+      });
+    });
+  }
+
+  async startGeneratedExerciseSet(value: GeneratedExerciseSetStart): Promise<void> {
+    const record = generatedExerciseSetStartSchema.parse(value);
+    await withLeasedTransaction(this.#database, (connection) => {
+      const row = connection
+        .prepare(
+          `SELECT a.context_json, p.model_request_id, p.model_id, p.effort_id,
+            p.generated_at, p.output_json
+           FROM prepared_activities a
+           JOIN generated_activity_payloads p ON p.activity_id = a.activity_id
+           WHERE a.activity_id = ? AND a.status IN ('prepared', 'completed')`,
+        )
+        .get(record.activityId) as Record<string, unknown> | undefined;
+      if (!row) throw new Error("OD_GENERATED_ACTIVITY_NOT_FOUND");
+      const activeAttempt = connection
+        .prepare(
+          `SELECT 1 FROM attempts a
+           JOIN exercises e ON e.exercise_id = a.exercise_id
+           WHERE e.activity_id = ? AND a.status = 'in-progress' LIMIT 1`,
+        )
+        .get(record.activityId);
+      if (activeAttempt !== undefined) throw new Error("OD_EXERCISE_ATTEMPT_SET_ACTIVE");
+      const context = preparedActivitySchema.shape.context.parse(parseJson(row["context_json"]));
+      const provenance = aiProvenanceSchema.parse({
+        source: "ai",
+        producer: "desktop-app-server",
+        modelRequestId: row["model_request_id"],
+        generatedAt: row["generated_at"],
+        modelSelection: {
+          availability: "reported",
+          modelId: row["model_id"],
+          effortId: row["effort_id"],
+        },
+      });
+      const output = exerciseGenerationCandidateSchema.parse(parseJson(row["output_json"]));
+      const materializeOptions = {
+        exerciseIds: record.exercises.map(({ snapshot }) => snapshot.exercise.exerciseId),
+        aiProvenance: provenance,
+        curriculumTopicIds: context.curriculumTopicIds,
+        ...(record.feedbackModeOverride
+          ? { feedbackModeOverride: record.feedbackModeOverride }
+          : {}),
+      };
+      const lesson = materializeGeneratedLesson(output, {
+        ...materializeOptions,
+        activityId: record.activityId,
+        naturalRequest: context.naturalRequest,
+      });
+      const expected =
+        lesson?.exercises ?? materializeGeneratedExerciseSet(output, materializeOptions);
+      for (const [position, exercise] of expected.entries()) {
+        const started = record.exercises[position];
+        if (
+          !started ||
+          started.snapshot.startedAt !== record.startedAt ||
+          JSON.stringify(started.snapshot.exercise) !== JSON.stringify(exercise)
+        ) {
+          throw new Error("OD_GENERATED_ACTIVITY_SNAPSHOT_INVALID");
+        }
+        connection
+          .prepare(
+            `INSERT INTO exercises (
+              exercise_id, activity_id, kind, cefr_band, started_at, objectives_json,
+              instructions, explanation, content_json, answer_contract_json,
+              ai_provenance_json, snapshot_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .run(
+            exercise.exerciseId,
+            record.activityId,
+            exercise.kind,
+            exercise.cefrBand,
+            record.startedAt,
+            stringifyBounded(exercise.objectives),
+            exercise.instructions,
+            exercise.explanation ?? null,
+            stringifyBounded(exercise.content),
+            stringifyBounded(exercise.answerContract),
+            stringifyBounded(exercise.aiProvenance),
+            stringifyBounded(started.snapshot),
+          );
+        connection
+          .prepare(
+            `INSERT INTO attempts (
+              attempt_id, exercise_id, status, started_at, exercise_snapshot_json
+            ) VALUES (?, ?, 'in-progress', ?, ?)`,
+          )
+          .run(
+            started.attemptId,
+            exercise.exerciseId,
+            record.startedAt,
+            stringifyBounded(started.snapshot),
+          );
+      }
+    });
+  }
+
+  async saveGeneratedExerciseAnswer(
+    value: GeneratedExerciseAnswerSave,
+  ): Promise<ReturnType<typeof startedExerciseSnapshotSchema.parse>> {
+    const record = generatedExerciseAnswerSaveSchema.parse(value);
+    return withLeasedTransaction(this.#database, (connection) => {
+      const row = connection
+        .prepare(
+          `SELECT a.started_at, a.exercise_snapshot_json
+           FROM attempts a JOIN exercises e ON e.exercise_id = a.exercise_id
+           WHERE a.attempt_id = ? AND a.status = 'in-progress' AND e.activity_id = ?`,
+        )
+        .get(record.attemptId, record.activityId) as Record<string, unknown> | undefined;
+      if (!row) throw new Error("OD_EXERCISE_ATTEMPT_SET_INVALID");
+      const snapshot = startedExerciseSnapshotSchema.parse(
+        parseJson(row["exercise_snapshot_json"]),
+      );
+      const evaluation = evaluateExerciseAnswer(snapshot.exercise, record.answer);
+      if (evaluation.status !== "requires-ai") {
+        throw new Error("OD_EXERCISE_AI_FEEDBACK_NOT_REQUIRED");
+      }
+      const elapsed = Math.max(
+        0,
+        Date.parse(record.submittedAt) - Date.parse(utcInstantSchema.parse(row["started_at"])),
+      );
+      const existing = connection
+        .prepare(`SELECT answer_json FROM answers WHERE attempt_id = ? AND position = 0`)
+        .get(record.attemptId) as { answer_json: string } | undefined;
+      if (existing) {
+        if (
+          JSON.stringify(exerciseAnswerSchema.parse(parseJson(existing.answer_json))) !==
+          JSON.stringify(record.answer)
+        ) {
+          throw new Error("OD_EXERCISE_ANSWER_CONFLICT");
+        }
+      } else {
+        connection
+          .prepare(
+            `INSERT INTO answers (
+              attempt_id, position, submitted_after_previous_event_ms, answer_json
+            ) VALUES (?, 0, ?, ?)`,
+          )
+          .run(record.attemptId, elapsed, stringifyBounded(record.answer));
+      }
+      return snapshot;
+    });
+  }
+
+  async completeGeneratedExerciseSet(value: GeneratedExerciseSetComplete): Promise<void> {
+    const record = generatedExerciseSetCompleteSchema.parse(value);
+    if (new Set(record.answers.map(({ attemptId }) => attemptId)).size !== record.answers.length) {
+      throw new Error("OD_EXERCISE_ATTEMPT_SET_INVALID");
+    }
+    await withLeasedTransaction(this.#database, (connection) => {
+      const activity = connection
+        .prepare(
+          `SELECT title, activity_type, context_json FROM prepared_activities
+           WHERE activity_id = ? AND status = 'prepared'`,
+        )
+        .get(record.activityId) as Record<string, unknown> | undefined;
+      if (!activity) throw new Error("OD_GENERATED_ACTIVITY_NOT_FOUND");
+      const activityTitle = z.string().min(1).max(160).parse(activity["title"]);
+      const activityType = historyActivityTypeSchema.parse(activity["activity_type"]);
+      const activityContext = preparedActivitySchema.shape.context.parse(
+        parseJson(activity["context_json"]),
+      );
+      const expectedCount = (
+        connection
+          .prepare(
+            `SELECT count(*) AS count FROM attempts a
+               JOIN exercises e ON e.exercise_id = a.exercise_id
+               WHERE e.activity_id = ? AND a.status = 'in-progress'`,
+          )
+          .get(record.activityId) as { count: number }
+      ).count;
+      if (expectedCount !== record.answers.length) {
+        throw new Error("OD_EXERCISE_ATTEMPT_SET_INVALID");
+      }
+      for (const item of record.answers) {
+        const row = connection
+          .prepare(
+            `SELECT a.started_at, a.exercise_snapshot_json
+             FROM attempts a JOIN exercises e ON e.exercise_id = a.exercise_id
+             WHERE a.attempt_id = ? AND a.status = 'in-progress' AND e.activity_id = ?`,
+          )
+          .get(item.attemptId, record.activityId) as Record<string, unknown> | undefined;
+        if (!row) throw new Error("OD_EXERCISE_ATTEMPT_SET_INVALID");
+        const snapshot = startedExerciseSnapshotSchema.parse(
+          parseJson(row["exercise_snapshot_json"]),
+        );
+        const evaluation = evaluateExerciseAnswer(snapshot.exercise, item.answer);
+        if (evaluation.status === "requires-ai" && item.aiFeedback === undefined) {
+          throw new Error("OD_EXERCISE_AI_FEEDBACK_REQUIRED");
+        }
+        const elapsed = Math.max(
+          0,
+          Date.parse(record.completedAt) - Date.parse(utcInstantSchema.parse(row["started_at"])),
+        );
+        const existingAnswer = connection
+          .prepare(`SELECT answer_json FROM answers WHERE attempt_id = ? AND position = 0`)
+          .get(item.attemptId) as { answer_json: string } | undefined;
+        if (existingAnswer) {
+          if (
+            JSON.stringify(exerciseAnswerSchema.parse(parseJson(existingAnswer.answer_json))) !==
+            JSON.stringify(item.answer)
+          ) {
+            throw new Error("OD_EXERCISE_ANSWER_CONFLICT");
+          }
+        } else {
+          connection
+            .prepare(
+              `INSERT INTO answers (
+                attempt_id, position, submitted_after_previous_event_ms, answer_json
+              ) VALUES (?, 0, ?, ?)`,
+            )
+            .run(item.attemptId, elapsed, stringifyBounded(item.answer));
+        }
+        let objectiveEvaluations;
+        let feedback;
+        if (evaluation.status === "requires-ai") {
+          const ai = item.aiFeedback;
+          if (
+            !ai ||
+            ai.output.objectiveEvaluations.length !== snapshot.exercise.objectives.length
+          ) {
+            throw new Error("OD_EXERCISE_AI_FEEDBACK_INVALID");
+          }
+          objectiveEvaluations = ai.output.objectiveEvaluations;
+          feedback = attemptFeedbackSchema.parse({
+            source: { kind: "ai", modelRequestId: ai.modelRequestId },
+            summary: ai.output.summary,
+            strengths: ai.output.strengths,
+            improvements: [...ai.output.improvements, ...ai.output.caveats].slice(0, 20),
+            ...(ai.output.nextStep ? { nextStep: ai.output.nextStep } : {}),
+            overallUncertainty: ai.output.overallUncertainty,
+            mistakeIds: [],
+            vocabularyCandidateIds: [],
+          });
+        } else {
+          const outcome = evaluation.status === "correct" ? "demonstrated" : "not-demonstrated";
+          objectiveEvaluations = snapshot.exercise.objectives.map(() => ({
+            outcome,
+            evidence:
+              evaluation.status === "correct"
+                ? "The submitted answer matched the exercise contract."
+                : "The submitted answer did not match the exercise contract.",
+            uncertainty: { level: "none" as const },
+          }));
+          feedback = attemptFeedbackSchema.parse({
+            source: { kind: "deterministic" },
+            summary:
+              evaluation.status === "correct"
+                ? "The answer matched the accepted exercise evidence."
+                : "The answer needs review against the accepted exercise evidence.",
+            strengths:
+              evaluation.status === "correct" ? ["The submitted answer was accepted."] : [],
+            improvements:
+              evaluation.status === "incorrect" ? ["Review the revealed accepted answer."] : [],
+            overallUncertainty: { level: "none" },
+            mistakeIds: [],
+            vocabularyCandidateIds: [],
+          });
+        }
+        connection
+          .prepare(
+            `UPDATE attempts SET status = 'completed', terminal_after_previous_event_ms = ?,
+              objective_evaluations_json = ?, feedback_json = ?
+             WHERE attempt_id = ? AND status = 'in-progress'`,
+          )
+          .run(
+            elapsed,
+            stringifyBounded(objectiveEvaluations),
+            stringifyBounded(feedback),
+            item.attemptId,
+          );
+        const reconstruction = generatedExerciseHistorySchema.parse({
+          kind: "exercise-attempt",
+          snapshot,
+          answer: item.answer,
+          objectiveEvaluations,
+          feedback,
+          suggestedAnswer:
+            evaluation.status === "requires-ai"
+              ? (item.aiFeedback?.output.suggestedAnswer ?? null)
+              : null,
+        });
+        const skill =
+          snapshot.exercise.kind === "free-writing" ||
+          snapshot.exercise.kind === "short-answer" ||
+          snapshot.exercise.kind === "sentence-correction"
+            ? "writing"
+            : "reading";
+        connection
+          .prepare(
+            `INSERT INTO history_entries (
+              history_entry_id, entity_kind, entity_id, skill, activity_type, title,
+              occurred_at, reconstruction_json, root_generation
+            ) VALUES (?, 'attempt', ?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .run(
+            item.historyEntryId,
+            item.attemptId,
+            skill,
+            activityType,
+            activityTitle,
+            record.completedAt,
+            stringifyBounded(reconstruction),
+            this.#database.rootGeneration,
+          );
+        const insertTopic = connection.prepare(
+          `INSERT INTO history_curriculum_topics (history_entry_id, curriculum_topic_id)
+           VALUES (?, ?)`,
+        );
+        for (const topicId of activityContext.curriculumTopicIds) {
+          insertTopic.run(item.historyEntryId, topicId);
+        }
+      }
+      const updated = connection
+        .prepare(
+          `UPDATE prepared_activities SET status = 'completed', completed_at = ?
+           WHERE activity_id = ? AND status IN ('prepared', 'completed')`,
+        )
+        .run(record.completedAt, record.activityId);
+      if (updated.changes !== 1) throw new Error("OD_GENERATED_ACTIVITY_NOT_FOUND");
+    });
+  }
+
+  async abandonGeneratedExerciseSet(
+    value: GeneratedExerciseSetAbandon,
+  ): Promise<readonly AttemptId[]> {
+    const record = generatedExerciseSetAbandonSchema.parse(value);
+    return withLeasedTransaction(this.#database, (connection) => {
+      const rows = connection
+        .prepare(
+          `SELECT a.attempt_id, a.started_at FROM attempts a
+           JOIN exercises e ON e.exercise_id = a.exercise_id
+           WHERE e.activity_id = ? AND a.status = 'in-progress'`,
+        )
+        .all(record.activityId) as Record<string, unknown>[];
+      if (rows.length === 0) throw new Error("OD_EXERCISE_ATTEMPT_SET_INVALID");
+      const update = connection.prepare(
+        `UPDATE attempts SET status = 'abandoned', terminal_after_previous_event_ms = ?
+         WHERE attempt_id = ? AND status = 'in-progress'`,
+      );
+      for (const row of rows) {
+        const elapsed = Math.max(
+          0,
+          Date.parse(record.abandonedAt) - Date.parse(utcInstantSchema.parse(row["started_at"])),
+        );
+        const result = update.run(elapsed, attemptIdSchema.parse(row["attempt_id"]));
+        if (result.changes !== 1) throw new Error("OD_EXERCISE_ATTEMPT_SET_INVALID");
+      }
+      return rows.map((row) => attemptIdSchema.parse(row["attempt_id"]));
+    });
+  }
+
+  async listHistory(filterValue: HistoryFilter = {}): Promise<readonly HistoryEntryRecord[]> {
+    const filter = historyFilterSchema.parse(filterValue);
+    if (filter.fromDate && filter.toDate && filter.fromDate > filter.toDate) {
+      throw new Error("OD_HISTORY_DATE_RANGE_INVALID");
+    }
+    const clauses: string[] = [];
+    const parameters: Array<string | number> = [];
+    if (filter.skill !== undefined) {
+      clauses.push("skill = ?");
+      parameters.push(filter.skill);
+    }
+    if (filter.activityType !== undefined) {
+      clauses.push("activity_type = ?");
+      parameters.push(filter.activityType);
+    }
+    if (filter.fromDate !== undefined) {
+      clauses.push("substr(occurred_at, 1, 10) >= ?");
+      parameters.push(filter.fromDate);
+    }
+    if (filter.toDate !== undefined) {
+      clauses.push("substr(occurred_at, 1, 10) <= ?");
+      parameters.push(filter.toDate);
+    }
+    if (filter.curriculumTopicId !== undefined) {
+      clauses.push(
+        "EXISTS (SELECT 1 FROM history_curriculum_topics t WHERE t.history_entry_id = history_entries.history_entry_id AND t.curriculum_topic_id = ?)",
+      );
+      parameters.push(filter.curriculumTopicId);
+    }
+    if (filter.mistakeCategory !== undefined) {
+      clauses.push(
+        "EXISTS (SELECT 1 FROM history_mistake_categories m WHERE m.history_entry_id = history_entries.history_entry_id AND m.category = ?)",
+      );
+      parameters.push(filter.mistakeCategory);
+    }
+    const where = clauses.length === 0 ? "" : `WHERE ${clauses.join(" AND ")}`;
+    return withLeasedConnection(this.#database, (connection) =>
+      connection
+        .prepare(
+          `SELECT history_entry_id, entity_kind, entity_id, skill, activity_type, title,
+            occurred_at, reconstruction_json, root_generation
+           FROM history_entries ${where} ORDER BY occurred_at DESC LIMIT ?`,
+        )
+        .all(...parameters, filter.maximum)
+        .map((row) => {
+          const record = row as Record<string, unknown>;
+          const historyEntryId = historyEntryIdSchema.parse(record["history_entry_id"]);
+          const curriculumTopicIds = connection
+            .prepare(
+              `SELECT curriculum_topic_id FROM history_curriculum_topics
+               WHERE history_entry_id = ? ORDER BY curriculum_topic_id`,
+            )
+            .all(historyEntryId)
+            .map((entry) => curriculumTopicIdSchema.parse(entry["curriculum_topic_id"]));
+          const mistakeCategories = connection
+            .prepare(
+              `SELECT category FROM history_mistake_categories
+               WHERE history_entry_id = ? ORDER BY category`,
+            )
+            .all(historyEntryId)
+            .map((entry) => z.string().min(1).max(120).parse(entry["category"]));
+          let detail: HistoryEntryRecord["detail"] = { kind: "reference" };
+          if (record["entity_kind"] === "attempt" && record["activity_type"] === "writing") {
+            const entityId = attemptIdSchema.parse(record["entity_id"]);
+            const writing = connection
+              .prepare(
+                `SELECT a.feedback_json, ans.answer_json, c.original_text, c.corrected_text,
+                  c.ai_provenance_json, c.vocabulary_candidates_json, c.correction_id
+                 FROM attempts a
+                 JOIN answers ans ON ans.attempt_id = a.attempt_id AND ans.position = 0
+                 JOIN corrections c ON c.attempt_id = a.attempt_id AND c.state = 'final'
+                 WHERE a.attempt_id = ? AND a.status = 'completed'`,
+              )
+              .get(entityId) as Record<string, unknown> | undefined;
+            if (writing) {
+              const answer = exerciseAnswerSchema.parse(parseJson(writing["answer_json"]));
+              if (answer.kind !== "free-writing") throw new Error("OD_HISTORY_WRITING_INVALID");
+              const correctionId = correctionIdSchema.parse(writing["correction_id"]);
+              const changes = connection
+                .prepare(
+                  `SELECT category, explanation FROM correction_changes
+                   WHERE correction_id = ? AND kind <> 'unchanged' ORDER BY position`,
+                )
+                .all(correctionId)
+                .map((entry) => ({
+                  category: z.string().min(1).max(80).parse(entry["category"]),
+                  explanation: z.string().min(1).max(800).parse(entry["explanation"]),
+                }));
+              detail = Object.freeze({
+                kind: "writing-correction" as const,
+                learnerText: answer.text,
+                correctedText: z.string().min(1).max(12_000).parse(writing["corrected_text"]),
+                feedback: attemptFeedbackSchema.parse(parseJson(writing["feedback_json"])),
+                aiProvenance: aiProvenanceSchema.parse(parseJson(writing["ai_provenance_json"])),
+                vocabularyCandidates: Object.freeze(
+                  z
+                    .array(correctionVocabularyCandidateSchema)
+                    .max(50)
+                    .parse(parseJson(writing["vocabulary_candidates_json"])),
+                ),
+                changes: Object.freeze(changes),
+              });
+            }
+          } else if (record["entity_kind"] === "voice-summary") {
+            const summary = voiceSummarySchema.parse(parseJson(record["reconstruction_json"]));
+            detail = Object.freeze({
+              kind: "voice-summary" as const,
+              scenario: summary.scenario,
+              duration: summary.duration,
+              observedIssues: summary.observedIssues,
+              vocabulary: summary.vocabulary,
+              feedback: summary.feedback,
+              nextSteps: summary.nextSteps,
+            });
+          } else if (record["entity_kind"] === "placement") {
+            detail = Object.freeze({
+              kind: "placement" as const,
+              ...placementResultSchema.parse(parseJson(record["reconstruction_json"])),
+            });
+          } else if (record["entity_kind"] === "attempt" && record["activity_type"] === "reading") {
+            detail = Object.freeze({
+              kind: "reading" as const,
+              ...readingResultSchema.parse(parseJson(record["reconstruction_json"])),
+            });
+          } else if (
+            record["entity_kind"] === "attempt" &&
+            record["activity_type"] === "codex-listening"
+          ) {
+            detail = Object.freeze({
+              kind: "listening" as const,
+              ...listeningResultSchema.parse(parseJson(record["reconstruction_json"])),
+            });
+          } else if (record["entity_kind"] === "attempt") {
+            const attemptId = attemptIdSchema.parse(record["entity_id"]);
+            const reconstructed = generatedExerciseHistorySchema.safeParse(
+              parseJson(record["reconstruction_json"]),
+            );
+            const source = connection
+              .prepare(
+                `SELECT e.activity_id FROM attempts a
+                 JOIN exercises e ON e.exercise_id = a.exercise_id
+                 WHERE a.attempt_id = ?`,
+              )
+              .get(attemptId) as Record<string, unknown> | undefined;
+            if (reconstructed.success && source) {
+              detail = Object.freeze({
+                ...reconstructed.data,
+                activityId: activityIdSchema.parse(source["activity_id"]),
+              });
+            }
+          }
+          return Object.freeze({
+            historyEntryId,
+            entityKind: z
+              .enum([
+                "attempt",
+                "correction",
+                "vocabulary-review",
+                "voice-summary",
+                "placement",
+                "plan",
+              ])
+              .parse(record["entity_kind"]),
+            entityId: z.string().min(18).max(96).parse(record["entity_id"]),
+            skill: z.enum(["writing", "reading", "listening", "speaking"]).parse(record["skill"]),
+            activityType: historyActivityTypeSchema.parse(record["activity_type"]),
+            title: z.string().min(1).max(160).parse(record["title"]),
+            occurredAt: utcInstantSchema.parse(record["occurred_at"]),
+            curriculumTopicIds: Object.freeze(curriculumTopicIds),
+            mistakeCategories: Object.freeze(mistakeCategories),
+            detail,
+            rootGeneration: z.int().positive().parse(record["root_generation"]),
+          }) satisfies HistoryEntryRecord;
+        }),
+    );
+  }
+
+  async deleteHistoryEntry(historyEntryIdValue: string, deletedAtValue: string): Promise<void> {
+    const historyEntryId = historyEntryIdSchema.parse(historyEntryIdValue);
+    const deletedAt = utcInstantSchema.parse(deletedAtValue);
+    await withLeasedTransaction(this.#database, (connection) => {
+      const entry = connection
+        .prepare(
+          `SELECT entity_kind, entity_id, activity_type FROM history_entries WHERE history_entry_id = ?`,
+        )
+        .get(historyEntryId) as
+        { entity_kind: string; entity_id: string; activity_type: string } | undefined;
+      if (!entry) throw new Error("OD_HISTORY_NOT_FOUND");
+      if (entry.entity_kind === "voice-summary") {
+        const voiceSessionId = z.string().min(18).max(96).parse(entry.entity_id);
+        connection
+          .prepare(`DELETE FROM history_entries WHERE history_entry_id = ?`)
+          .run(historyEntryId);
+        const result = connection
+          .prepare(`DELETE FROM voice_summaries WHERE voice_session_id = ?`)
+          .run(voiceSessionId);
+        if (result.changes !== 1) throw new Error("OD_VOICE_SUMMARY_NOT_FOUND");
+        return;
+      }
+      if (entry.entity_kind === "placement") {
+        const result = connection
+          .prepare(`DELETE FROM history_entries WHERE history_entry_id = ?`)
+          .run(historyEntryId);
+        if (result.changes !== 1) throw new Error("OD_HISTORY_NOT_FOUND");
+        return;
+      }
+      if (
+        entry.entity_kind === "attempt" &&
+        (entry.activity_type === "reading" || entry.activity_type === "codex-listening")
+      ) {
+        const result = connection
+          .prepare(`DELETE FROM history_entries WHERE history_entry_id = ?`)
+          .run(historyEntryId);
+        if (result.changes !== 1) throw new Error("OD_HISTORY_NOT_FOUND");
+        return;
+      }
+      if (entry.entity_kind !== "attempt") throw new Error("OD_HISTORY_DELETE_UNSUPPORTED");
+      const attemptId = attemptIdSchema.parse(entry.entity_id);
+      connection
+        .prepare(`DELETE FROM history_entries WHERE history_entry_id = ?`)
+        .run(historyEntryId);
+      connection
+        .prepare(`INSERT INTO attempt_deletions (attempt_id, deleted_at) VALUES (?, ?)`)
+        .run(attemptId, deletedAt);
+      const result = connection.prepare(`DELETE FROM attempts WHERE attempt_id = ?`).run(attemptId);
+      if (result.changes !== 1) throw new Error("OD_ATTEMPT_NOT_FOUND");
+    });
+  }
+
+  async saveListeningResult(
+    value: Readonly<{
+      attemptId: string;
+      activityId: string;
+      expectedActivityRevision: number;
+      result: ListeningResult;
+      occurredAt: string;
+      idempotencyKey: string;
+    }>,
+  ): Promise<Readonly<{ historyEntryId: string; replayed: boolean }>> {
+    const record = strictBoundaryObject({
+      attemptId: attemptIdSchema,
+      activityId: activityIdSchema,
+      expectedActivityRevision: z.int().nonnegative(),
+      result: listeningResultSchema,
+      occurredAt: utcInstantSchema,
+      idempotencyKey: z.string().min(16).max(128),
+    }).parse(value);
+    return withLeasedTransaction(this.#database, (connection) => {
+      const activity = connection
+        .prepare(
+          `SELECT title, activity_type, status FROM prepared_activities
+           WHERE activity_id = ?`,
+        )
+        .get(record.activityId) as
+        { title: string; activity_type: string; status: "prepared" | "completed" } | undefined;
+      if (!activity) throw new Error("OD_MCP_ACTIVITY_NOT_FOUND");
+      if (activity.activity_type !== "codex-listening") {
+        throw new Error("OD_MCP_LISTENING_ACTIVITY_INVALID");
+      }
+      const historyEntryId = historyEntryIdSchema.parse(
+        `history-entry_${record.attemptId.slice("attempt_".length)}`,
+      );
+      const claim = claimIdempotentWrite(connection, {
+        operation: "attempt-completion",
+        idempotencyKey: record.idempotencyKey,
+        request: record,
+        entityId: record.attemptId,
+        recordedAt: record.occurredAt,
+      });
+      if (claim.replayed) return { historyEntryId, replayed: true };
+      if (record.expectedActivityRevision !== 1 || activity.status === "completed") {
+        throw new Error("OD_MCP_ACTIVITY_REVISION_CONFLICT");
+      }
+      connection
+        .prepare(
+          `INSERT INTO history_entries (
+            history_entry_id, entity_kind, entity_id, skill, activity_type, title,
+            occurred_at, reconstruction_json, root_generation
+          ) VALUES (?, 'attempt', ?, 'listening', 'codex-listening', ?, ?, ?, ?)`,
+        )
+        .run(
+          historyEntryId,
+          record.attemptId,
+          activity.title,
+          record.occurredAt,
+          stringifyBounded(record.result),
+          this.#database.rootGeneration,
+        );
+      connection
+        .prepare(
+          `UPDATE prepared_activities SET status = 'completed', completed_at = ?
+           WHERE activity_id = ? AND status = 'prepared'`,
+        )
+        .run(record.occurredAt, record.activityId);
+      return { historyEntryId, replayed: false };
+    });
+  }
+}
+
+function vocabularyEntryFromRow(row: Record<string, unknown>): VocabularyEntry {
+  const schedule =
+    row["last_review_id"] === null
+      ? { status: "new" as const, dueOn: row["due_on"], stage: 1 as const }
+      : {
+          status: "reviewed" as const,
+          dueOn: row["due_on"],
+          stage: row["stage"],
+          lastReview: {
+            reviewId: row["last_review_id"],
+            reviewedAt: row["last_reviewed_at"],
+            grade: row["last_grade"],
+          },
+        };
+  return vocabularyEntrySchema.parse({
+    schemaVersion: 1,
+    vocabularyId: row["vocabulary_id"],
+    lemma: row["lemma"],
+    meaning: row["meaning"],
+    lexeme: parseJson(row["lexeme_json"]),
+    examples: parseJson(row["examples_json"]),
+    source: parseJson(row["source_json"]),
+    state: { status: "active", confirmedAt: row["confirmed_at"], schedule },
+  });
+}

@@ -12,6 +12,12 @@ Use a hybrid storage model:
 - **JSON** is an interchange format for AI result validation, optional import/export, and unreviewed staging—not the primary learner database.
 - Ordinary files hold larger attachments such as imported texts or images, with their metadata recorded in SQLite. Audio is neither captured nor played by Open Deutsch.
 
+The selected driver is the pinned Node 24 runtimes' built-in `node:sqlite` `DatabaseSync` API. Electron main and the separate MCP Node process each own a connection to the same local file. Connections enable foreign keys, WAL, and a bounded busy timeout; writes use short transactions and ordered transactional `user_version` migrations. This avoids a third-party native addon, Electron ABI rebuild, and SQLite-specific AppImage unpack rule. See [ADR-0004](adr/ADR-0004-node-sqlite-baseline.md).
+
+## Vocabulary review scheduling
+
+Vocabulary candidates remain separate from active review cards until the learner confirms each card. The deterministic schedule is documented in [ADR-0015](adr/ADR-0015-vocabulary-review-scheduling.md): stage intervals are 1, 3, 7, 14, and 30 calendar days, with explicit `again`, `hard`, `good`, and `easy` transitions. Due queries include overdue cards, and review sessions carry the saved example and source context while alternating recognition and production. Main-process timestamps are validated and injected; the domain never reads the ambient clock.
+
 ## Why SQLite owns learner state
 
 Attempts, corrections, mistake evidence, vocabulary cards, spaced-repetition scheduling, weekly plans, and relationships among them are structured and frequently updated. SQLite provides transactions, migrations, indexes, and reliable queries without introducing a server or cloud dependency.

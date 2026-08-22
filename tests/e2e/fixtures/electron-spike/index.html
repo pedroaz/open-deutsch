@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Open Deutsch Electron compatibility spike</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./renderer.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">Compatibility spike</p>
+      <h1>Electron + Playwright</h1>
+      <p class="summary">
+        This disposable shell proves secure window automation and deterministic native dialog
+        stubbing on Linux.
+      </p>
+      <button id="choose-folder" type="button">Choose test folder</button>
+      <p id="status" role="status" aria-live="polite">Ready for the deterministic check.</p>
+      <p id="route-status" role="status" aria-live="polite">No activity route received.</p>
+    </main>
+  </body>
+</html>

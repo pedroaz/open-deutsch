@@ -12,6 +12,12 @@ import openDeutsch from "./scripts/eslint-rules/open-deutsch.mjs";
 const typeScriptFiles = ["**/*.{ts,tsx}"];
 const rendererFiles = ["apps/desktop/src/renderer/**/*.{ts,tsx}"];
 const electronFiles = ["apps/desktop/src/{main,preload}/**/*.{ts,tsx}"];
+const electronSpikeFiles = ["tests/e2e/fixtures/electron-spike/{main.mjs,preload.cjs}"];
+const testTypeScriptFiles = [
+  "tests/**/*.{ts,tsx}",
+  "apps/*/test/**/*.{ts,tsx}",
+  "packages/*/test/**/*.{ts,tsx}",
+];
 
 const scopedTypeScriptConfigs = tseslint.configs.strictTypeChecked.map((config) => ({
   ...config,
@@ -54,7 +60,12 @@ export default tseslint.config(
     },
     languageOptions: {
       parserOptions: {
-        projectService: true,
+        projectService: {
+          allowDefaultProject: [
+            "apps/desktop/vite*.config.ts",
+            "packages/codex-client/src/environment.d.ts",
+          ],
+        },
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -74,6 +85,11 @@ export default tseslint.config(
       "import-x/no-duplicates": "error",
       "open-deutsch/enforce-package-boundaries": "error",
     },
+  },
+  {
+    name: "open-deutsch/electron-spike-renderer",
+    files: ["tests/e2e/fixtures/electron-spike/renderer.js"],
+    languageOptions: { globals: { ...globals.browser } },
   },
   {
     name: "open-deutsch/renderer-react-accessibility",
@@ -96,12 +112,49 @@ export default tseslint.config(
     },
   },
   {
+    name: "open-deutsch/typescript-tests",
+    files: testTypeScriptFiles,
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+        project: ["./tsconfig.test.json"],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "MemberExpression[computed=false][property.name='concurrent']",
+          message:
+            "Vitest cases must stay sequential because the disposable-data environment is process-global.",
+        },
+        {
+          selector: "MemberExpression[computed=true][property.value='concurrent']",
+          message:
+            "Vitest cases must stay sequential because the disposable-data environment is process-global.",
+        },
+      ],
+    },
+  },
+  {
     name: "open-deutsch/electron-security",
-    files: electronFiles,
+    files: [...electronFiles, ...electronSpikeFiles],
     plugins: { "open-deutsch": openDeutsch },
     rules: {
       "open-deutsch/no-electron-remote": "error",
       "open-deutsch/secure-electron-preferences": "error",
+    },
+  },
+  {
+    name: "open-deutsch/desktop-typescript-tests",
+    files: ["apps/desktop/test/**/*.{ts,tsx}"],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+        project: ["./apps/desktop/tsconfig.test.json"],
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
   },
   {

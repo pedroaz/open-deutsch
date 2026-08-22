@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Open Deutsch OD mark</title>
+  <rect width="512" height="512" rx="112" fill="#f7f3ea"/>
+  <path d="M125 148h116c61 0 101 42 101 108s-40 108-101 108H125V148Zm56 48v120h56c32 0 51-21 51-60s-19-60-51-60h-56Z" fill="#174a73"/>
+  <path d="M316 148h56v216h-56z" fill="#d2684b"/>
+</svg>

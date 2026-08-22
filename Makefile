@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help setup dev prd start status kill logs logs-errors logs-clear \
+.PHONY: help setup dev prd start status kill logs logs-errors logs-clear performance \
 	typecheck lint lint-fix format format-check check test-fast test test-e2e \
 	test-plugin test-all doctor package verify-live verify-plugin install-plugin \
 	refresh-plugin plugin-status uninstall-plugin
@@ -41,6 +41,10 @@ logs-errors: ## Follow warning and error records from current lifecycle logs.
 logs-clear: ## Confirm and clear only resolved Open Deutsch lifecycle logs.
 	@echo "+ pnpm run logs:clear"
 	@pnpm run logs:clear
+
+performance: ## Measure local performance budgets with synthetic disposable data.
+	@echo "+ pnpm run performance"
+	@pnpm run performance
 
 typecheck: ## Run strict TypeScript project-reference checks.
 	@echo "+ pnpm run typecheck"

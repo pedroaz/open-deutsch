@@ -282,9 +282,9 @@ This file records product and architecture decisions. Items marked **Proposed** 
 
 ## D-042 — Package AppImage first
 
-- Status: Accepted
+- Status: Superseded by D-073 and ADR-0018
 - Date: 2026-08-15
-- Decision: Produce an AppImage first and optionally add `.deb` when it materially improves Linux installation.
+- Decision: The historical sequencing chose AppImage first. The current delivery decision is Linux x86_64 AppImage only; ADR-0018 records why `.deb` is not part of this release boundary.
 - Superseded boundary: D-073 removes Windows audit, validation, packaging, and support from the current implementation goal.
 
 ## D-043 — Let the learner choose the data root
@@ -508,10 +508,11 @@ This file records product and architecture decisions. Items marked **Proposed** 
 
 ## D-076 — Use direct structured handoff without clipboard fallbacks
 
-- Status: Accepted with validation required
+- Status: Accepted; exact Voice bridge currently unavailable
 - Date: 2026-08-15
 - Decision: Open Deutsch must open or create the exact related Codex/Voice session for desktop-originated audio workflows. Codex creates exact desktop activities through MCP so they appear on the dashboard; direct Codex-to-app launch is used only if a supported mechanism exists.
 - Boundary: Do not build clipboard prompts or manual handoff instructions into the product. Prepared activities persist until completed or deleted. The desktop refreshes on focus and offers manual refresh.
+- Current release state: The supported host contract does not expose an exact desktop-originated Voice-session bridge. Listening and speaking therefore return `OD_HANDOFF_VOICE_SESSION_UNSUPPORTED`; this remains a release blocker for those exact-handoff acceptance items until the host capability is revalidated or product authority changes this decision.
 
 ## D-077 — Create a Codex-focused development structure
 
@@ -537,7 +538,7 @@ This file records product and architecture decisions. Items marked **Proposed** 
 
 - Status: Accepted
 - Date: 2026-08-15
-- Decision: Use persistent left navigation for Dashboard, Practice, Writing, Vocabulary, History, Weekly plan, and Settings/Account. Practice contains grammar, reading, Codex listening/speaking handoffs, and diagnostic entry points. Use a focused center workspace and optional right contextual helper.
+- Decision: Use persistent left navigation for Dashboard, Practice, Writing, Vocabulary, History, Progress, Weekly plan, and Settings/Account. Practice contains grammar, reading, Codex listening/speaking handoffs, and diagnostic entry points. Use a focused center workspace and optional right contextual helper.
 - Correction UI: Default to an inline annotated document with non-color indicators and provide a synchronized side-by-side original/corrected view.
 
 ## D-081 — Update packaged content and application manually
