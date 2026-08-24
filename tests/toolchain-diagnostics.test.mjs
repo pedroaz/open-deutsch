@@ -12,7 +12,7 @@ import {
 const policy = JSON.parse(readFileSync(new URL("../toolchain.json", import.meta.url), "utf8"));
 
 const valid = {
-  nodeVersion: "v24.18.1",
+  nodeVersion: "v26.5.0",
   pnpmAvailable: true,
   pnpmVersion: "11.0.9",
   codexAvailable: true,
@@ -28,7 +28,7 @@ test("parses prefixed tool versions and compares them", () => {
     text: "0.146.0",
   });
   assert.equal(
-    compareVersions(parseVersion("v24.18.1", "left"), parseVersion("24.18.0", "right")),
+    compareVersions(parseVersion("v26.5.0", "left"), parseVersion("26.4.9", "right")),
     1,
   );
 });
@@ -109,7 +109,7 @@ test("distinguishes an app-server capability timeout", () => {
 
 test("rejects unsupported Node.js and unpinned pnpm versions", () => {
   const result = diagnoseToolchain(
-    { ...valid, nodeVersion: "v26.5.0", pnpmVersion: "11.21.0" },
+    { ...valid, nodeVersion: "v24.18.1", pnpmVersion: "11.21.0" },
     policy,
   );
   assert.equal(result.ok, false);

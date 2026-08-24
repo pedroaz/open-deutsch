@@ -1,7 +1,7 @@
 # Codex implementation runbook
 
 Status: active agent guidance
-Last updated: 2026-08-15
+Last updated: 2026-08-24
 
 This runbook is the operating companion to the root `AGENTS.md`. The accepted workflow remains authoritative in `docs/development-workflow.md`.
 
@@ -10,7 +10,7 @@ This runbook is the operating companion to the root `AGENTS.md`. The accepted wo
 1. Read the active item in `docs/implementation-plan.md`, its dependencies, and its named authority documents.
 2. Run `git status --short` and preserve unrelated changes.
 3. Run `make help` to discover the public surface.
-4. Use `make setup` on the pinned Node.js 24.18.1 runtime when dependencies or toolchain state need validation. A different host Node version is diagnostic noise, not pinned-runtime evidence.
+4. Use `make setup` on the pinned Node.js 26.5.0 host runtime when dependencies or toolchain state need validation. Electron 42 still embeds Node.js 24, so use the Electron gates for mixed-runtime evidence. A different host Node version is diagnostic noise, not pinned-runtime evidence.
 
 Codex discovers root and nested `AGENTS.md` files from the repository root toward the current directory; closer guidance applies later. The current convention follows the [official OpenAI AGENTS.md documentation](https://learn.chatgpt.com/docs/agent-configuration/agents-md).
 

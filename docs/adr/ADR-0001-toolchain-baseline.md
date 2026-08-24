@@ -1,6 +1,6 @@
 # ADR-0001 — Pinned development toolchain baseline
 
-- **Status:** accepted
+- **Status:** superseded
 - **Date:** 2026-08-15
 - **Decision owners:** repository maintainers
 - **Related:** IMP-003, IMP-005, IMP-006; `docs/toolchain.md`
@@ -53,4 +53,4 @@ Expected result: frozen resolution and peer validation succeed; toolchain diagno
 
 ## Supersession
 
-None.
+[ADR-0020](ADR-0020-node-26-toolchain-baseline.md) replaces the host Node.js 24.18.1 baseline with Node.js 26.5.0 while preserving the Electron Node 24 compatibility surface.

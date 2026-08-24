@@ -1,7 +1,7 @@
 # Storage strategy
 
 Status: accepted architecture direction  
-Last updated: 2026-08-15
+Last updated: 2026-08-24
 
 ## Decision
 
@@ -12,7 +12,7 @@ Use a hybrid storage model:
 - **JSON** is an interchange format for AI result validation, optional import/export, and unreviewed staging—not the primary learner database.
 - Ordinary files hold larger attachments such as imported texts or images, with their metadata recorded in SQLite. Audio is neither captured nor played by Open Deutsch.
 
-The selected driver is the pinned Node 24 runtimes' built-in `node:sqlite` `DatabaseSync` API. Electron main and the separate MCP Node process each own a connection to the same local file. Connections enable foreign keys, WAL, and a bounded busy timeout; writes use short transactions and ordered transactional `user_version` migrations. This avoids a third-party native addon, Electron ABI rebuild, and SQLite-specific AppImage unpack rule. See [ADR-0004](adr/ADR-0004-node-sqlite-baseline.md).
+The selected driver is the supported runtimes' built-in `node:sqlite` `DatabaseSync` API. Electron main uses its embedded Node 24 runtime while the separate MCP process uses the pinned Node 26.5.0 host runtime; each owns a connection to the same local file. Connections enable foreign keys, WAL, and a bounded busy timeout; writes use short transactions and ordered transactional `user_version` migrations. This avoids a third-party native addon, Electron ABI rebuild, and SQLite-specific AppImage unpack rule. See [ADR-0004](adr/ADR-0004-node-sqlite-baseline.md) and [ADR-0020](adr/ADR-0020-node-26-toolchain-baseline.md).
 
 ## Vocabulary review scheduling
 

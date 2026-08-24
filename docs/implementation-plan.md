@@ -1,7 +1,7 @@
 # Full implementation TODO
 
 Status: canonical execution plan  
-Last updated: 2026-08-15
+Last updated: 2026-08-24
 
 This is one dependency-ordered TODO, not a phase plan. Tags such as `[desktop]` and `[mcp]` identify ownership only. The implementation agent should work from the first unchecked item downward and continue looping while safe, unblocked work remains. The product name is **Open Deutsch**.
 
@@ -80,6 +80,7 @@ The checklist is incomplete unless it implements and verifies all of the followi
   - Preserved the existing `main` planning commit, added the privacy baseline in `6adb4ad`, verified private probes are rejected by `git add --dry-run --ignore-missing`, confirmed no ignored files are tracked, and observed a clean status before recording completion.
 - [x] **IMP-003 `[toolchain]` Pin and diagnose required runtimes.** Declare supported Node.js and pnpm versions plus the minimum compatible existing `codex` version; local non-AI behavior may run without Codex, but desktop AI and integration installation must fail with a clear upgrade/setup message when it is missing or unsupported.
   - Pinned Node.js 24.18.1, pnpm 11.0.9, and the currently verified Codex CLI interval `>=0.146.0 <0.146.1`. Verified diagnostics plus normal/integration-required probes under the pinned Node runtime; missing/out-of-range Codex remains a local-only warning and blocks integration mode with actionable codes.
+  - The active host baseline is migrated to Node.js 26.5.0 by [ADR-0020](adr/ADR-0020-node-26-toolchain-baseline.md); historical implementation evidence remains tied to the runtime that produced it.
 - [x] **IMP-004 `[workspace]` Create the pnpm workspace skeleton.** Add `apps/desktop`, `apps/mcp-server`, `packages/domain`, `packages/contracts`, `packages/persistence`, `packages/codex-client`, `plugins/open-deutsch`, `content/curriculum`, and shared test/support directories without duplicating domain code.
   - Verified all eight pnpm projects and frozen lockfile resolution; four layout tests enforce unique package names, dependency direction, and the curriculum/fixture/support roots.
 - [x] **IMP-005 `[toolchain]` Add shared TypeScript configuration.** Enable strict checking, project references or equivalent package boundaries, source maps, and separate Node/Electron/renderer environments.

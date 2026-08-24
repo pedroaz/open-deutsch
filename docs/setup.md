@@ -1,6 +1,6 @@
 # Open Deutsch setup and recovery
 
-Open Deutsch is Linux-only for this implementation goal and ships as a Linux x86_64 AppImage. Use Node.js 24.18.1 and pnpm 11.0.9. A compatible external Codex CLI (`>=0.146.0 <0.146.1`) is needed for Codex integration and AI actions; the local desktop remains useful for non-AI work without it.
+Open Deutsch is Linux-only for this implementation goal and ships as a Linux x86_64 AppImage. Use Node.js 26.5.0 and pnpm 11.0.9. A compatible external Codex CLI (`>=0.146.0 <0.146.1`) is needed for Codex integration and AI actions; the local desktop remains useful for non-AI work without it.
 
 ## First checkout
 

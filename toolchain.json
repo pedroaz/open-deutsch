@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "node": {
-    "pinnedVersion": "24.18.1",
-    "minimumVersion": "24.18.1",
-    "maximumExclusiveVersion": "25.0.0"
+    "pinnedVersion": "26.5.0",
+    "minimumVersion": "26.5.0",
+    "maximumExclusiveVersion": "27.0.0"
   },
   "pnpm": {
     "pinnedVersion": "11.0.9"

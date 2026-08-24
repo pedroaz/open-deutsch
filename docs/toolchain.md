@@ -1,9 +1,9 @@
 # Toolchain baseline
 
 Status: accepted implementation baseline  
-Last verified: 2026-08-15
+Last verified: 2026-08-24
 
-Open Deutsch pins Node.js 24.18.1 and pnpm 11.0.9. Node.js 24 is the current LTS line, and pnpm 11 is the stable pnpm line compatible with Node.js 24. The root `package.json`, `.node-version`, and `toolchain.json` are the machine-readable authority. The pnpm patch pin matches the locally verified executable and avoids relying on package-manager self-switching during bootstrap.
+Open Deutsch pins the host development runtime to Node.js 26.5.0 and pnpm 11.0.9. Node.js 26 remains in the Current release phase until its scheduled October 2026 LTS transition, so this is an explicit pre-LTS baseline rather than a general production recommendation. Electron 42.7.1 continues to embed Node.js 24.18.0; `@types/node` remains on the Node 24 API surface to prevent desktop code from compiling against host-only Node 26 APIs, and the Electron SQLite journey verifies database sharing across the two runtimes. The root `package.json`, `.node-version`, and `toolchain.json` are the machine-readable authority. The pnpm patch pin matches the locally verified executable and avoids relying on package-manager self-switching during bootstrap. See [ADR-0020](adr/ADR-0020-node-26-toolchain-baseline.md).
 
 The supported Codex CLI range is `>=0.146.0 <0.146.1`, which currently admits only the exercised stable `0.146.0` release. IMP-015 verified that release with App Server STDIO initialization, isolated Codex-managed account lifecycle, restart restoration, logout, credential isolation, and no API-key input path. IMP-016 additionally verified the picker-visible model catalog, supported/default reasoning metadata, optional plan projection, and managed-account rate-limit read with explicit missing-field fallbacks. Every later Codex patch/minor requires renewed real protocol evidence before this interval expands.
 

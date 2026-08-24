@@ -56,9 +56,9 @@ test("named ADRs follow the lifecycle and accepted records include decision evid
   }
 });
 
-test("the compatibility baseline records exact selected versions", async () => {
-  const contents = await readFile("docs/adr/ADR-0001-toolchain-baseline.md", "utf8");
-  for (const version of ["24.18.1", "11.0.9", "0.146.0", "6.0.3", "9.39.5", "8.67.0"]) {
+test("the active compatibility baseline records exact selected versions", async () => {
+  const contents = await readFile("docs/adr/ADR-0020-node-26-toolchain-baseline.md", "utf8");
+  for (const version of ["26.5.0", "11.0.9", "0.146.0", "6.0.3", "9.39.5", "8.67.0"]) {
     assert.ok(contents.includes(version), version);
   }
 });

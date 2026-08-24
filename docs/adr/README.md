@@ -1,7 +1,7 @@
 # Architecture decision records
 
 Status: active convention
-Last updated: 2026-08-15
+Last updated: 2026-08-24
 
 ADRs record durable implementation decisions that are not already fully settled by `docs/decisions.md`. The product decision log remains authoritative for product scope and accepted architecture. An ADR explains how the implementation satisfies those decisions; it must not silently override them.
 
@@ -25,7 +25,7 @@ Copy `ADR-template.md`, remove instructional comments, and complete every sectio
 
 | ADR | Status | Decision |
 | --- | --- | --- |
-| [ADR-0001](ADR-0001-toolchain-baseline.md) | accepted | Pinned development toolchain baseline |
+| [ADR-0001](ADR-0001-toolchain-baseline.md) | superseded | Original Node.js 24 development toolchain baseline |
 | [ADR-0002](ADR-0002-vitest-infrastructure.md) | accepted | Vitest projects and V8 coverage baseline |
 | [ADR-0003](ADR-0003-electron-playwright-baseline.md) | accepted | Electron and Playwright Linux automation baseline |
 | [ADR-0004](ADR-0004-node-sqlite-baseline.md) | accepted | Built-in Node SQLite baseline |
@@ -41,3 +41,4 @@ Copy `ADR-template.md`, remove instructional comments, and complete every sectio
 | [ADR-0014](ADR-0014-shared-error-and-log-reference.md) | accepted | Shared error and log-reference model |
 | [ADR-0017](ADR-0017-production-appimage-payload.md) | accepted | Production AppImage payload and helper boundary |
 | [ADR-0018](ADR-0018-linux-package-format.md) | accepted | Initial Linux package format |
+| [ADR-0020](ADR-0020-node-26-toolchain-baseline.md) | accepted | Node.js 26 host toolchain baseline |

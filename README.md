@@ -6,7 +6,7 @@ Product discovery is complete and implementation follows the dependency-ordered 
 
 ## Toolchain
 
-Development uses Node.js 24.18.1 and pnpm 11.0.9. A compatible existing Codex CLI (currently the verified range `>=0.146.0 <0.146.1`) is required only for desktop AI and Codex integration workflows; local non-AI behavior remains available without it. See [the toolchain baseline](docs/toolchain.md).
+Development uses Node.js 26.5.0 and pnpm 11.0.9. Electron 42 continues to embed Node.js 24, so the mixed-runtime SQLite boundary is covered by the Electron acceptance suite. A compatible existing Codex CLI (currently the verified range `>=0.146.0 <0.146.1`) is required only for desktop AI and Codex integration workflows; local non-AI behavior remains available without it. See [the toolchain baseline](docs/toolchain.md).
 
 The initial delivery target is Linux x86_64 AppImage. AppImage replacement is manual, the selected learner data root stays outside the replaceable artifact, and no automatic updater or `.deb` package is included. Open Deutsch never generates, imports, stores, or plays local audio. Listening and speaking preparation persists structured context and returns `OD_HANDOFF_VOICE_SESSION_UNSUPPORTED` until the host exposes a supported exact Codex Voice bridge; clipboard, manual-selection, generic-launch, and UI-automation fallbacks are intentionally absent.
 

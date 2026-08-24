@@ -91,8 +91,8 @@ test("shares a migrated WAL database between Electron and a second Node process"
     const observed = observeChild(child);
     const externalInfo = await observed.locked;
     expect(externalInfo).toEqual({
-      node: "24.18.1",
-      sqlite: "3.53.1",
+      node: "26.5.0",
+      sqlite: "3.53.3",
       foreignKeys: 1,
       foreignKeyRejected: true,
     });
