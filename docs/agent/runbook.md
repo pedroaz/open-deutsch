@@ -1,4 +1,4 @@
-# Codex implementation runbook
+# Codex development runbook
 
 Status: active agent guidance
 Last updated: 2026-08-24
@@ -7,7 +7,7 @@ This runbook is the operating companion to the root `AGENTS.md`. The accepted wo
 
 ## Start and orient
 
-1. Read the active item in `docs/implementation-plan.md`, its dependencies, and its named authority documents.
+1. Read the user's request, the affected code, and the relevant living product or architecture documents.
 2. Run `git status --short` and preserve unrelated changes.
 3. Run `make help` to discover the public surface.
 4. Use `make setup` on the pinned Node.js 26.5.0 host runtime when dependencies or toolchain state need validation. Electron 42 still embeds Node.js 24, so use the Electron gates for mixed-runtime evidence. A different host Node version is diagnostic noise, not pinned-runtime evidence.
@@ -19,8 +19,7 @@ Codex discovers root and nested `AGENTS.md` files from the repository root towar
 - Use a focused package command or named Node test while editing.
 - Run `make test-fast` after code or configuration changes.
 - Run `make check` before completing a broad deterministic slice.
-- Use `make test-e2e` for Electron journeys and `make test-plugin` for plugin/MCP structure when their owning checklist items have implemented them.
-- An `[UNAVAILABLE]` command means its later dependency is not implemented; record it as unavailable, never as passing evidence.
+- Use `make test-e2e` for Electron journeys and `make test-plugin` for plugin/MCP structure.
 
 ## Lifecycle and logs
 
@@ -41,7 +40,7 @@ Lifecycle state and startup logs live below the ignored `.runtime/` directory. D
 - Electron: inspect the first Playwright trace, screenshot, renderer console, and main-process log before rerunning.
 - MCP: spawn the same built STDIO entrypoint used by the plugin; keep STDOUT clean and inspect redacted STDERR.
 - App Server: verify the pinned CLI and documented capability first, then use fake JSON-RPC fixtures for routine tests.
-- Packaging: use `make package` only after its owning packaging item is implemented; inspect generated metadata and launch behavior in a disposable environment.
+- Packaging: use `make package` and inspect generated metadata and launch behavior in a disposable environment.
 
 ## Live-account boundary
 
@@ -57,4 +56,4 @@ Lifecycle state and startup logs live below the ignored `.runtime/` directory. D
 
 ## Completion evidence
 
-Record the commands and outcomes that prove the item, including the pinned runtime where compatibility matters. Review `git diff --check`, changed files, ignored/generated artifacts, and privacy-sensitive output. Update the implementation checkbox only after the required evidence succeeds.
+Record the commands and outcomes that prove the requested change, including the pinned runtime where compatibility matters. Review `git diff --check`, changed files, ignored/generated artifacts, and privacy-sensitive output before handing the work back to the user.

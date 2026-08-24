@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const desktopRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = path.resolve(desktopRoot, "../..");
 const configuration = process.argv[2];
-if (configuration !== "playwright.electron-spike.config.mjs") {
+if (configuration !== "playwright.config.mjs") {
   throw new Error("OD_DESKTOP_E2E_CONFIGURATION_INVALID");
 }
 

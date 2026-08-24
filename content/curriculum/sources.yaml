@@ -23,12 +23,12 @@ sources:
     freshness:
       status: stable
   - sourceId: curriculum-source_0000000000000003
-    title: Open Deutsch accepted decisions
-    repositoryPath: docs/decisions.md
+    title: Open Deutsch component boundaries
+    repositoryPath: docs/component-boundaries.md
     publisher: Open Deutsch
     sourceClass: repository-original
     supportedClaims:
-      - Accepted product decisions define the teaching profiles, activity boundaries, and review-gated curriculum policy.
+      - The current component boundaries define teaching surfaces, activity ownership, and review-gated curriculum policy.
     retrievedOn: 2026-08-21
     reviewedOn: 2026-08-21
     freshness:

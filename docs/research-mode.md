@@ -1,6 +1,6 @@
 # Curriculum research mode
 
-Status: accepted product direction  
+Status: current product policy
 Last updated: 2026-08-15
 
 ## Purpose
@@ -123,7 +123,7 @@ The shippable base covers every A1–B2 band across the accepted everyday-life d
 
 ## Relationship to the desktop app
 
-The desktop app may later provide:
+The desktop application does not provide:
 
 - curriculum coverage and gap views;
 - a research queue;
@@ -131,7 +131,7 @@ The desktop app may later provide:
 - source and freshness indicators;
 - promote, reject, or request-revision actions.
 
-These screens are not required in the current implementation goal. Research execution, coverage review, source synthesis, and approval remain in Codex and repository files. Codex source summaries and ordinary working-tree changes are the approval interface; the maintainer performs all Git actions.
+Research execution, coverage review, source synthesis, and approval remain in Codex and repository files. Codex source summaries and ordinary working-tree changes are the approval interface; the maintainer performs all Git actions.
 
 ## Security and release boundary
 

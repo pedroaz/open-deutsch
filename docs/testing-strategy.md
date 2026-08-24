@@ -1,6 +1,6 @@
 # Agent-oriented testing strategy
 
-Status: accepted implementation guidance
+Status: current engineering guidance
 Last updated: 2026-08-22
 
 ## Objectives
@@ -84,7 +84,7 @@ The purpose is to verify real integration functionality occasionally, not to mea
 
 ## Electron interaction
 
-Use Playwright Test's Electron automation for committed end-to-end journeys. It can launch Electron, access the main process, control renderer windows, and stub native dialogs. The current Playwright API labels Electron support experimental, so Milestone 0 must prove the chosen Electron/Playwright versions together.
+Use Playwright Test's Electron automation for committed end-to-end journeys. It launches Electron, accesses the main process, controls renderer windows, and stubs native dialogs. A dedicated compatibility journey protects the pinned Electron/Playwright pair.
 
 Test seams should include:
 
@@ -128,7 +128,7 @@ Run MCP protocol tests on every relevant change. Run deterministic prompt-contra
 
 ## Agent workflow
 
-When implementation begins, add concise repository instructions—preferably in `AGENTS.md`—that tell an agent to:
+Repository instructions require an agent to:
 
 1. Run the smallest targeted Make test while editing.
 2. Run `make test-fast` before considering a change complete; `make test` is the exact alias.
@@ -137,7 +137,7 @@ When implementation begins, add concise repository instructions—preferably in 
 5. Run `make verify-live` or `make verify-plugin` only after explicit confirmation when real integration functionality needs verification; these consume account usage and are not automated tests.
 6. Inspect Playwright traces, screenshots, and process logs before retrying a failure.
 7. Never point automation at the learner's real data root.
-8. Record durable implementation lessons and changed operating constraints in the repository's agent/lessons documents before handing off.
+8. Update the closest living document when supported behavior or an operating constraint changes.
 
 ## Required breadth and quality cases
 
@@ -149,14 +149,14 @@ When implementation begins, add concise repository instructions—preferably in 
 - Verify logs are human-readable, correlated across processes, redacted, and bounded under repeated failures.
 - Treat curriculum and researched source text as adversarial test inputs to prove they cannot widen sandbox, tool, approval, or output boundaries.
 
-## What is not required initially
+## Excluded test scope
 
 - Playwright MCP as a CI dependency.
 - Live model calls from automated unit, integration, end-to-end, or CI test suites.
-- Automated Voice UI testing or account-consuming Voice automation. Exact Voice handoff remains a release-blocking host capability boundary.
+- Automated Voice UI testing or account-consuming Voice automation. Exact desktop-originated Voice opening is unsupported by the current host and is represented as an explicit product limitation.
 - Public HTTPS/tunnel testing for a personal local STDIO plugin.
 - Pixel-perfect screenshot testing for every state; representative visual acceptance coverage is required.
-- A cloud CI service before local deterministic commands are stable.
+- A cloud CI service; local deterministic commands are the repository's acceptance authority.
 
 ## Official references
 

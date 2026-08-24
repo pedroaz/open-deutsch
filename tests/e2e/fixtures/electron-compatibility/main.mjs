@@ -9,9 +9,9 @@ const hasSingleInstanceLock = app.requestSingleInstanceLock();
 function routeActivity(value) {
   try {
     const route = parseOpenDeutschActivityUrl(value);
-    mainWindow?.webContents.send("spike:activity-route", route.activityId);
+    mainWindow?.webContents.send("compatibility:activity-route", route.activityId);
   } catch {
-    // Unsupported or malformed external routes are ignored by this compatibility spike.
+    // Unsupported or malformed external routes are ignored by this compatibility fixture.
   }
 }
 
@@ -46,7 +46,7 @@ function createWindow() {
   void mainWindow.loadFile(path.join(import.meta.dirname, "index.html"));
 }
 
-ipcMain.handle("spike:choose-directory", async () => {
+ipcMain.handle("compatibility:choose-directory", async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     title: "Choose a disposable Open Deutsch test folder",
     properties: ["openDirectory", "createDirectory"],

@@ -1,6 +1,6 @@
 # Artifact validation
 
-Status: accepted repository convention
+Status: current repository convention
 Last updated: 2026-08-15
 
 Run `make test-fast` for the normal gate or `pnpm run test:artifacts` for the focused inventory. The validator reads Git-tracked files plus non-ignored working-tree files, so a new artifact is checked before it is staged. Ignored private/generated data remains outside the inventory by design; tracked files remain checked even if a later ignore rule matches them.
@@ -8,11 +8,11 @@ Run `make test-fast` for the normal gate or `pnpm run test:artifacts` for the fo
 ## Structured artifacts
 
 - Every JSON, YAML, and YML artifact must parse without duplicate YAML keys or aliases.
-- Curriculum Markdown below `content/curriculum/` requires YAML mapping front matter except for directory `README.md` and `AGENTS.md` guidance. IMP-035 owns the complete curriculum field schema; this earlier gate guarantees the metadata envelope cannot be omitted or malformed.
+- Curriculum Markdown below `content/curriculum/` requires YAML mapping front matter except for directory `README.md` and `AGENTS.md` guidance. The curriculum schema owns the complete field contract, and this gate guarantees the metadata envelope cannot be omitted or malformed.
 - A plugin manifest at `.codex-plugin/plugin.json` requires a stable kebab-case name, exact stable semantic version, nonblank description, and a contained relative skills directory when `skills` is present.
 - Every plugin `skills/<name>/SKILL.md` requires YAML mapping front matter with a kebab-case `name` and nonblank `description`.
 
-The plugin and skill baseline follows the current official OpenAI documentation for [building plugins](https://learn.chatgpt.com/docs/build-plugins) and [building skills](https://learn.chatgpt.com/docs/build-skills). Later plugin implementation still rechecks current documentation before adding host-specific fields.
+The plugin and skill contract follows current official OpenAI documentation for [building plugins](https://developers.openai.com/plugins/build/plugins) and [building skills](https://developers.openai.com/plugins/build/skills). Recheck current documentation before adding host-specific fields.
 
 ## UI artifacts
 

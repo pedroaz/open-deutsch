@@ -11,13 +11,13 @@ const execFileAsync = promisify(execFile);
 test("launches a secure Electron window and stubs the native folder dialog", async ({
   disposableData,
 }, testInfo) => {
-  const screenshotPath = testInfo.outputPath("electron-spike.png");
-  const tracePath = testInfo.outputPath("electron-spike-trace.zip");
+  const screenshotPath = testInfo.outputPath("electron-compatibility.png");
+  const tracePath = testInfo.outputPath("electron-compatibility-trace.zip");
   const application = await electron.launch({
     args: [
       "--ozone-platform=x11",
       `--user-data-dir=${path.join(disposableData.sandboxRoot, "electron-profile")}`,
-      path.resolve("tests/e2e/fixtures/electron-spike/main.mjs"),
+      path.resolve("tests/e2e/fixtures/electron-compatibility/main.mjs"),
     ],
     cwd: process.cwd(),
     env: disposableData.environment(process.env),
@@ -41,7 +41,7 @@ test("launches a secure Electron window and stubs the native folder dialog", asy
 
     await window.context().tracing.start({ screenshots: true, snapshots: true });
     tracingStarted = true;
-    await expect(window).toHaveTitle("Open Deutsch Electron compatibility spike");
+    await expect(window).toHaveTitle("Open Deutsch runtime compatibility");
     await expect(window.getByRole("heading", { name: "Electron + Playwright" })).toBeVisible();
 
     const preferences = await application.evaluate(({ BrowserWindow }) =>
@@ -60,7 +60,7 @@ test("launches a secure Electron window and stubs the native folder dialog", asy
       [
         "--ozone-platform=x11",
         `--user-data-dir=${path.join(disposableData.sandboxRoot, "electron-profile")}`,
-        path.resolve("tests/e2e/fixtures/electron-spike/main.mjs"),
+        path.resolve("tests/e2e/fixtures/electron-compatibility/main.mjs"),
         "open-deutsch://activity/speaking-a1-1",
       ],
       { cwd: process.cwd(), env: disposableData.environment(process.env), timeout: 10_000 },

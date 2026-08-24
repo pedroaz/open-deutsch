@@ -65,7 +65,7 @@ const defaultEntry = {
 const defaultSource = {
   sourceId,
   title: "Reviewed fixture authority",
-  repositoryPath: "docs/decisions.md",
+  repositoryPath: "docs/product-requirements.md",
   publisher: "Open Deutsch",
   sourceClass: "repository-original",
   supportedClaims: ["Fixture claim."],
@@ -99,7 +99,7 @@ async function createTree({
       path.join(root, "topics/a2/pharmacy-basics.md"),
       `---\n${stringify(metadata)}---\n${body}`,
     ),
-    writeFile(path.join(root, "docs/decisions.md"), "# Reviewed fixture authority\n"),
+    writeFile(path.join(root, "docs/product-requirements.md"), "# Reviewed fixture authority\n"),
   ]);
   return root;
 }
@@ -168,12 +168,12 @@ test("repository-original provenance must resolve to a contained regular file", 
     const root = await createTree();
     try {
       if (mode === "missing") {
-        await rm(path.join(root, "docs/decisions.md"));
+        await rm(path.join(root, "docs/product-requirements.md"));
       } else {
         const outside = path.join(root, "outside.md");
         await writeFile(outside, "outside\n");
-        await rm(path.join(root, "docs/decisions.md"));
-        await symlink(outside, path.join(root, "docs/decisions.md"));
+        await rm(path.join(root, "docs/product-requirements.md"));
+        await symlink(outside, path.join(root, "docs/product-requirements.md"));
       }
       await assert.rejects(
         validateCurriculumFilesystem(root, { repositoryRoot: root }),

@@ -39,11 +39,11 @@ function observeChild(child) {
 test("shares a migrated WAL database between Electron and a second Node process", async ({
   disposableData,
 }, testInfo) => {
-  const databasePath = path.join(disposableData.dataRoot, "sqlite-spike.db");
+  const databasePath = path.join(disposableData.dataRoot, "sqlite-concurrency.db");
   const versionOneDatabase = new DatabaseSync(databasePath);
   versionOneDatabase.exec(`
     PRAGMA journal_mode = WAL;
-    CREATE TABLE spike_events (
+    CREATE TABLE concurrency_events (
       id INTEGER PRIMARY KEY,
       writer TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -56,17 +56,17 @@ test("shares a migrated WAL database between Electron and a second Node process"
     args: [
       "--ozone-platform=x11",
       `--user-data-dir=${path.join(disposableData.sandboxRoot, "electron-profile")}`,
-      path.resolve("tests/e2e/fixtures/sqlite-spike/main.mjs"),
+      path.resolve("tests/e2e/fixtures/sqlite-concurrency/main.mjs"),
     ],
     cwd: process.cwd(),
     env: disposableData.environment({
       ...process.env,
-      OPEN_DEUTSCH_SQLITE_SPIKE_DB: databasePath,
+      OPEN_DEUTSCH_SQLITE_CONCURRENCY_DB: databasePath,
     }),
   });
   const applicationProcess = application.process();
   try {
-    const info = await application.evaluate(() => globalThis.openDeutschSqliteSpike.info());
+    const info = await application.evaluate(() => globalThis.openDeutschSqliteConcurrency.info());
     expect(info).toMatchObject({
       electron: "42.7.1",
       node: "24.18.0",
@@ -76,12 +76,12 @@ test("shares a migrated WAL database between Electron and a second Node process"
       schemaVersion: 2,
     });
     expect(
-      await application.evaluate(() => globalThis.openDeutschSqliteSpike.foreignKeyProbe()),
+      await application.evaluate(() => globalThis.openDeutschSqliteConcurrency.foreignKeyProbe()),
     ).toEqual({ rejected: true, code: "ERR_SQLITE_ERROR" });
 
     const child = spawn(
       process.execPath,
-      [path.resolve("tests/e2e/fixtures/sqlite-spike/external-writer.mjs"), databasePath],
+      [path.resolve("tests/e2e/fixtures/sqlite-concurrency/external-writer.mjs"), databasePath],
       {
         cwd: process.cwd(),
         env: disposableData.environment(process.env),
@@ -98,28 +98,30 @@ test("shares a migrated WAL database between Electron and a second Node process"
     });
 
     const startedAt = Date.now();
-    await application.evaluate(() => globalThis.openDeutschSqliteSpike.insert("electron-main"));
+    await application.evaluate(() =>
+      globalThis.openDeutschSqliteConcurrency.insert("electron-main"),
+    );
     const lockWaitMilliseconds = Date.now() - startedAt;
 
     const result = await observed.completed;
     expect(result).toMatchObject({ code: 0, signal: null, stderr: "" });
     expect(lockWaitMilliseconds).toBeGreaterThanOrEqual(150);
-    const rows = await application.evaluate(() => globalThis.openDeutschSqliteSpike.rows());
+    const rows = await application.evaluate(() => globalThis.openDeutschSqliteConcurrency.rows());
     expect(rows).toEqual([
       { writer: "external-node", source: "legacy" },
       { writer: "electron-main", source: "electron-main" },
     ]);
-    const evidencePath = testInfo.outputPath("sqlite-spike-evidence.json");
+    const evidencePath = testInfo.outputPath("sqlite-concurrency-evidence.json");
     await writeFile(
       evidencePath,
       `${JSON.stringify({ info, externalInfo, lockWaitMilliseconds, rows }, null, 2)}\n`,
       "utf8",
     );
-    await testInfo.attach("sqlite-spike-evidence", {
+    await testInfo.attach("sqlite-concurrency-evidence", {
       path: evidencePath,
       contentType: "application/json",
     });
-    await application.evaluate(() => globalThis.openDeutschSqliteSpike.close());
+    await application.evaluate(() => globalThis.openDeutschSqliteConcurrency.close());
   } finally {
     await application.close();
   }

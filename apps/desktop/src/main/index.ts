@@ -210,7 +210,7 @@ if (!app.requestSingleInstanceLock()) {
     });
   }
   void app.whenReady().then(() => {
-    if (process.env["OPEN_DEUTSCH_APPIMAGE_SPIKE"] === "YES") {
+    if (process.env["OPEN_DEUTSCH_APPIMAGE_PROBE"] === "YES") {
       void verifyPackagedResources()
         .then(() => {
           app.quit();

@@ -7,13 +7,15 @@ const database = new DatabaseSync(databasePath, { timeout: 2_000 });
 database.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 2000;");
 let foreignKeyRejected = false;
 try {
-  database.prepare("INSERT INTO spike_children (parent_name) VALUES (?)").run("missing-parent");
+  database
+    .prepare("INSERT INTO concurrency_children (parent_name) VALUES (?)")
+    .run("missing-parent");
 } catch (error) {
   if (error.code !== "ERR_SQLITE_ERROR") throw error;
   foreignKeyRejected = true;
 }
 database.exec("BEGIN IMMEDIATE;");
-database.prepare("INSERT INTO spike_events (writer) VALUES (?)").run("external-node");
+database.prepare("INSERT INTO concurrency_events (writer) VALUES (?)").run("external-node");
 process.stdout.write(
   `LOCKED ${JSON.stringify({
     node: process.versions.node,

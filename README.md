@@ -1,42 +1,50 @@
 # Open Deutsch
 
-A local-first German-learning companion built entirely around the Codex desktop experience.
+Open Deutsch is a local-first Linux desktop application for learning German with Codex. It combines an Electron study application, portable SQLite learner data, an opinionated A1–B2 curriculum, a scoped Codex plugin, and a local STDIO MCP server.
 
-Product discovery is complete and implementation follows the dependency-ordered canonical plan. The repository now includes the Linux Electron desktop, private portable SQLite persistence, the reviewed A1–B2 curriculum snapshot, the scoped Codex plugin with an eight-tool local MCP server, bounded desktop AI contracts, reading/listening/speaking evidence, vocabulary SRS, weekly planning, and four-skill Progress/History views. The remaining unchecked plan items are explicit acceptance boundaries: live account/host verification, exact Codex Voice session handoff, and a literal fresh-clone run.
+The application provides onboarding and data-root management, Dashboard and Weekly plan views, writing correction and contextual help, custom lessons, grammar and reading practice, vocabulary review with deterministic SRS, optional placement activities, general History, and four-skill evidence. Learner records remain in the selected local data root; only explicitly selected, minimized context is sent through Codex-backed actions.
 
-## Toolchain
+## Supported environment
 
-Development uses Node.js 26.5.0 and pnpm 11.0.9. Electron 42 continues to embed Node.js 24, so the mixed-runtime SQLite boundary is covered by the Electron acceptance suite. A compatible existing Codex CLI (currently the verified range `>=0.146.0 <0.146.1`) is required only for desktop AI and Codex integration workflows; local non-AI behavior remains available without it. See [the toolchain baseline](docs/toolchain.md).
+Open Deutsch targets Linux x86_64 and is packaged as an AppImage. Development uses Node.js 26.5.0 and pnpm 11.0.9; Electron 42 uses its embedded Node.js 24 runtime. A compatible external Codex CLI (`>=0.146.0 <0.146.1`) is required for AI actions and plugin integration, while local non-AI behavior remains available without Codex.
 
-The initial delivery target is Linux x86_64 AppImage. AppImage replacement is manual, the selected learner data root stays outside the replaceable artifact, and no automatic updater or `.deb` package is included. Open Deutsch never generates, imports, stores, or plays local audio. Listening and speaking preparation persists structured context and returns `OD_HANDOFF_VOICE_SESSION_UNSUPPORTED` until the host exposes a supported exact Codex Voice bridge; clipboard, manual-selection, generic-launch, and UI-automation fallbacks are intentionally absent.
+Open Deutsch does not generate, import, store, or play audio. It can prepare structured listening and speaking activities and save explicit structured results or summaries. The current Codex host does not expose a supported external mechanism for Open Deutsch to create or open an exact Voice session, so direct Voice-session opening is unavailable. This limitation does not block the rest of the application, and no clipboard, generic-launch, or UI-automation fallback is provided.
 
-## Deterministic acceptance
+## Setup and development
 
+```text
 make setup
 make doctor
+make dev
+```
+
+Use `make help` for the complete public command surface. Production-like local startup is available through `make prd` (`make start` is its alias), and `make kill` stops only an identity-matched process owned by the repository lifecycle tooling.
+
+## Verification
+
+```text
 make check
+make test-fast
 make test-e2e
 make test-plugin
 make test-all
+```
 
-All automated commands use disposable roots and never invoke the account-consuming `make verify-live` or `make verify-plugin` gates. Those two commands require separate explicit confirmation immediately before execution.
+Automated commands use disposable data roots and never invoke the account-consuming `make verify-live` or `make verify-plugin` workflows. Those commands require separate explicit confirmation immediately before execution.
 
-## Planning documents
+## Documentation
 
-- [Canonical implementation TODO](docs/implementation-plan.md)
 - [Product requirements](docs/product-requirements.md)
-- [Baseline architecture](docs/architecture.md)
-- [Historical sequencing rationale](docs/mvp-roadmap.md)
-- [Agent-oriented testing](docs/testing-strategy.md)
-- [Design direction](docs/design-direction.md)
-- [Development workflow](docs/development-workflow.md)
-- [Setup and recovery](docs/setup.md)
-- [Logging strategy](docs/logging-strategy.md)
-- [Codex agent structure](docs/agent-structure.md)
+- [Architecture](docs/architecture.md)
 - [Component boundaries](docs/component-boundaries.md)
+- [Setup and recovery](docs/setup.md)
+- [Development workflow](docs/development-workflow.md)
+- [Testing strategy](docs/testing-strategy.md)
+- [Design direction](docs/design-direction.md)
 - [Desktop-native AI](docs/desktop-ai.md)
-- [Model selection and reasoning](docs/model-selection.md)
+- [Model selection](docs/model-selection.md)
 - [Storage strategy](docs/storage-strategy.md)
+- [Logging strategy](docs/logging-strategy.md)
 - [Curriculum research mode](docs/research-mode.md)
-- [Decision log](docs/decisions.md)
-- [Product interview](docs/interview.md)
+- [Toolchain](docs/toolchain.md)
+- [Licensing and attribution](docs/licensing.md)

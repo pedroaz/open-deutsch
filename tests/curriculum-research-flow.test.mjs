@@ -21,7 +21,7 @@ const sourceRegistry = {
     {
       sourceId: "curriculum-source_0000000000000001",
       title: "Reviewed source",
-      repositoryPath: "docs/decisions.md",
+      repositoryPath: "docs/product-requirements.md",
       publisher: "Open Deutsch",
       sourceClass: "repository-original",
       supportedClaims: ["The reviewed source defines the product boundary."],

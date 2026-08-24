@@ -14,18 +14,15 @@ test("adopts the built-in SQLite driver without a native addon dependency", asyn
       assert.equal(dependencies[nativeDriver], undefined, `${manifestPath}: ${nativeDriver}`);
     }
   }
-
-  const adr = await readFile("docs/adr/ADR-0004-node-sqlite-baseline.md", "utf8");
-  assert.match(adr, /node:sqlite/);
-  assert.match(adr, /Electron 42\.7\.1/);
-  assert.match(adr, /Node\.js 24\.18\.1/);
-  assert.match(adr, /SQLite 3\.53\.1/);
 });
 
-test("the executable spike covers migration, WAL contention, and clean close", async () => {
-  const main = await readFile("tests/e2e/fixtures/sqlite-spike/main.mjs", "utf8");
-  const writer = await readFile("tests/e2e/fixtures/sqlite-spike/external-writer.mjs", "utf8");
-  const journey = await readFile("tests/e2e/playwright-sqlite-spike.spec.mjs", "utf8");
+test("the executable compatibility journey covers migration, WAL contention, and clean close", async () => {
+  const main = await readFile("tests/e2e/fixtures/sqlite-concurrency/main.mjs", "utf8");
+  const writer = await readFile(
+    "tests/e2e/fixtures/sqlite-concurrency/external-writer.mjs",
+    "utf8",
+  );
+  const journey = await readFile("tests/e2e/playwright-sqlite-concurrency.spec.mjs", "utf8");
 
   assert.match(main, /from "node:sqlite"/);
   assert.match(main, /PRAGMA journal_mode = WAL/);
@@ -38,19 +35,4 @@ test("the executable spike covers migration, WAL contention, and clean close", a
   assert.match(journey, /schemaVersion: 2/);
   assert.match(journey, /lockWaitMilliseconds/);
   assert.match(journey, /applicationProcess\.exitCode/);
-});
-
-test("records driver alternatives, AppImage impact, exact commands, and cleanup", async () => {
-  const report = await readFile("docs/spikes/SPIKE-IMP-014-sqlite-electron-node.md", "utf8");
-  for (const required of [
-    "better-sqlite3",
-    "sqlite3",
-    "sql.js",
-    "AppImage",
-    "xvfb-run -a",
-    "Cleanup verification",
-    "exit code zero",
-  ]) {
-    assert.match(report, new RegExp(required.replace(".", "\\."), "i"), required);
-  }
 });

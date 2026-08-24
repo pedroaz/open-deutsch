@@ -282,10 +282,10 @@ test("projects rate-limit status without opaque credit or account details", () =
 
 test("keeps authenticated probing explicit, isolated, and outside deterministic tests", async () => {
   const manifest = JSON.parse(await readFile("package.json", "utf8"));
-  assert.doesNotMatch(manifest.scripts["test:fast"], /spike:app-server/);
-  assert.match(manifest.scripts["spike:app-server:authenticated"], /confirm-and-run\.mjs/);
+  assert.doesNotMatch(manifest.scripts["test:fast"], /probe:app-server/);
+  assert.match(manifest.scripts["probe:app-server:authenticated"], /confirm-and-run\.mjs/);
   assert.match(
-    manifest.scripts["spike:app-server:capabilities:authenticated"],
+    manifest.scripts["probe:app-server:capabilities:authenticated"],
     /confirm-and-run\.mjs/,
   );
   for (const path of [

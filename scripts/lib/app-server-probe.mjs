@@ -301,7 +301,7 @@ export class AppServerProbeClient {
     const result = await this.request(
       "initialize",
       {
-        clientInfo: { name: "open_deutsch", title: "Open Deutsch", version: "0.0.0" },
+        clientInfo: { name: "open_deutsch", title: "Open Deutsch", version: "0.1.0" },
       },
       timeoutMilliseconds,
     );

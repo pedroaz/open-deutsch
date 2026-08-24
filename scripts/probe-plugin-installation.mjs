@@ -10,9 +10,9 @@ import {
 import { createDisposableDataHarness } from "../tests/support/disposable-data.mjs";
 
 const execFileAsync = promisify(execFile);
-const marketplaceName = "open-deutsch-spike";
+const marketplaceName = "open-deutsch-local";
 const pluginName = "open-deutsch";
-const refreshedVersion = "0.1.0+codex.spike-refresh";
+const refreshedVersion = "0.1.0+codex.probe-refresh";
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
 
 function assertCondition(condition, code) {
@@ -74,7 +74,7 @@ try {
     `${JSON.stringify(
       {
         name: marketplaceName,
-        interface: { displayName: "Open Deutsch Spike" },
+        interface: { displayName: "Open Deutsch Local" },
         plugins: [
           {
             name: pluginName,
@@ -266,7 +266,7 @@ try {
   assertCondition(!marketplaceList.includes(marketplaceName), "PLUGIN_MARKETPLACE_REMOVE_INVALID");
 
   process.stdout.write(
-    `[PASS] PLUGIN_INSTALLATION_SPIKE: ${codexVersion}; install, refresh, status, MCP discovery, uninstall, cleanup\n`,
+    `[PASS] PLUGIN_INSTALLATION_PROBE: ${codexVersion}; install, refresh, status, MCP discovery, uninstall, cleanup\n`,
   );
 } finally {
   await harness.cleanup();

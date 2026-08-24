@@ -1,6 +1,6 @@
 # Desktop-native AI
 
-Status: accepted planning direction  
+Status: current product architecture
 Last updated: 2026-08-15
 
 ## Purpose
@@ -117,9 +117,9 @@ All candidate fields are in scope. The UI should prioritize corrected text, inli
 - Store vocabulary as candidates until the learner explicitly adds items to the active review deck.
 - Do not require raw Codex thread history to reconstruct the learning record.
 
-## Validation spike before architecture lock
+## Verification boundary
 
-Build a disposable prototype that verifies:
+Deterministic and explicitly confirmed live verification cover:
 
 - Codex-managed browser or device-code login when the existing installation is signed out;
 - account restoration after restart and logout;
@@ -131,7 +131,7 @@ Build a disposable prototype that verifies:
 - behavior for incompatible Codex versions, denied approvals, unsafe data-root paths, prompt-injection-like source text, and model unavailability;
 - separation between Codex thread state and canonical local learning data.
 
-If the Codex SDK proves unsuitable for non-coding language correction, keep the product workflow but re-evaluate the model invocation layer rather than redesigning the UI or learning store.
+If a future Codex runtime changes these capabilities, update the narrow invocation adapter while preserving the UI, validated result contracts, and local learning store.
 
 ## Official capability references
 

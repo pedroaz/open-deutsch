@@ -55,7 +55,7 @@ export async function createDisposableHandoffStore(dataRoot) {
   ) {
     throw new Error("OD_HANDOFF_STORE_NOT_DISPOSABLE");
   }
-  const statePath = path.join(canonicalDataRoot, "cross-surface-handoff-spike.json");
+  const statePath = path.join(canonicalDataRoot, "cross-surface-handoff-probe.json");
   const lockPath = `${statePath}.lock`;
 
   async function withWriteLock(operation) {

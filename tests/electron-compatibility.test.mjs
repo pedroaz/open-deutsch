@@ -16,13 +16,13 @@ test("pins the Electron and Playwright pair behind the desktop Make journey", as
   assert.equal(desktopManifest.devDependencies.electron, "42.7.1");
   assert.match(workspace, /allowBuilds:\n\s+electron: true/);
   assert.match(desktopManifest.scripts["test:e2e"], /^xvfb-run -a /);
-  assert.match(desktopManifest.scripts["test:e2e"], /playwright\.electron-spike\.config\.mjs/);
+  assert.match(desktopManifest.scripts["test:e2e"], /playwright\.config\.mjs/);
 });
 
 test("keeps the compatibility shell secure and avoids a readiness deadlock", async () => {
-  const main = await readFile("tests/e2e/fixtures/electron-spike/main.mjs", "utf8");
-  const preload = await readFile("tests/e2e/fixtures/electron-spike/preload.cjs", "utf8");
-  const journey = await readFile("tests/e2e/playwright-electron-spike.spec.mjs", "utf8");
+  const main = await readFile("tests/e2e/fixtures/electron-compatibility/main.mjs", "utf8");
+  const preload = await readFile("tests/e2e/fixtures/electron-compatibility/preload.cjs", "utf8");
+  const journey = await readFile("tests/e2e/playwright-electron-compatibility.spec.mjs", "utf8");
 
   assert.match(main, /contextIsolation: true/);
   assert.match(main, /sandbox: true/);
@@ -33,19 +33,4 @@ test("keeps the compatibility shell secure and avoids a readiness deadlock", asy
   assert.match(journey, /dialog\.showOpenDialog = async/);
   assert.match(journey, /tracing\.stop\(\{ path: tracePath \}\)/);
   assert.match(journey, /applicationProcess\.exitCode/);
-});
-
-test("records the accepted pair, Xvfb command, evidence, and cleanup", async () => {
-  const spike = await readFile("docs/spikes/SPIKE-IMP-013-electron-playwright-linux.md", "utf8");
-  const adr = await readFile("docs/adr/ADR-0003-electron-playwright-baseline.md", "utf8");
-
-  for (const text of [spike, adr]) {
-    assert.match(text, /Electron 42\.7\.1/);
-    assert.match(text, /1\.62\.1/);
-    assert.match(text, /xvfb-run -a/);
-  }
-  assert.match(spike, /electron-spike\.png/);
-  assert.match(spike, /electron-spike-trace\.zip/);
-  assert.match(spike, /exit code zero/);
-  assert.match(spike, /Cleanup verification/);
 });

@@ -1,6 +1,6 @@
 {
   "name": "@open-deutsch/desktop",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Electron main, preload, and React renderer entry point for Open Deutsch.",
   "author": "Open Deutsch maintainers",
@@ -13,7 +13,7 @@
     "service:prd": "node scripts/desktop-service.mjs prd",
     "package:appimage": "pnpm --workspace-root exec electron-builder --config apps/desktop/electron-builder.yml --linux AppImage --publish never",
     "test": "pnpm --workspace-root exec vitest run --config vitest.config.mjs --project desktop",
-    "test:e2e": "xvfb-run -a node scripts/desktop-e2e.mjs playwright.electron-spike.config.mjs"
+    "test:e2e": "xvfb-run -a node scripts/desktop-e2e.mjs playwright.config.mjs"
   },
   "dependencies": {
     "@open-deutsch/codex-client": "workspace:*",

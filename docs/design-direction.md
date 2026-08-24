@@ -1,6 +1,6 @@
 # Open Deutsch design direction
 
-Status: accepted product direction  
+Status: current product design
 Last updated: 2026-08-15
 
 ## Character
@@ -70,4 +70,3 @@ Optimize for desktop windows rather than mobile pages. At standard width use nav
 Provide a development-only component gallery containing every shared component and meaningful state. Exercise it in English and German at standard and narrow window sizes.
 
 Visual gates should include representative screenshots rather than pixel-perfect coverage of the entire app. Tests fail for missing translations, obvious overflow, inaccessible names/roles, console errors, broken focus behavior, and inconsistent token usage.
-

@@ -3,11 +3,11 @@ import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: [
-    "playwright-electron-spike.spec.mjs",
-    "playwright-sqlite-spike.spec.mjs",
+    "playwright-electron-compatibility.spec.mjs",
+    "playwright-sqlite-concurrency.spec.mjs",
     "playwright-desktop-foundation.spec.mjs",
   ],
-  outputDir: "test-results/electron-spike",
+  outputDir: "test-results/electron",
   fullyParallel: false,
   workers: 1,
   retries: 0,

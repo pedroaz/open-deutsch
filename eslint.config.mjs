@@ -12,7 +12,9 @@ import openDeutsch from "./scripts/eslint-rules/open-deutsch.mjs";
 const typeScriptFiles = ["**/*.{ts,tsx}"];
 const rendererFiles = ["apps/desktop/src/renderer/**/*.{ts,tsx}"];
 const electronFiles = ["apps/desktop/src/{main,preload}/**/*.{ts,tsx}"];
-const electronSpikeFiles = ["tests/e2e/fixtures/electron-spike/{main.mjs,preload.cjs}"];
+const electronCompatibilityFiles = [
+  "tests/e2e/fixtures/electron-compatibility/{main.mjs,preload.cjs}",
+];
 const testTypeScriptFiles = [
   "tests/**/*.{ts,tsx}",
   "apps/*/test/**/*.{ts,tsx}",
@@ -87,8 +89,8 @@ export default tseslint.config(
     },
   },
   {
-    name: "open-deutsch/electron-spike-renderer",
-    files: ["tests/e2e/fixtures/electron-spike/renderer.js"],
+    name: "open-deutsch/electron-compatibility-renderer",
+    files: ["tests/e2e/fixtures/electron-compatibility/renderer.js"],
     languageOptions: { globals: { ...globals.browser } },
   },
   {
@@ -139,7 +141,7 @@ export default tseslint.config(
   },
   {
     name: "open-deutsch/electron-security",
-    files: [...electronFiles, ...electronSpikeFiles],
+    files: [...electronFiles, ...electronCompatibilityFiles],
     plugins: { "open-deutsch": openDeutsch },
     rules: {
       "open-deutsch/no-electron-remote": "error",

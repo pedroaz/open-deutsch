@@ -5,7 +5,7 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 const pluginName = "open-deutsch";
-const marketplaceName = "open-deutsch-spike";
+const marketplaceName = "open-deutsch-local";
 const pluginId = `${pluginName}@${marketplaceName}`;
 const repositoryRoot = path.resolve(import.meta.dirname, "../../..");
 const marketplaceRoot = path.resolve(

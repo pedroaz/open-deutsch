@@ -20,7 +20,7 @@ const harness = await createDisposableDataHarness();
 const codexHome = path.join(harness.sandboxRoot, "codex-home");
 const isolatedHome = path.join(harness.sandboxRoot, "home");
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
-const evidenceDirectory = path.join(repositoryRoot, "test-results/app-server-spike");
+const evidenceDirectory = path.join(repositoryRoot, "test-results/app-server-probe");
 const codexEnvironment = buildIsolatedCodexEnvironment(harness.environment(process.env), {
   codexHome,
   home: isolatedHome,

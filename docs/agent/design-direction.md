@@ -1,9 +1,9 @@
-# Implementation-facing design direction
+# Agent-facing design direction
 
 Status: active agent guidance
 Last updated: 2026-08-15
 
-`docs/design-direction.md` is the product authority. This page turns it into a compact implementation and verification checklist; it does not replace or override the accepted design.
+`docs/design-direction.md` is the product authority. This page turns it into a compact development and verification checklist; it does not replace or override the product design.
 
 ## Build rules
 

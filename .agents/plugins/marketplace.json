@@ -1,7 +1,7 @@
 {
-  "name": "open-deutsch-spike",
+  "name": "open-deutsch-local",
   "interface": {
-    "displayName": "Open Deutsch Spike"
+    "displayName": "Open Deutsch Local"
   },
   "plugins": [
     {

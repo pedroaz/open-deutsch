@@ -219,7 +219,7 @@ export class AppServerProcessManager {
     try {
       const initializeResult = await transport.request(
         "initialize",
-        { clientInfo: { name: "open_deutsch", title: "Open Deutsch", version: "0.0.0" } },
+        { clientInfo: { name: "open_deutsch", title: "Open Deutsch", version: "0.1.0" } },
         { timeoutMilliseconds: this.#options.initializeTimeoutMilliseconds ?? 10_000 },
       );
       if (

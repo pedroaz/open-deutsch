@@ -1,8 +1,8 @@
 import { app } from "electron";
 import { DatabaseSync } from "node:sqlite";
 
-const databasePath = process.env.OPEN_DEUTSCH_SQLITE_SPIKE_DB;
-if (!databasePath) throw new Error("OPEN_DEUTSCH_SQLITE_SPIKE_DB is required.");
+const databasePath = process.env.OPEN_DEUTSCH_SQLITE_CONCURRENCY_DB;
+if (!databasePath) throw new Error("OPEN_DEUTSCH_SQLITE_CONCURRENCY_DB is required.");
 
 const database = new DatabaseSync(databasePath, { timeout: 2_000 });
 database.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 2000;");
@@ -12,7 +12,7 @@ if (schemaVersion > 2) throw new Error(`Unsupported SQLite schema version ${sche
 if (schemaVersion === 0) {
   database.exec(`
     BEGIN IMMEDIATE;
-    CREATE TABLE spike_events (
+    CREATE TABLE concurrency_events (
       id INTEGER PRIMARY KEY,
       writer TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -25,11 +25,11 @@ if (schemaVersion === 0) {
 if (schemaVersion === 1) {
   database.exec(`
     BEGIN IMMEDIATE;
-    ALTER TABLE spike_events ADD COLUMN source TEXT NOT NULL DEFAULT 'legacy';
-    CREATE TABLE spike_parents (name TEXT PRIMARY KEY) STRICT;
-    CREATE TABLE spike_children (
+    ALTER TABLE concurrency_events ADD COLUMN source TEXT NOT NULL DEFAULT 'legacy';
+    CREATE TABLE concurrency_parents (name TEXT PRIMARY KEY) STRICT;
+    CREATE TABLE concurrency_children (
       id INTEGER PRIMARY KEY,
-      parent_name TEXT NOT NULL REFERENCES spike_parents(name)
+      parent_name TEXT NOT NULL REFERENCES concurrency_parents(name)
     ) STRICT;
     PRAGMA user_version = 2;
     COMMIT;
@@ -37,7 +37,7 @@ if (schemaVersion === 1) {
 }
 
 let closed = false;
-globalThis.openDeutschSqliteSpike = {
+globalThis.openDeutschSqliteConcurrency = {
   info() {
     return {
       electron: process.versions.electron,
@@ -50,7 +50,9 @@ globalThis.openDeutschSqliteSpike = {
   },
   foreignKeyProbe() {
     try {
-      database.prepare("INSERT INTO spike_children (parent_name) VALUES (?)").run("missing-parent");
+      database
+        .prepare("INSERT INTO concurrency_children (parent_name) VALUES (?)")
+        .run("missing-parent");
       return { rejected: false };
     } catch (error) {
       return { rejected: true, code: error.code };
@@ -58,11 +60,11 @@ globalThis.openDeutschSqliteSpike = {
   },
   insert(writer) {
     database
-      .prepare("INSERT INTO spike_events (writer, source) VALUES (?, ?)")
+      .prepare("INSERT INTO concurrency_events (writer, source) VALUES (?, ?)")
       .run(writer, "electron-main");
   },
   rows() {
-    return database.prepare("SELECT writer, source FROM spike_events ORDER BY id").all();
+    return database.prepare("SELECT writer, source FROM concurrency_events ORDER BY id").all();
   },
   close() {
     if (closed) return;
@@ -71,4 +73,4 @@ globalThis.openDeutschSqliteSpike = {
   },
 };
 
-app.on("before-quit", () => globalThis.openDeutschSqliteSpike.close());
+app.on("before-quit", () => globalThis.openDeutschSqliteConcurrency.close());

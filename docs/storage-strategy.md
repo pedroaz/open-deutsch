@@ -1,6 +1,6 @@
 # Storage strategy
 
-Status: accepted architecture direction  
+Status: current architecture
 Last updated: 2026-08-24
 
 ## Decision
@@ -12,11 +12,11 @@ Use a hybrid storage model:
 - **JSON** is an interchange format for AI result validation, optional import/export, and unreviewed staging—not the primary learner database.
 - Ordinary files hold larger attachments such as imported texts or images, with their metadata recorded in SQLite. Audio is neither captured nor played by Open Deutsch.
 
-The selected driver is the supported runtimes' built-in `node:sqlite` `DatabaseSync` API. Electron main uses its embedded Node 24 runtime while the separate MCP process uses the pinned Node 26.5.0 host runtime; each owns a connection to the same local file. Connections enable foreign keys, WAL, and a bounded busy timeout; writes use short transactions and ordered transactional `user_version` migrations. This avoids a third-party native addon, Electron ABI rebuild, and SQLite-specific AppImage unpack rule. See [ADR-0004](adr/ADR-0004-node-sqlite-baseline.md) and [ADR-0020](adr/ADR-0020-node-26-toolchain-baseline.md).
+The selected driver is the supported runtimes' built-in `node:sqlite` `DatabaseSync` API. Electron main uses its embedded Node 24 runtime while the separate MCP process uses the pinned Node 26.5.0 host runtime; each owns a connection to the same local file. Connections enable foreign keys, WAL, and a bounded busy timeout; writes use short transactions and ordered transactional `user_version` migrations. This avoids a third-party native addon, Electron ABI rebuild, and SQLite-specific AppImage unpack rule.
 
 ## Vocabulary review scheduling
 
-Vocabulary candidates remain separate from active review cards until the learner confirms each card. The deterministic schedule is documented in [ADR-0015](adr/ADR-0015-vocabulary-review-scheduling.md): stage intervals are 1, 3, 7, 14, and 30 calendar days, with explicit `again`, `hard`, `good`, and `easy` transitions. Due queries include overdue cards, and review sessions carry the saved example and source context while alternating recognition and production. Main-process timestamps are validated and injected; the domain never reads the ambient clock.
+Vocabulary candidates remain separate from active review cards until the learner confirms each card. Stage intervals are 1, 3, 7, 14, and 30 calendar days, with explicit `again`, `hard`, `good`, and `easy` transitions. Due queries include overdue cards, and review sessions carry the saved example and source context while alternating recognition and production. Main-process timestamps are validated and injected; the domain never reads the ambient clock.
 
 ## Why SQLite owns learner state
 
@@ -79,7 +79,7 @@ Generated staging remains ignored by Git until the maintainer deliberately copie
 ## Single-folder portability direction
 
 - Keep SQLite, attachments, and local research staging together beneath the selected data root.
-- Do not create automatic backups, managed snapshots, or a backup subsystem in the MVP.
+- Do not create automatic backups, managed snapshots, or a backup subsystem.
 - Do not implement **Move data folder**. Choosing another valid data root switches which dataset the app opens; it does not copy or delete data.
 - Allow the learner to point the app at an existing Open Deutsch data root and recreate the bootstrap pointer.
 - A learner may manually copy the self-contained folder while the app and MCP server are stopped.
@@ -88,15 +88,15 @@ Generated staging remains ignored by Git until the maintainer deliberately copie
 
 ## Privacy baseline
 
-- Rely on operating-system file permissions and the learner's disk encryption for the MVP.
+- Rely on operating-system file permissions and the learner's disk encryption.
 - Create and maintain Open Deutsch-owned files with restrictive Linux permissions where possible, and test permission/symlink boundary behavior.
 - Clearly disclose that the selected folder contains readable local learning data.
 - Clearly disclose that model requests send the selected exercise or research context to OpenAI through the installed Codex client even though the resulting learning record remains local.
 - Defer application-level SQLite encryption until there is a concrete requirement.
 
-## Validation needs
+## Validation coverage
 
-Before implementation, define the first schema around the writing vertical slice and verify:
+Automated coverage verifies:
 
 - saving one generated exercise and multiple attempts;
 - reconstructing the correction and mistake-history views;

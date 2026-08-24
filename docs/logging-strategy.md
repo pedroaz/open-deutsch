@@ -1,6 +1,6 @@
 # Logging strategy
 
-Status: accepted engineering direction  
+Status: current engineering guidance
 Last updated: 2026-08-15
 
 ## Goal
@@ -56,4 +56,3 @@ Open Deutsch sends no telemetry, logs, or crash reports to a cloud service.
 ## Test artifacts
 
 Automated tests use disposable log roots. Failed Playwright journeys preserve their isolated application logs beside traces and screenshots. Successful tests clean temporary logs unless a diagnostic mode explicitly retains them.
-

@@ -44,7 +44,7 @@ test("plugin lifecycle probe uses only an isolated Codex home and scrubs credent
         timeout: 15_000,
       },
     );
-    assert.match(stdout, /^\[PASS\] PLUGIN_INSTALLATION_SPIKE: codex-cli 0\.146\.0;/);
+    assert.match(stdout, /^\[PASS\] PLUGIN_INSTALLATION_PROBE: codex-cli 0\.146\.0;/);
     await assert.rejects(readdir(learnerHome), /ENOENT/);
   } finally {
     await rm(root, { recursive: true, force: true });
@@ -72,7 +72,7 @@ test("fake CLI rejects unscoped plugin lifecycle command shapes", async () => {
 
   try {
     for (const args of [
-      ["plugin", "add", "other@open-deutsch-spike", "--json"],
+      ["plugin", "add", "other@open-deutsch-local", "--json"],
       ["plugin", "remove", "open-deutsch@other-marketplace", "--json"],
       ["plugin", "list", "--available"],
     ]) {
@@ -113,8 +113,8 @@ test("scoped plugin lifecycle reports verified install, refresh, failure boundar
   await writeFile(
     path.join(marketplaceRoot, ".agents", "plugins", "marketplace.json"),
     `${JSON.stringify({
-      name: "open-deutsch-spike",
-      interface: { displayName: "Open Deutsch Spike" },
+      name: "open-deutsch-local",
+      interface: { displayName: "Open Deutsch Local" },
       plugins: [
         {
           name: "open-deutsch",

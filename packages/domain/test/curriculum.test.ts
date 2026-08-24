@@ -140,7 +140,7 @@ describe("curriculum contracts and filesystem schema", () => {
         ...source,
         sourceClass: "repository-original",
         publisher: "Open Deutsch",
-        repositoryPath: "docs/decisions.md",
+        repositoryPath: "docs/product-requirements.md",
       }).success,
     ).toBe(true);
     expect(

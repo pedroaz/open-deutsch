@@ -19,7 +19,7 @@ import { createDisposableDataHarness } from "../tests/support/disposable-data.mj
 
 const execFileAsync = promisify(execFile);
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
-const releaseDirectory = path.join(repositoryRoot, "release", "appimage-spike");
+const releaseDirectory = path.join(repositoryRoot, "release", "appimage");
 const timeoutMilliseconds = 30_000;
 
 async function sha256(target) {
@@ -86,7 +86,7 @@ async function launchPackagedShell(appDir, environment, evidenceFile) {
     env: {
       ...environment,
       APPDIR: appDir,
-      OPEN_DEUTSCH_APPIMAGE_SPIKE: "YES",
+      OPEN_DEUTSCH_APPIMAGE_PROBE: "YES",
       OPEN_DEUTSCH_APPIMAGE_EVIDENCE_FILE: evidenceFile,
     },
     timeout: timeoutMilliseconds,

@@ -1,6 +1,6 @@
 # Model selection and reasoning policy
 
-Status: accepted product direction  
+Status: current product policy
 Last updated: 2026-08-15
 
 ## Goal

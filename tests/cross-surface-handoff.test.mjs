@@ -35,7 +35,7 @@ test("routes only exact open-deutsch activity URLs", () => {
 test("an MCP process creates the exact activity read by the dashboard", async () => {
   const harness = await createDisposableDataHarness();
   const store = await createDisposableHandoffStore(harness.dataRoot);
-  const client = new Client({ name: "open-deutsch-handoff-test", version: "0.0.0" });
+  const client = new Client({ name: "open-deutsch-handoff-test", version: "0.1.0" });
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: [path.resolve("apps/mcp-server/test/fixtures/handoff-server.mjs")],
@@ -53,10 +53,10 @@ test("an MCP process creates the exact activity read by the dashboard", async ()
     await client.connect(transport);
     assert.deepEqual(
       (await client.listTools()).tools.map((tool) => tool.name),
-      ["open_deutsch_spike_create_activity"],
+      ["open_deutsch_probe_create_activity"],
     );
     const result = await client.callTool({
-      name: "open_deutsch_spike_create_activity",
+      name: "open_deutsch_probe_create_activity",
       arguments: { id: "voice-cafe-a1", title: "Order politely in a café" },
     });
     assert.equal(result.isError, undefined);
@@ -95,7 +95,7 @@ test("concurrent MCP-side processes preserve every prepared activity", async () 
   }
 });
 
-test("records exact text-thread support and the external Voice blocker without a fallback", () => {
+test("records exact text-thread support and the external Voice limitation without a fallback", () => {
   assert.deepEqual(codexHandoffCapabilities, {
     exactTextThreadCreation: "app-server-thread-start",
     exactTextThreadResume: "codex-resume-thread-id",

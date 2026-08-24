@@ -1,6 +1,6 @@
 # Development workflow
 
-Status: accepted engineering guidance
+Status: current engineering guidance
 Last updated: 2026-08-22
 
 ## Command boundary
@@ -46,7 +46,7 @@ Development and production-like runs record exact PIDs and mode-specific state i
 - `make verify-live` — warn, require explicit confirmation, then perform the one fixed real-account App Server correction verification against disposable data.
 - `make verify-plugin` — warn, require explicit confirmation, then run the installed-host skill/tool prompt evaluation inventory.
 
-Neither target is called by normal tests, CI, `make check`, `make test-all`, or an unattended Codex implementation loop.
+Neither target is called by normal tests, CI, `make check`, `make test-all`, or unattended automation.
 
 ## Plugin targets
 

@@ -7,7 +7,7 @@ toolsets:
   appimage: 1.0.3
 directories:
   app: apps/desktop
-  output: release/appimage-spike
+  output: release/appimage
 files:
   - package.json
   - dist/**

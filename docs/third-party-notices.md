@@ -1,6 +1,6 @@
 # Open Deutsch third-party notices
 
-This inventory covers the 642 package versions installed from the pinned pnpm lockfile at notice-generation time. Each dependency remains under its own license; consult the package metadata and upstream repository for the complete license text. This file is regenerated with `pnpm run generate:third-party-notices`.
+This inventory covers the 629 package versions installed from the pinned pnpm lockfile at notice-generation time. Each dependency remains under its own license; consult the package metadata and upstream repository for the complete license text. This file is regenerated with `pnpm run generate:third-party-notices`.
 
 ## Application and assets
 
@@ -53,18 +53,12 @@ This inventory covers the 642 package versions installed from the pinned pnpm lo
 | `@eslint-community/eslint-utils` | `4.10.1` | MIT | [upstream](https://github.com/eslint-community/eslint-utils#readme) |
 | `@eslint-community/regexpp` | `4.12.2` | MIT | [upstream](https://github.com/eslint-community/regexpp#readme) |
 | `@eslint/config-array` | `0.21.2` | Apache-2.0 | [upstream](https://github.com/eslint/rewrite/tree/main/packages/config-array#readme) |
-| `@eslint/config-array` | `0.23.5` | Apache-2.0 | [upstream](https://github.com/eslint/rewrite/tree/main/packages/config-array#readme) |
 | `@eslint/config-helpers` | `0.4.2` | Apache-2.0 | [upstream](https://github.com/eslint/rewrite/tree/main/packages/config-helpers#readme) |
-| `@eslint/config-helpers` | `0.7.0` | Apache-2.0 | [upstream](https://github.com/eslint/rewrite/tree/main/packages/config-helpers#readme) |
 | `@eslint/core` | `0.17.0` | Apache-2.0 | [upstream](https://github.com/eslint/rewrite/tree/main/packages/core#readme) |
-| `@eslint/core` | `1.2.1` | Apache-2.0 | [upstream](https://github.com/eslint/rewrite/tree/main/packages/core#readme) |
 | `@eslint/eslintrc` | `3.3.6` | MIT | [upstream](https://github.com/eslint/eslintrc#readme) |
-| `@eslint/js` | `10.0.1` | MIT | [upstream](https://eslint.org) |
 | `@eslint/js` | `9.39.5` | MIT | [upstream](https://eslint.org) |
 | `@eslint/object-schema` | `2.1.7` | Apache-2.0 | [upstream](https://github.com/eslint/rewrite/tree/main/packages/object-schema#readme) |
-| `@eslint/object-schema` | `3.0.5` | Apache-2.0 | [upstream](https://github.com/eslint/rewrite/tree/main/packages/object-schema#readme) |
 | `@eslint/plugin-kit` | `0.4.1` | Apache-2.0 | [upstream](https://github.com/eslint/rewrite/tree/main/packages/plugin-kit#readme) |
-| `@eslint/plugin-kit` | `0.7.2` | Apache-2.0 | [upstream](https://github.com/eslint/rewrite/tree/main/packages/plugin-kit#readme) |
 | `@exodus/bytes` | `1.15.1` | MIT | [upstream](https://github.com/ExodusOSS/bytes) |
 | `@humanfs/core` | `0.19.2` | Apache-2.0 | [upstream](https://github.com/humanwhocodes/humanfs#readme) |
 | `@humanfs/node` | `0.16.8` | Apache-2.0 | [upstream](https://github.com/humanwhocodes/humanfs#readme) |
@@ -108,7 +102,6 @@ This inventory covers the 642 package versions installed from the pinned pnpm lo
 | `@types/chai` | `5.2.3` | MIT | [upstream](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/chai) |
 | `@types/debug` | `4.1.13` | MIT | [upstream](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/debug) |
 | `@types/deep-eql` | `4.0.2` | MIT | [upstream](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/deep-eql) |
-| `@types/esrecurse` | `4.3.1` | MIT | [upstream](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/esrecurse) |
 | `@types/estree` | `1.0.9` | MIT | [upstream](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/estree) |
 | `@types/fs-extra` | `9.0.13` | MIT | [upstream](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/fs-extra) |
 | `@types/http-cache-semantics` | `4.2.0` | MIT | [upstream](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/http-cache-semantics) |
@@ -129,7 +122,6 @@ This inventory covers the 642 package versions installed from the pinned pnpm lo
 | `@typescript-eslint/typescript-estree` | `8.67.0` | MIT | [upstream](https://typescript-eslint.io/packages/typescript-estree) |
 | `@typescript-eslint/utils` | `8.67.0` | MIT | [upstream](https://typescript-eslint.io/packages/utils) |
 | `@typescript-eslint/visitor-keys` | `8.67.0` | MIT | [upstream](https://typescript-eslint.io) |
-| `@typescript/typescript-linux-x64` | `7.0.2` | Apache-2.0 | [upstream](https://www.typescriptlang.org/) |
 | `@unrs/resolver-binding-linux-x64-gnu` | `1.12.2` | MIT | [upstream](https://github.com/unrs/unrs-resolver) |
 | `@vitejs/plugin-react` | `6.0.5` | MIT | [upstream](https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#readme) |
 | `@vitest/coverage-v8` | `4.1.10` | MIT | [upstream](https://vitest.dev/guide/coverage) |
@@ -252,7 +244,6 @@ This inventory covers the 642 package versions installed from the pinned pnpm lo
 | `electron-to-chromium` | `1.5.406` | ISC | — |
 | `electron-winstaller` | `5.4.0` | MIT | — |
 | `electron` | `42.7.1` | MIT | — |
-| `electron` | `43.4.0` | MIT | — |
 | `emoji-regex` | `8.0.0` | MIT | [upstream](https://mths.be/emoji-regex) |
 | `emoji-regex` | `9.2.2` | MIT | [upstream](https://mths.be/emoji-regex) |
 | `end-of-stream` | `1.4.5` | MIT | [upstream](https://github.com/mafintosh/end-of-stream) |
@@ -280,14 +271,11 @@ This inventory covers the 642 package versions installed from the pinned pnpm lo
 | `eslint-plugin-react-hooks` | `7.1.1` | MIT | [upstream](https://react.dev/) |
 | `eslint-plugin-react` | `7.37.5` | MIT | [upstream](https://github.com/jsx-eslint/eslint-plugin-react) |
 | `eslint-scope` | `8.4.0` | BSD-2-Clause | [upstream](https://github.com/eslint/js/blob/main/packages/eslint-scope/README.md) |
-| `eslint-scope` | `9.1.2` | BSD-2-Clause | [upstream](https://github.com/eslint/js/blob/main/packages/eslint-scope/README.md) |
 | `eslint-visitor-keys` | `3.4.3` | Apache-2.0 | [upstream](https://github.com/eslint/eslint-visitor-keys#readme) |
 | `eslint-visitor-keys` | `4.2.1` | Apache-2.0 | [upstream](https://github.com/eslint/js/blob/main/packages/eslint-visitor-keys/README.md) |
 | `eslint-visitor-keys` | `5.0.1` | Apache-2.0 | [upstream](https://github.com/eslint/js/blob/main/packages/eslint-visitor-keys/README.md) |
-| `eslint` | `10.8.1` | MIT | [upstream](https://eslint.org) |
 | `eslint` | `9.39.5` | MIT | [upstream](https://eslint.org) |
 | `espree` | `10.4.0` | BSD-2-Clause | [upstream](https://github.com/eslint/js/blob/main/packages/espree/README.md) |
-| `espree` | `11.2.0` | BSD-2-Clause | [upstream](https://github.com/eslint/js/blob/main/packages/espree/README.md) |
 | `esquery` | `1.7.0` | BSD-3-Clause | [upstream](https://github.com/estools/esquery/) |
 | `esrecurse` | `4.3.0` | BSD-2-Clause | [upstream](https://github.com/estools/esrecurse) |
 | `estraverse` | `5.3.0` | BSD-2-Clause | [upstream](https://github.com/estools/estraverse) |
@@ -608,7 +596,6 @@ This inventory covers the 642 package versions installed from the pinned pnpm lo
 | `typed-array-length` | `1.0.8` | MIT | [upstream](https://github.com/inspect-js/typed-array-length#readme) |
 | `typescript-eslint` | `8.67.0` | MIT | [upstream](https://typescript-eslint.io/packages/typescript-eslint) |
 | `typescript` | `6.0.3` | Apache-2.0 | [upstream](https://www.typescriptlang.org/) |
-| `typescript` | `7.0.2` | Apache-2.0 | [upstream](https://www.typescriptlang.org/) |
 | `unbox-primitive` | `1.1.0` | MIT | [upstream](https://github.com/ljharb/unbox-primitive#readme) |
 | `undici-types` | `7.18.2` | MIT | [upstream](https://undici.nodejs.org) |
 | `undici` | `6.28.0` | MIT | [upstream](https://undici.nodejs.org) |

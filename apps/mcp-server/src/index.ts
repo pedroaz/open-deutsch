@@ -48,8 +48,10 @@ import {
 } from "@open-deutsch/persistence";
 import { parse as parseYaml } from "yaml";
 
-const serverName = "open-deutsch";
-const serverVersion = "0.1.0";
+export const productionServerIdentity = Object.freeze({
+  name: "open-deutsch",
+  version: "0.1.0",
+});
 const thisFile = fileURLToPath(import.meta.url);
 
 type Runtime = Readonly<{
@@ -225,13 +227,10 @@ export function createProductionServer(runtime: Runtime) {
     );
     return next;
   };
-  const server = new McpServer(
-    { name: serverName, version: serverVersion },
-    {
-      instructions:
-        "Open Deutsch provides bounded local learner context and explicit learning writes.",
-    },
-  );
+  const server = new McpServer(productionServerIdentity, {
+    instructions:
+      "Open Deutsch provides bounded local learner context and explicit learning writes.",
+  });
 
   server.registerTool(
     "open_deutsch_read_learner_context",

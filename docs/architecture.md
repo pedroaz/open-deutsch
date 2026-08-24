@@ -1,6 +1,6 @@
-# Baseline architecture
+# Architecture
 
-Status: accepted implementation architecture
+Status: current architecture
 Last updated: 2026-08-22
 
 ## Technology baseline
@@ -13,18 +13,16 @@ Last updated: 2026-08-22
 - **Codex integration:** personal plugin containing skills and a local MCP connection
 - **Desktop-native AI:** Codex App Server over STDIO from the Electron backend
 - **Renderer system:** accessible React primitives, CSS Modules, shared design tokens, Lucide icons, and i18next-compatible EN/DE catalogs
-- **Initial packaging:** Linux x86_64 AppImage only, with manual replacement and no updater
-- **Supported platform:** Linux only for the current implementation goal
+- **Packaging:** Linux x86_64 AppImage only, with manual replacement and no updater
+- **Supported platform:** Linux x86_64
 - **Product identity:** Open Deutsch; technical package, application, protocol, and plugin identifiers use `open-deutsch`
 
 Next.js is not part of the baseline. The app does not need a web server, server-side rendering, or web deployment, and Electron already provides the local backend boundary.
 
-## Conceptual workspace layout
-
-The exact names may change during scaffolding, but the ownership should resemble:
+## Workspace layout
 
 ```text
-codex-open-deutsch/
+open-deutsch/
 ├── apps/
 │   ├── desktop/             # Electron main/preload + React/Vite renderer
 │   └── mcp-server/          # separately launchable local STDIO MCP server
@@ -51,7 +49,7 @@ codex-open-deutsch/
 └── pnpm-workspace.yaml
 ```
 
-This is an architectural map, not a commitment to create every package before the writing vertical slice needs it. Start packages small and split only when a real boundary appears.
+This layout is the current package boundary. New packages should be introduced only when a distinct ownership or runtime boundary requires them.
 
 ## Process and dependency boundaries
 
@@ -93,24 +91,21 @@ Do not add MCP Apps UI merely to mirror the desktop app. Add compact plugin UI l
 
 - Expose public workflows through `make help`, `make setup`, `make dev`, `make prd`, `make start`, `make kill`, `make check`, and focused test/verification targets. Make delegates to exact pinned pnpm workspace scripts.
 - Build and test the MCP server before wiring its command into the plugin manifest.
-- Produce AppImage first for Linux portability.
-- Add `.deb` if native Debian/Ubuntu installation materially improves the personal setup.
+- Produce a Linux x86_64 AppImage.
 - Ask the learner to choose the single self-contained application data root during onboarding. Keep only a minimal pointer to it in the platform-appropriate configuration directory.
-- Do not add an automatic backup/snapshot subsystem or data-folder migration workflow to the MVP.
+- Do not add an automatic backup/snapshot subsystem or data-folder migration workflow.
 - Do not add automatic application updates. Document a manual AppImage replacement flow that preserves the selected data-root pointer.
 - Package the reviewed opinionated base curriculum as a read-only release snapshot. The application never runs Git commands; the maintainer manages curriculum Git history externally.
-- Defer the choice between Electron Forge and electron-builder until the first packaging spike.
+- Package with electron-builder using the pinned AppImage toolset.
 
-## First architecture validation slice
-
-The first implementation should prove:
+## Supported integration behavior
 
 1. The desktop and MCP processes can open the same local learner database safely.
 2. Codex can call one read tool and one write tool through the supported installed plugin/MCP connection.
 3. The desktop can run one bounded correction through App Server and persist the validated result.
 4. The renderer receives only typed application data through preload/IPC.
 5. An AppImage and the MCP helper can resolve the user-selected data root after restart through the shared bootstrap configuration.
-6. Open Deutsch prepares structured listening/speaking context and returns an explicit unsupported-handoff state until the host exposes a supported exact Codex Voice bridge, while Codex creates an exact persistent desktop activity through MCP. Neither direction uses clipboard/manual continuation UI or generic launch fallbacks.
+6. Open Deutsch prepares structured listening/speaking context and returns an explicit unsupported-handoff state because the current host has no supported exact Codex Voice bridge. Codex can create an exact persistent desktop activity through MCP. Neither direction uses clipboard/manual continuation UI or generic launch fallbacks.
 
 ## Testability boundary
 

@@ -1,6 +1,6 @@
 # Component boundaries
 
-Status: accepted planning direction  
+Status: current product architecture
 Last updated: 2026-08-15
 
 ## Recommended product shape
@@ -42,7 +42,7 @@ Most learning sessions should begin in Codex or Voice and move into the desktop 
 | Reviewed curriculum | Git-tracked Markdown and YAML | Codex research workflow | Reusable content stays human-reviewable and cloneable. |
 | Progress visualization | Desktop app | Optional in-Codex summary UI | The app provides a stable overview; Codex can narrate it. |
 | Weekly plan | Local learning service | Codex and desktop dashboard | The plan is shared context and guidance, not an activity ledger or progress tracker. |
-| Cross-surface handoff | Local learning service and app/plugin adapters | Codex and desktop app | Preserve a shared activity identifier and context; exact UI deep linking requires a technical spike. |
+| Cross-surface handoff | Local learning service and app/plugin adapters | Codex and desktop app | Preserve a shared activity identifier and context. Codex-created desktop activities are supported; exact desktop-originated Voice opening is unavailable in the current host. |
 | Optional placement diagnostic | Desktop app or Codex | Plugin and local service | Calibration is optional; ongoing activity continues the diagnosis. |
 | Speaking, listening, recording, and playback | Codex Voice | Open Deutsch handoff/result records | All audio activity occurs in Codex. Open Deutsch stores only structured activity metadata or summaries returned through the integration. |
 | Curriculum research and drafting | Codex research skill | Web research and local MCP context | Codex can synthesize sources and generate reviewable curriculum artifacts. |
@@ -84,23 +84,23 @@ The accepted baseline is Electron + TypeScript + React + Vite in a pnpm workspac
 
 The desktop app should not become a second general-purpose Codex client. Embedded AI actions should be bounded product operations or contextual conversations attached to an active learning artifact. Voice, open-ended tutoring, research, and unrelated long conversations continue to favor the Codex surface.
 
-Cross-surface navigation is an adapter capability rather than a database concern. Before feature implementation, a technical spike must prove both accepted directions:
+Cross-surface navigation is an adapter capability rather than a database concern. The supported behavior is:
 
 - Codex creates an exact persistent Open Deutsch activity through MCP so it appears on the dashboard; a direct app-launch action is optional and used only if supported; and
-- a desktop action that opens or focuses an exact related Codex task.
+- desktop-originated structured Voice preparation is persisted, but the desktop returns `OD_HANDOFF_VOICE_SESSION_UNSUPPORTED` because the current host exposes no supported exact Voice-session bridge.
 
-The product does not ship a clipboard, manual-selection, or vague "open Codex" fallback. If an exact supported route cannot be proved, the affected workflow remains blocked and is redesigned around a supported integration before implementation.
+The product does not ship a clipboard, manual-selection, or vague "open Codex" fallback. The unsupported direct Voice-opening capability is an explicit limitation, not a blocker for other learning workflows.
 
 ## 3. Personal Codex plugin
 
-Start with the smallest package that proves the workflow:
+The plugin package contains:
 
 - One or more teaching skills describing pedagogy and repeatable flows.
 - A connection to the local MCP server.
 - Optional references for CEFR-oriented rubrics and exercise formats.
 - Optional MCP Apps UI only for compact in-conversation interactions that are materially better than text and are supported by the Codex host.
 
-Candidate skills:
+Current skills cover:
 
 - German tutor session.
 - Writing coach.
@@ -109,7 +109,7 @@ Candidate skills:
 - Lesson and exercise designer.
 - Curriculum researcher and curator.
 
-Avoid creating all of these as separate skills until their trigger boundaries are understood. The first prototype may use one teaching skill.
+These workflows remain consolidated where their trigger boundaries and safety rules overlap.
 
 The curriculum-research workflow is a good candidate for a distinct skill because its source, citation, freshness, and approval rules differ substantially from a live tutoring session. Larger research batches can run as long-running Codex goals; the skill defines the workflow, while Goal mode defines the particular outcome and completion criteria for a run.
 
@@ -117,7 +117,7 @@ The curriculum-research workflow is a good candidate for a distinct skill becaus
 
 Treat this as one logical learning service exposed through two local entry points: the Electron backend and a separately launchable STDIO MCP server. Both reuse the same domain and persistence packages and can open the same SQLite database safely. No always-running daemon is required.
 
-Candidate responsibilities:
+Responsibilities:
 
 - Read/update learner profile.
 - Find relevant mistakes, vocabulary, goals, and past attempts.
@@ -135,19 +135,19 @@ The service should keep deterministic data operations separate from model judgme
 
 ## Content ownership boundary
 
-Three content classes are proposed:
+The product separates three content classes:
 
 1. **Version-controlled curriculum:** reusable CEFR maps, reviewed guides, lesson foundations, exercise templates, rubrics, source metadata, and content schemas. These should be safe and useful for another person who clones the repository.
 2. **Private local learning data:** learner profile, attempts, corrections, progress, review schedule, personal vocabulary, interests, and personalized lesson variants. These belong in the local database or application data directory and must not be committed.
 3. **Research staging and cache:** unreviewed drafts, fetched source notes, intermediate artifacts, and generated candidates. These remain local and ignored by Git unless deliberately promoted through review.
 
-See `research-mode.md` for the proposed promotion workflow.
+See `research-mode.md` for the promotion workflow.
 
 ## 5. Codex App Server integration
 
 Codex App Server can embed Codex capabilities into another product, including account state, threads, approvals, and streamed events. Open Deutsch uses a limited subset for bounded desktop-native actions rather than recreating a general Codex client. A compatible Codex installation is a prerequisite; Open Deutsch does not bundle Codex and has no API-key fallback.
 
-The desktop-native correction requirement makes a limited App Server integration relevant to the MVP. The proposed use is:
+Desktop-native correction uses a limited App Server integration:
 
 - Start or connect to a local App Server process over STDIO.
 - Reuse Codex-managed authentication and expose only account/readiness status and supported recovery actions.
@@ -157,20 +157,20 @@ The desktop-native correction requirement makes a limited App Server integration
 - Keep approvals and credential handling outside the renderer process.
 - Start each bounded learning operation with the minimum filesystem scope, tool access, approval policy, and injected learner context required for that operation.
 
-The Codex SDK may wrap thread execution where helpful, but App Server is the planning baseline for the desktop integration. The app must not request externally managed tokens or implement a parallel OAuth client.
+The Codex adapter may wrap thread execution where helpful, but App Server over STDIO is the desktop integration boundary. The app must not request externally managed tokens or implement a parallel OAuth client.
 
 This does not change the Voice boundary: App Server does not give Open Deutsch the Codex Voice UI.
 
 ## Local-only interpretation
 
-The proposed baseline is **local data, cloud model**:
+The product boundary is **local data, cloud model**:
 
 - User data is stored locally by Open Deutsch.
 - The installed Codex client still communicates with OpenAI to provide model execution and Voice.
 - No separate Open Deutsch cloud backend is introduced.
 - Local MCP uses STDIO or loopback-only transport.
 
-This interpretation was confirmed in the product interview. "Local-only" applies to learning-data storage and product infrastructure, not to the OpenAI traffic required for Codex and Voice. Onboarding and each AI-triggering surface must make that boundary understandable.
+"Local-only" applies to learning-data storage and product infrastructure, not to the OpenAI traffic required for Codex and Voice. Onboarding and each AI-triggering surface must make that boundary understandable.
 
 ## Cross-cutting boundaries
 

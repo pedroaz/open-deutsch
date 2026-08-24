@@ -60,7 +60,7 @@ if (
   );
   if (
     !marketplaceRoot.includes("open-deutsch-test-data-") ||
-    marketplace.name !== "open-deutsch-spike" ||
+    marketplace.name !== "open-deutsch-local" ||
     marketplace.plugins?.length !== 1 ||
     marketplace.plugins[0]?.name !== "open-deutsch" ||
     marketplace.plugins[0]?.source?.source !== "local" ||
@@ -83,12 +83,12 @@ if (
   hasExactArgs("plugin", "list", "--available", "--json")
 ) {
   const installed = state.installedPath
-    ? [{ pluginId: "open-deutsch@open-deutsch-spike", version: state.version, enabled: true }]
+    ? [{ pluginId: "open-deutsch@open-deutsch-local", version: state.version, enabled: true }]
     : [];
   const available = state.marketplaceRoot
     ? [
         {
-          pluginId: "open-deutsch@open-deutsch-spike",
+          pluginId: "open-deutsch@open-deutsch-local",
           installed: Boolean(state.installedPath),
         },
       ]
@@ -97,7 +97,7 @@ if (
   process.exit(0);
 }
 
-if (hasExactArgs("plugin", "add", "open-deutsch@open-deutsch-spike", "--json")) {
+if (hasExactArgs("plugin", "add", "open-deutsch@open-deutsch-local", "--json")) {
   if (!state.marketplaceRoot) fail("FAKE_CODEX_MARKETPLACE_MISSING");
   const source = path.join(state.marketplaceRoot, "plugins", "open-deutsch");
   const manifest = JSON.parse(
@@ -133,7 +133,7 @@ if (hasExactArgs("mcp", "list", "--json")) {
   process.exit(0);
 }
 
-if (hasExactArgs("plugin", "remove", "open-deutsch@open-deutsch-spike", "--json")) {
+if (hasExactArgs("plugin", "remove", "open-deutsch@open-deutsch-local", "--json")) {
   await rm(state.installedPath, { recursive: true, force: true });
   state.installedPath = null;
   state.version = null;
@@ -142,7 +142,7 @@ if (hasExactArgs("plugin", "remove", "open-deutsch@open-deutsch-spike", "--json"
   process.exit(0);
 }
 
-if (hasExactArgs("plugin", "marketplace", "remove", "open-deutsch-spike", "--json")) {
+if (hasExactArgs("plugin", "marketplace", "remove", "open-deutsch-local", "--json")) {
   state.marketplaceRoot = null;
   await saveState();
   process.stdout.write("{}\n");
@@ -150,7 +150,7 @@ if (hasExactArgs("plugin", "marketplace", "remove", "open-deutsch-spike", "--jso
 }
 
 if (hasExactArgs("plugin", "marketplace", "list")) {
-  process.stdout.write(state.marketplaceRoot ? "open-deutsch-spike\n" : "");
+  process.stdout.write(state.marketplaceRoot ? "open-deutsch-local\n" : "");
   process.exit(0);
 }
 

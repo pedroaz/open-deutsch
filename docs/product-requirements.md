@@ -1,6 +1,6 @@
 # Product requirements
 
-Status: accepted product requirements  
+Status: current product requirements
 Last updated: 2026-08-15
 
 ## Product idea
@@ -13,7 +13,7 @@ Open Deutsch is a local-first personal German teacher that combines:
 
 The product should feel like one teacher with two complementary surfaces, not two separate learning products.
 
-The personal Codex plugin and local STDIO MCP integration are part of the core architecture. The plugin supplies Codex-facing teaching/research workflows; MCP provides controlled access to the canonical local learner state. Public plugin submission, a public HTTPS MCP endpoint, and MCP Apps UI are not required for the initial personal product.
+The personal Codex plugin and local STDIO MCP integration are part of the core architecture. The plugin supplies Codex-facing teaching/research workflows; MCP provides controlled access to the canonical local learner state. Public plugin submission, a public HTTPS MCP endpoint, and MCP Apps UI are outside the supported personal product.
 
 ## Product principles
 
@@ -25,9 +25,9 @@ The personal Codex plugin and local STDIO MCP integration are part of the core a
 - **Reviewable progress:** The learner can see what was attempted, what changed, and what should be practiced next.
 - **Human control:** Corrections, scores, inferred level, and generated learning plans remain understandable and editable.
 
-## Initial user
+## Supported user
 
-The first version serves one adult learner on one Linux machine. It does not need multi-user product features, but the repository should remain understandable and configurable enough for another person to clone and run for themselves.
+Open Deutsch serves one adult learner on one Linux machine. It does not provide multi-user product features, but the repository remains understandable and configurable enough for another person to clone and run for themselves.
 
 The initial learner is currently around A2 and is working toward B1. Generated curricula, lessons, exercises, and assessment rubrics should initially cover A1 through B2, with most personalization centered on the A2-to-B1 transition.
 
@@ -88,8 +88,8 @@ The initial learner is currently around A2 and is working toward B1. Generated c
 - Use Codex Voice for live conversation, role-play, oral drills, and spoken assessment.
 - Let the learner choose scenarios, difficulty, correction timing, and speaking goals.
 - Save a structured session summary: topic, vocabulary, observed issues, feedback, and next steps.
-- Avoid requiring the companion app to recreate live voice in the first version.
-- Open or create the exact related Codex Voice session from a prepared local activity. Do not provide clipboard or manual prompt handoff UI.
+- Keep live Voice in Codex rather than recreating it in the companion application.
+- Persist prepared structured Voice activities. Direct opening of an exact Codex Voice session is unavailable because the current host exposes no supported external bridge. Do not provide clipboard or manual prompt handoff UI.
 - Do not store raw audio or full Voice transcripts by default.
 
 ### 5. Reading
@@ -103,7 +103,7 @@ The initial learner is currently around A2 and is working toward B1. Generated c
 
 - Use Codex Voice for every audio interaction.
 - Support gist, detail, dictation, cloze, and response exercises.
-- Let Open Deutsch prepare the structured activity and open/create the exact related Codex session.
+- Let Open Deutsch prepare and persist the structured activity. Direct opening of the exact related Codex Voice session is unavailable in the current host.
 - Save explicit structured comprehension results, difficult vocabulary, and next steps through MCP.
 - Do not generate, import, store, or play audio in Open Deutsch.
 
@@ -119,7 +119,7 @@ The initial learner is currently around A2 and is working toward B1. Generated c
 - Build vocabulary sets from learner goals, content, and mistakes.
 - Store lemma, meaning, gender/plural where relevant, example usage, and source context.
 - Provide recognition and production exercises.
-- Schedule review using a simple spaced-repetition model suitable for an early personal MVP.
+- Schedule review using the documented deterministic spaced-repetition model.
 - Let the learner edit, suspend, or remove items.
 
 ### 9. Custom lessons and exercises
@@ -136,7 +136,7 @@ The initial learner is currently around A2 and is working toward B1. Generated c
 - Recommendations may use the weekly plan as context but should not automatically mark it complete or rewrite it after an activity.
 - Where the host supports it, hand structured activities from Codex to the exact exercise in the desktop app.
 - Let the desktop app offer a path back to a related Codex task when the host supports a reliable contextual handoff.
-- Preserve the context locally and require a supported exact handoff. If the integration spike cannot prove one, block and redesign the affected workflow rather than shipping clipboard or manual continuation UI.
+- Preserve context locally and use exact cross-surface routing only where the host exposes a supported mechanism. Represent unsupported routes explicitly rather than shipping clipboard or manual continuation UI.
 
 ### 10. Curriculum research and authoring
 
@@ -165,7 +165,7 @@ The initial learner is currently around A2 and is working toward B1. Generated c
 - Let the learner choose the main local data directory during onboarding instead of silently fixing it to the operating system default.
 - Keep only the minimal bootstrap configuration needed to find that directory in the standard per-user application configuration location.
 - Keep all application-managed learner data together under that selected root so the folder itself is the portable unit.
-- Do not require automatic backups, managed snapshots, or an in-app move/copy workflow in the MVP.
+- Do not provide automatic backups, managed snapshots, or an in-app move/copy workflow.
 
 ### 12. Desktop-native AI actions and authentication
 
@@ -193,7 +193,7 @@ The initial learner is currently around A2 and is working toward B1. Generated c
 - During onboarding, detect whether the personal Codex plugin and local MCP command are available.
 - Offer a guided **Install Codex integration** experience and Make commands using supported scoped marketplace/CLI mechanisms. Do not use under-development App Server plugin APIs in production or modify unrelated plugins.
 - Optimize the initial repository workflow for a documented pnpm setup and clear desktop/plugin development commands.
-- Defer a polished non-developer installer until the personal end-to-end workflow is stable.
+- Distribute the Linux application as an AppImage with a guided scoped plugin-installation workflow.
 
 ### 14. Visual design and localization
 
@@ -208,45 +208,25 @@ The initial learner is currently around A2 and is working toward B1. Generated c
 
 - Make is the human-facing command surface and delegates to complete pnpm workflows.
 - Provide background `make dev`, build-and-run `make prd`, `make start` alias, safe tracked `make kill`, status/log/quality/test/package commands, and scoped plugin commands with English `make help` descriptions.
-- Use strict TypeScript, ESLint flat configuration, Prettier, accessibility/Electron-security/package-boundary rules, and no mandatory Git hooks initially.
-- Maintain Codex-focused root/scoped agent instructions, a runbook, design guidance, and reusable lessons learned.
+- Use strict TypeScript, ESLint flat configuration, Prettier, accessibility/Electron-security/package-boundary rules, and no mandatory Git hooks.
+- Maintain concise Codex-focused root/scoped agent instructions, a runbook, and design guidance.
 - Produce bounded human-readable redacted local logs; do not send telemetry or crash reports.
 - Support ordinary error boundaries, recoverable states, safe transactions, graceful shutdown, and stale-PID cleanup without a dedicated crash-recovery product.
 
-## Candidate MVP
-
-The smallest end-to-end version should prove the relationship among all surfaces:
-
-1. Create a local learner profile.
-2. Verify the required Codex installation and reuse its managed account state, guiding supported Codex login only when needed.
-3. Ask Codex for a writing or grammar exercise through the teaching skill, or start the writing flow from the desktop app.
-4. Let Codex read relevant learner context through local MCP tools.
-5. Write German text in the desktop app and select **Correct now**.
-6. Display structured corrections, explanations, and an original-versus-corrected comparison without leaving the app.
-7. Save the attempt, corrections, extracted vocabulary or mistakes, and next recommendation locally.
-8. Display that history and useful next actions on the desktop dashboard without coupling them to weekly-plan completion.
-9. Run a Voice speaking session and save a structured summary through the same local tools.
-
-The implementation order should favor a deep end-to-end workflow around writing, grammar, vocabulary, and saved Voice feedback before broadening, but the accepted implementation goal includes the complete writing, grammar, vocabulary, reading, Codex listening/speaking, optional placement, planning, History, and four-skill evidence breadth.
-
-The dependency-ordered implementation TODO starts with integration validation and a deep writing slice, but completion requires the entire accepted feature breadth. There are no separate phase gates.
-
-Testing is part of every capability. The default agent loop uses deterministic fast tests with disposable learner data. Installed-host plugin evaluation and the one live App Server correction verification are separate Make commands with usage warnings and explicit confirmation; neither is part of unit, integration, end-to-end, CI, `test:all`, or default agent commands.
-
-## Deferred from the first version
+## Product boundaries
 
 - Formal language certification or exam accreditation.
 - Multi-user accounts and synchronization.
 - Social features, teacher marketplaces, or classroom management.
 - A custom cloud backend.
 - Rebuilding a general-purpose live voice assistant.
-- Publishing the plugin publicly before the personal workflow is stable.
+- Public plugin publication.
 - Automatic backups, managed data snapshots, and application-level database encryption.
 - Windows work, local audio functionality, automatic AppImage updates, application-managed Git operations, clipboard/manual handoff UI, telemetry, and cloud crash reporting.
 
-## Success criteria for an early prototype
+## Product acceptance
 
-- The learner can move between Codex and the desktop app without manually re-entering learning context; exact structured handoff is a release requirement for every workflow that depends on it.
+- Codex-created activities can appear in the desktop app without manually re-entering learning context; unsupported desktop-originated Voice opening is clearly represented without a clipboard or generic-launch fallback.
 - A Codex session can safely read and update local learning state.
 - At least one writing flow and one speaking flow produce useful saved evidence.
 - The desktop app makes history and next actions clearer than a folder of chat transcripts.
@@ -254,4 +234,4 @@ Testing is part of every capability. The default agent loop uses deterministic f
 - Deterministic unit, SQLite, contract, and MCP protocol tests are fast enough for an agent to run repeatedly.
 - The principal desktop journeys are automatable without using the learner's real data or consuming live model usage.
 
-No unresolved product question currently blocks the canonical implementation plan. A target date for B1 remains optional and does not change scheduling behavior. Open Deutsch never generates, imports, stores, or plays audio; imported text follows the same local-storage, cloud-processing disclosure, and untrusted-content controls as other learning material.
+A target date for B1 remains optional and does not change scheduling behavior. Open Deutsch never generates, imports, stores, or plays audio; imported text follows the same local-storage, cloud-processing disclosure, and untrusted-content controls as other learning material.

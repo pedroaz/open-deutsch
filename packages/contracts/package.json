@@ -1,6 +1,6 @@
 {
   "name": "@open-deutsch/contracts",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Runtime-validated IPC, MCP, AI-output, and persisted-data contracts.",
   "type": "module",

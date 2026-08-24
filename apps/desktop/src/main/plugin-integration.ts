@@ -8,7 +8,7 @@ import { app } from "electron";
 
 const execFileAsync = promisify(execFile);
 const pluginName = "open-deutsch";
-const marketplaceName = "open-deutsch-spike";
+const marketplaceName = "open-deutsch-local";
 const pluginId = `${pluginName}@${marketplaceName}`;
 
 type CodexIntegrationState =
