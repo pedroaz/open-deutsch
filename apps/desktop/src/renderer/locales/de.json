@@ -146,6 +146,21 @@
       "title": "Hören in Codex Voice",
       "body": "Bereite eine begrenzte Höraktivität mit Skript, Zielen, Fragen und Antwort-Hinweisen vor. Open Deutsch erstellt, importiert, speichert oder spielt kein Audio.",
       "scenario": "Einen kurzen Terminanruf verstehen",
+      "scenarioLabel": "Szenario",
+      "levelLabel": "Zielniveau",
+      "difficultyLabel": "Schwierigkeitsgrad",
+      "correctionTimingLabel": "Korrekturzeitpunkt",
+      "difficultyOptions": {
+        "beginner": "Einfach",
+        "intermediate": "Mittel",
+        "advanced": "Fortgeschritten"
+      },
+      "correctionOptions": {
+        "during": "Während der Antwort",
+        "after-each": "Nach jeder Antwort",
+        "end": "Am Ende"
+      },
+      "onePerLine": "Ein Eintrag pro Zeile.",
       "level": "Ziel: A2",
       "difficulty": "Mittlerer Schwierigkeitsgrad",
       "correctionTiming": "Korrektur nach jeder Antwort",
@@ -163,12 +178,39 @@
       "prepare": "Höraktivität vorbereiten",
       "preparing": "Höraktivität wird vorbereitet…",
       "prepared": "Höraktivität vorbereitet",
-      "handoffUnavailable": "Die exakte Übergabe an eine Codex-Voice-Sitzung ist in diesem Build nicht verfügbar. Die Aktivität wurde gespeichert; es gibt keine Zwischenablage-, manuelle Auswahl- oder Audio-Ausweichlösung."
+      "saved": "Höraktivität gespeichert.",
+      "voiceStart": "Setze die gespeicherte Aktivität in Codex Voice fort:",
+      "voiceStepOne": "Öffne eine neue, leere Aufgabe in der ChatGPT-Desktop-App.",
+      "voiceStepTwo": "Wähle „Neuen Voice-Chat starten“, bevor du eine Nachricht sendest.",
+      "voiceStepThree": "Sage: Starte meine zuletzt vorbereitete Open-Deutsch-Höraktivität.",
+      "savedTitle": "Gespeicherte Höraktivitäten",
+      "savedBody": "Öffne oder lösche eine vorbereitete Aktivität. Codex kann den exakten strukturierten Kontext über das Open-Deutsch-Plugin abrufen.",
+      "savedEmpty": "Noch keine Höraktivitäten vorbereitet.",
+      "deleteAction": "Löschen",
+      "deleteTitle": "Diese Höraktivität löschen?",
+      "deleteBody": "Die vorbereitete Aktivität wird dauerhaft gelöscht.",
+      "deleteConfirm": "Aktivität löschen",
+      "handoffUnavailable": "Open Deutsch kann keine exakte Voice-Aufgabe extern starten. Die gespeicherte Aktivität ist für das Open-Deutsch-Plugin in einer neuen Voice-Aufgabe verfügbar."
     },
     "speakingFlow": {
       "title": "Szenario zum Sprechen in Codex Voice",
       "body": "Bereite ein praktisches Deutschland-Rollenspiel mit Conversation-Partner-Verhalten, Zielniveau und Korrekturzeitpunkt vor. Gesprochen wird weiterhin in Codex Voice.",
       "scenario": "Einen Arzttermin verschieben",
+      "scenarioLabel": "Szenario",
+      "levelLabel": "Zielniveau",
+      "difficultyLabel": "Schwierigkeitsgrad",
+      "correctionTimingLabel": "Korrekturzeitpunkt",
+      "difficultyOptions": {
+        "beginner": "Einfach",
+        "intermediate": "Mittel",
+        "advanced": "Fortgeschritten"
+      },
+      "correctionOptions": {
+        "during": "Während der Antwort",
+        "after-each": "Nach jeder Antwort",
+        "end": "Am Ende"
+      },
+      "onePerLine": "Ein Ziel oder Impuls pro Zeile.",
       "level": "Ziel: A2",
       "difficulty": "Mittlerer Schwierigkeitsgrad",
       "correctionTiming": "Korrektur nach jeder Antwort",
@@ -184,7 +226,19 @@
       "prepare": "Szenario zum Sprechen vorbereiten",
       "preparing": "Szenario wird vorbereitet…",
       "prepared": "Szenario zum Sprechen vorbereitet",
-      "handoffUnavailable": "Die exakte Übergabe an eine Codex-Voice-Sitzung ist in diesem Build nicht verfügbar. Das Szenario wurde gespeichert; es gibt keine Zwischenablage-, manuelle Auswahl- oder Audio-Ausweichlösung."
+      "saved": "Sprechszenario gespeichert.",
+      "voiceStart": "Setze dieses Szenario in Codex Voice fort:",
+      "voiceStepOne": "Öffne eine neue, leere Aufgabe in der ChatGPT-Desktop-App.",
+      "voiceStepTwo": "Wähle „Neuen Voice-Chat starten“, bevor du eine Nachricht sendest.",
+      "voiceStepThree": "Sage: Starte mein zuletzt vorbereitetes Open-Deutsch-Sprechszenario.",
+      "savedTitle": "Gespeicherte Sprechszenarien",
+      "savedBody": "Öffne oder lösche ein vorbereitetes Szenario. Codex kann Ziele und Impulse exakt über das Open-Deutsch-Plugin abrufen.",
+      "savedEmpty": "Noch keine Sprechszenarien vorbereitet.",
+      "deleteAction": "Löschen",
+      "deleteTitle": "Dieses Sprechszenario löschen?",
+      "deleteBody": "Das vorbereitete Szenario wird dauerhaft gelöscht.",
+      "deleteConfirm": "Szenario löschen",
+      "handoffUnavailable": "Open Deutsch kann keine exakte Voice-Aufgabe extern starten. Das gespeicherte Szenario ist für das Open-Deutsch-Plugin in einer neuen Voice-Aufgabe verfügbar."
     },
     "diagnosticFlow": {
       "title": "Kurze optionale Einstufung",

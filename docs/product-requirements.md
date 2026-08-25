@@ -89,7 +89,7 @@ The initial learner is currently around A2 and is working toward B1. Generated c
 - Let the learner choose scenarios, difficulty, correction timing, and speaking goals.
 - Save a structured session summary: topic, vocabulary, observed issues, feedback, and next steps.
 - Keep live Voice in Codex rather than recreating it in the companion application.
-- Persist prepared structured Voice activities. Direct opening of an exact Codex Voice session is unavailable because the current host exposes no supported external bridge. Do not provide clipboard or manual prompt handoff UI.
+- Persist configurable structured Voice activities and let the learner reopen or delete them from Practice. Direct opening of an exact Codex Voice session is unavailable because the current host exposes no supported external bridge. Guide the learner to begin a new empty Voice task, as required by ChatGPT Voice, and ask naturally for the latest or exact prepared Open Deutsch activity; the plugin retrieves the structured record through MCP. Do not expose copied scenario text, a session picker, a generic launcher, or UI automation.
 - Do not store raw audio or full Voice transcripts by default.
 
 ### 5. Reading

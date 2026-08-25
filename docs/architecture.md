@@ -105,7 +105,7 @@ Do not add MCP Apps UI merely to mirror the desktop app. Add compact plugin UI l
 3. The desktop can run one bounded correction through App Server and persist the validated result.
 4. The renderer receives only typed application data through preload/IPC.
 5. An AppImage and the MCP helper can resolve the user-selected data root after restart through the shared bootstrap configuration.
-6. Open Deutsch prepares structured listening/speaking context and returns an explicit unsupported-handoff state because the current host has no supported exact Codex Voice bridge. Codex can create an exact persistent desktop activity through MCP. Neither direction uses clipboard/manual continuation UI or generic launch fallbacks.
+6. Open Deutsch persists configurable listening/speaking context and exposes an exact-or-latest read through MCP. Because the host has no supported external bridge for starting an exact Voice task and Voice tasks must begin empty, the learner starts Voice first and asks naturally for the prepared Open Deutsch activity. Codex then retrieves the structured record through the plugin. Neither direction uses copied scenario text, a session picker, generic launch fallbacks, or UI automation.
 
 ## Live journey boundary
 

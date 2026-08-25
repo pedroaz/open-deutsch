@@ -5,9 +5,9 @@ import {
   learningOperationInputSchema,
   placementResultSchema,
   readingResultSchema,
-  voiceActivityContextSchema,
   type DesktopIpcResponse,
   type OpenDeutschError,
+  type VoiceActivityContext,
 } from "@open-deutsch/contracts";
 import { materializeGeneratedExerciseSet, type ModelWorkload } from "@open-deutsch/domain";
 import {
@@ -36,14 +36,7 @@ import {
   UserRound,
   Volume2,
 } from "lucide-react";
-import {
-  Button,
-  Dialog,
-  DialogTrigger,
-  Heading,
-  Modal,
-  ModalOverlay,
-} from "react-aria-components";
+import { Button, Dialog, DialogTrigger, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { useTranslation } from "react-i18next";
 
 import openDeutschLogo from "../../assets/open-deutsch.svg";
@@ -802,43 +795,99 @@ function ReadingPractice() {
   );
 }
 
+function lines(value: string): string[] {
+  return value
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 function CodexActivityPreparation({ kind }: { kind: "listening" | "speaking" }) {
   const { t } = useTranslation();
   const base = kind === "listening" ? "practice.listeningFlow" : "practice.speakingFlow";
+  const [scenario, setScenario] = useState(t(`${base}.scenario`));
+  const [targetLevel, setTargetLevel] = useState<VoiceActivityContext["targetLevel"]>("a2");
+  const [difficulty, setDifficulty] = useState<VoiceActivityContext["difficulty"]>("intermediate");
+  const [correctionTiming, setCorrectionTiming] =
+    useState<VoiceActivityContext["correctionTiming"]>("after-each");
+  const [objectives, setObjectives] = useState(
+    `${t(`${base}.objectiveOne`)}\n${t(`${base}.objectiveTwo`)}`,
+  );
+  const [questions, setQuestions] = useState(
+    `${t(`${base}.questionOne`)}\n${t(`${base}.questionTwo`)}`,
+  );
   const context = useMemo(
     () =>
-      voiceActivityContextSchema.parse({
+      ({
         schemaVersion: 1,
         kind,
-        targetLevel: "a2",
-        scenario: t(`${base}.scenario`),
-        difficulty: "intermediate",
-        correctionTiming: "after-each",
-        objectives: [t(`${base}.objectiveOne`), t(`${base}.objectiveTwo`)],
+        targetLevel,
+        scenario,
+        difficulty,
+        correctionTiming,
+        objectives: lines(objectives),
         ...(kind === "listening" ? { script: t(`${base}.script`) } : {}),
-        questions: [t(`${base}.questionOne`), t(`${base}.questionTwo`)],
+        questions: lines(questions),
         answerGuidance: [t(`${base}.guidanceOne`), t(`${base}.guidanceTwo`)],
         handoff: {
           status: "unavailable",
           code: "OD_HANDOFF_VOICE_SESSION_UNSUPPORTED",
           explanation: t(`${base}.handoffUnavailable`),
         },
-      }),
-    [base, kind, t],
+      }) satisfies VoiceActivityContext,
+    [base, correctionTiming, difficulty, kind, objectives, questions, scenario, t, targetLevel],
   );
-  const [activityId, setActivityId] = useState<string>();
+  const [savedActivities, setSavedActivities] = useState<readonly PreparedActivity[]>([]);
+  const [selectedActivity, setSelectedActivity] =
+    useState<
+      Extract<DesktopIpcResponse, { status: "ok"; channel: "voice-activity/read" }>["result"]
+    >();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<OpenDeutschError>();
+
+  const refreshSaved = useCallback(async () => {
+    const result = await invokeDesktop("dashboard/read", {});
+    const activityType = kind === "speaking" ? "voice-speaking" : "codex-listening";
+    setSavedActivities(
+      result.preparedActivities.filter((item) => item.activityType === activityType),
+    );
+  }, [kind]);
+
+  useEffect(() => {
+    const initial = window.setTimeout(() => void refreshSaved(), 0);
+    const unsubscribe = subscribeDesktop((event) => {
+      if (event.event === "state-invalidated" && event.scope === "dashboard") {
+        void refreshSaved();
+      }
+    });
+    return () => {
+      window.clearTimeout(initial);
+      unsubscribe();
+    };
+  }, [refreshSaved]);
+
+  const openActivity = async (activityId: PreparedActivityId) => {
+    setBusy(true);
+    setError(undefined);
+    try {
+      setSelectedActivity(await invokeDesktop("voice-activity/read", { activityId }));
+    } catch (cause) {
+      setError(normalizeDesktopError(cause).detail);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const prepare = async () => {
     setBusy(true);
     setError(undefined);
     try {
       const result = await invokeDesktop("codex-activity/prepare", {
-        title: t(`${base}.title`),
+        title: scenario.trim().slice(0, 160),
         context,
       });
-      setActivityId(result.activityId);
+      await refreshSaved();
+      await openActivity(result.activityId);
     } catch (cause) {
       setError(normalizeDesktopError(cause).detail);
     } finally {
@@ -847,35 +896,95 @@ function CodexActivityPreparation({ kind }: { kind: "listening" | "speaking" }) 
   };
 
   return (
-    <div data-testid={`codex-${kind}-preparation`}>
+    <div className={styles.voicePreparation} data-testid={`codex-${kind}-preparation`}>
       <SurfaceCard>
         <h2>{t(`${base}.title`)}</h2>
         <p>{t(`${base}.body`)}</p>
-        <p className={styles.muted}>
-          {t(`${base}.level`)} · {t(`${base}.difficulty`)} · {t(`${base}.correctionTiming`)}
-        </p>
+        <div className={styles.voiceSetupGrid}>
+          <label className={`${styles.controlLabel} ${styles.voiceScenarioField}`}>
+            {t(`${base}.scenarioLabel`)}
+            <input
+              maxLength={240}
+              value={scenario}
+              onChange={(event) => {
+                setScenario(event.target.value);
+              }}
+            />
+          </label>
+          <label className={styles.controlLabel}>
+            {t(`${base}.levelLabel`)}
+            <select
+              value={targetLevel}
+              onChange={(event) => {
+                setTargetLevel(event.target.value as VoiceActivityContext["targetLevel"]);
+              }}
+            >
+              {(["a1", "a2", "b1", "b2"] as const).map((level) => (
+                <option key={level} value={level}>
+                  {level.toUpperCase()}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={styles.controlLabel}>
+            {t(`${base}.difficultyLabel`)}
+            <select
+              value={difficulty}
+              onChange={(event) => {
+                setDifficulty(event.target.value as VoiceActivityContext["difficulty"]);
+              }}
+            >
+              {(["beginner", "intermediate", "advanced"] as const).map((value) => (
+                <option key={value} value={value}>
+                  {t(`${base}.difficultyOptions.${value}`)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={styles.controlLabel}>
+            {t(`${base}.correctionTimingLabel`)}
+            <select
+              value={correctionTiming}
+              onChange={(event) => {
+                setCorrectionTiming(event.target.value as VoiceActivityContext["correctionTiming"]);
+              }}
+            >
+              {(["during", "after-each", "end"] as const).map((value) => (
+                <option key={value} value={value}>
+                  {t(`${base}.correctionOptions.${value}`)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={styles.controlLabel}>
+            {t(`${base}.objectives`)}
+            <textarea
+              maxLength={4_000}
+              value={objectives}
+              onChange={(event) => {
+                setObjectives(event.target.value);
+              }}
+            />
+            <small>{t(`${base}.onePerLine`)}</small>
+          </label>
+          <label className={styles.controlLabel}>
+            {t(`${base}.questions`)}
+            <textarea
+              maxLength={4_000}
+              value={questions}
+              onChange={(event) => {
+                setQuestions(event.target.value);
+              }}
+            />
+            <small>{t(`${base}.onePerLine`)}</small>
+          </label>
+        </div>
         {context.script && (
           <section>
             <h3>{t(`${base}.scriptLabel`)}</h3>
             <p>{context.script}</p>
           </section>
         )}
-        <section>
-          <h3>{t(`${base}.objectives`)}</h3>
-          <ul className={styles.compactList}>
-            {context.objectives.map((objective) => (
-              <li key={objective}>{objective}</li>
-            ))}
-          </ul>
-        </section>
-        <section>
-          <h3>{t(`${base}.questions`)}</h3>
-          <ul className={styles.compactList}>
-            {context.questions.map((question) => (
-              <li key={question}>{question}</li>
-            ))}
-          </ul>
-        </section>
         <section>
           <h3>{t(`${base}.guidance`)}</h3>
           <ul className={styles.compactList}>
@@ -885,22 +994,94 @@ function CodexActivityPreparation({ kind }: { kind: "listening" | "speaking" }) 
           </ul>
         </section>
         {error && <StatusMessage tone="error">{t(error.messageKey)}</StatusMessage>}
-        {activityId && (
-          <StatusMessage tone="warning">
-            {context.handoff.explanation} ({activityId})
-          </StatusMessage>
+        {selectedActivity && (
+          <section className={styles.voicePreparedPreview}>
+            <h3>{selectedActivity.context.scenario}</h3>
+            <p className={styles.muted}>
+              {selectedActivity.context.targetLevel.toUpperCase()} ·{" "}
+              {t(`${base}.difficultyOptions.${selectedActivity.context.difficulty}`)} ·{" "}
+              {t(`${base}.correctionOptions.${selectedActivity.context.correctionTiming}`)}
+            </p>
+            <h4>{t(`${base}.objectives`)}</h4>
+            <ul className={styles.compactList}>
+              {selectedActivity.context.objectives.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+            <h4>{t(`${base}.questions`)}</h4>
+            <ul className={styles.compactList}>
+              {selectedActivity.context.questions.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+            <StatusMessage tone="success">
+              <strong>{t(`${base}.saved`)}</strong>
+              <span>{t(`${base}.voiceStart`)}</span>
+              <ol className={styles.compactList}>
+                <li>{t(`${base}.voiceStepOne`)}</li>
+                <li>{t(`${base}.voiceStepTwo`)}</li>
+                <li>{t(`${base}.voiceStepThree`)}</li>
+              </ol>
+            </StatusMessage>
+          </section>
         )}
         <Button
-          className={styles.secondary}
-          isDisabled={busy || Boolean(activityId)}
+          className={styles.primary}
+          isDisabled={
+            busy ||
+            !scenario.trim() ||
+            lines(objectives).length === 0 ||
+            lines(questions).length === 0
+          }
           onPress={() => void prepare()}
         >
-          {busy
-            ? t(`${base}.preparing`)
-            : activityId
-              ? t(`${base}.prepared`)
-              : t(`${base}.prepare`)}
+          {busy ? t(`${base}.preparing`) : t(`${base}.prepare`)}
         </Button>
+      </SurfaceCard>
+      <SurfaceCard>
+        <h2>{t(`${base}.savedTitle`)}</h2>
+        <p>{t(`${base}.savedBody`)}</p>
+        {savedActivities.length === 0 ? (
+          <p className={styles.muted}>{t(`${base}.savedEmpty`)}</p>
+        ) : (
+          <div className={styles.generatedActivityList}>
+            {savedActivities.map((activity) => (
+              <div className={styles.generatedActivity} key={activity.activityId}>
+                <Button
+                  className={styles.generatedActivityOpen}
+                  onPress={() => void openActivity(activity.activityId)}
+                >
+                  <span className={styles.generatedActivityCopy}>
+                    <strong>{activity.title}</strong>
+                    <span>{activity.preparedAt.slice(0, 10)}</span>
+                  </span>
+                  <ChevronRight aria-hidden="true" />
+                </Button>
+                <DestructiveDialog
+                  body={t(`${base}.deleteBody`)}
+                  cancel={t("actions.cancel")}
+                  confirm={t(`${base}.deleteConfirm`)}
+                  onConfirm={() => {
+                    void invokeDesktop("prepared-activity/delete", {
+                      activityId: activity.activityId,
+                    })
+                      .then(() => {
+                        if (selectedActivity?.activityId === activity.activityId)
+                          setSelectedActivity(undefined);
+                        return refreshSaved();
+                      })
+                      .catch((cause: unknown) => {
+                        setError(normalizeDesktopError(cause).detail);
+                      });
+                  }}
+                  title={t(`${base}.deleteTitle`)}
+                  trigger={t(`${base}.deleteAction`)}
+                  triggerVariant="secondary"
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </SurfaceCard>
     </div>
   );
@@ -1055,29 +1236,25 @@ function PracticePage({
               <h1>{generated?.title ?? t("exercises.loading")}</h1>
               {generated && (
                 <div className={styles.practiceSessionMeta}>
-                  <span>
-                    {t("practice.session.exerciseCount", { count: exercises.length })}
-                  </span>
+                  <span>{t("practice.session.exerciseCount", { count: exercises.length })}</span>
                   {generated.output.lesson && <span>{t("practice.session.lessonIncluded")}</span>}
                 </div>
               )}
             </div>
             {generated && generated.deletionStatus !== "retained-data" && (
-                <DestructiveDialog
-                  body={t(
-                    generated.deletionStatus === "cascade"
-                      ? "exercises.delete.cascadeBody"
-                      : "exercises.delete.body",
-                  )}
-                  cancel={t("actions.cancel")}
-                  confirm={t("exercises.delete.confirm")}
-                  onConfirm={() => void deleteGeneratedLesson()}
-                  title={t("exercises.delete.title")}
-                  trigger={
-                    deleting ? t("exercises.delete.deleting") : t("practice.session.delete")
-                  }
-                  triggerVariant="secondary"
-                />
+              <DestructiveDialog
+                body={t(
+                  generated.deletionStatus === "cascade"
+                    ? "exercises.delete.cascadeBody"
+                    : "exercises.delete.body",
+                )}
+                cancel={t("actions.cancel")}
+                confirm={t("exercises.delete.confirm")}
+                onConfirm={() => void deleteGeneratedLesson()}
+                title={t("exercises.delete.title")}
+                trigger={deleting ? t("exercises.delete.deleting") : t("practice.session.delete")}
+                triggerVariant="secondary"
+              />
             )}
           </div>
         </header>
@@ -1125,9 +1302,7 @@ function PracticePage({
               onStarted={async () => {
                 if (generated.activeSet) {
                   await invokeDesktop("exercise-set/abandon", { activityId });
-                  setGenerated((current) =>
-                    current ? { ...current, activeSet: null } : current,
-                  );
+                  setGenerated((current) => (current ? { ...current, activeSet: null } : current));
                 }
                 const started = await invokeDesktop("exercise-set/start", {
                   activityId,
@@ -1172,9 +1347,7 @@ function PracticePage({
                   }).catch((cause: unknown) => {
                     unsubscribe();
                     reject(
-                      cause instanceof Error
-                        ? cause
-                        : new Error("OD_EXERCISE_AI_FEEDBACK_FAILED"),
+                      cause instanceof Error ? cause : new Error("OD_EXERCISE_AI_FEEDBACK_FAILED"),
                     );
                   });
                 });
@@ -1376,10 +1549,7 @@ function PracticePage({
                     </span>
                   ) : (
                     <DialogTrigger>
-                      <Button
-                        aria-label={deleteLabel}
-                        className={styles.generatedActivityDelete}
-                      >
+                      <Button aria-label={deleteLabel} className={styles.generatedActivityDelete}>
                         <Trash2 aria-hidden="true" />
                       </Button>
                       <ModalOverlay className={styles.modalOverlay} isDismissable>
@@ -1498,9 +1668,7 @@ function PracticePage({
               onPress={() => void generateCustomLesson(t("practice.grammarLesson.request"))}
             >
               <BookOpen aria-hidden="true" />
-              {generating
-                ? t("exercises.custom.generating")
-                : t("practice.grammarLesson.start")}
+              {generating ? t("exercises.custom.generating") : t("practice.grammarLesson.start")}
             </Button>
           </SurfaceCard>
         )}
@@ -1563,8 +1731,8 @@ function AppShell({ readiness, reload }: { readiness: Readiness; reload: () => P
   const { t } = useTranslation();
   const [page, setPage] = useState<Page>("dashboard");
   const [navCollapsed, setNavCollapsed] = useState(false);
-  const [helperOpen, setHelperOpen] = useState(() =>
-    window.matchMedia("(min-width: 68.01rem)").matches,
+  const [helperOpen, setHelperOpen] = useState(
+    () => window.matchMedia("(min-width: 68.01rem)").matches,
   );
   const [reminderOpen, setReminderOpen] = useState(false);
   const [accountSignedOut, setAccountSignedOut] = useState(false);
@@ -1645,9 +1813,7 @@ function AppShell({ readiness, reload }: { readiness: Readiness; reload: () => P
     <div
       className={`${styles.shell} ${
         page === "practice" && preparedActivityId ? styles.exerciseMode : ""
-      } ${navCollapsed ? styles.navCollapsed : ""} ${
-        helperOpen ? "" : styles.helperCollapsed
-      }`}
+      } ${navCollapsed ? styles.navCollapsed : ""} ${helperOpen ? "" : styles.helperCollapsed}`}
     >
       <nav className={styles.nav} aria-label={t("nav.label")}>
         <div className={styles.navInner}>
@@ -1659,9 +1825,7 @@ function AppShell({ readiness, reload }: { readiness: Readiness; reload: () => P
                 navCollapsed ? t("actions.expandNavigation") : t("actions.collapseNavigation")
               }
               className={styles.sidebarToggle}
-              title={
-                navCollapsed ? t("actions.expandNavigation") : t("actions.collapseNavigation")
-              }
+              title={navCollapsed ? t("actions.expandNavigation") : t("actions.collapseNavigation")}
               onPress={() => {
                 setNavCollapsed((current) => !current);
               }}

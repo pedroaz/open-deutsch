@@ -146,6 +146,21 @@
       "title": "Listening in Codex Voice",
       "body": "Prepare a bounded listening activity with a script, objectives, questions, and answer guidance. Open Deutsch does not create, import, store, or play audio.",
       "scenario": "Understand a short appointment call",
+      "scenarioLabel": "Scenario",
+      "levelLabel": "Target level",
+      "difficultyLabel": "Difficulty",
+      "correctionTimingLabel": "Correction timing",
+      "difficultyOptions": {
+        "beginner": "Beginner",
+        "intermediate": "Intermediate",
+        "advanced": "Advanced"
+      },
+      "correctionOptions": {
+        "during": "During the answer",
+        "after-each": "After each answer",
+        "end": "At the end"
+      },
+      "onePerLine": "Enter one item per line.",
       "level": "A2 target",
       "difficulty": "Intermediate difficulty",
       "correctionTiming": "Correction after each answer",
@@ -163,12 +178,39 @@
       "prepare": "Prepare listening activity",
       "preparing": "Preparing listening activity…",
       "prepared": "Listening activity prepared",
-      "handoffUnavailable": "Exact Codex Voice session handoff is unavailable in this build. The activity is saved, but no clipboard, manual-selection, or audio fallback is offered."
+      "saved": "Listening activity saved.",
+      "voiceStart": "Continue with the saved activity in Codex Voice:",
+      "voiceStepOne": "Open a new, empty task in the ChatGPT desktop app.",
+      "voiceStepTwo": "Select Start new voice chat before sending a message.",
+      "voiceStepThree": "Say: Start my latest prepared Open Deutsch listening activity.",
+      "savedTitle": "Saved listening activities",
+      "savedBody": "Open or delete a prepared activity. Codex can retrieve the exact structured context through the Open Deutsch plugin.",
+      "savedEmpty": "No listening activities are prepared yet.",
+      "deleteAction": "Delete",
+      "deleteTitle": "Delete this listening activity?",
+      "deleteBody": "This permanently removes the prepared activity.",
+      "deleteConfirm": "Delete activity",
+      "handoffUnavailable": "Open Deutsch cannot start an exact Voice task externally. The saved activity is available to the Open Deutsch plugin from a new Voice task."
     },
     "speakingFlow": {
       "title": "Speaking scenario in Codex Voice",
       "body": "Prepare a practical Germany role-play with Conversation Partner behavior, a level target, and correction timing. Live speech stays in Codex Voice.",
       "scenario": "Reschedule a doctor's appointment",
+      "scenarioLabel": "Scenario",
+      "levelLabel": "Target level",
+      "difficultyLabel": "Difficulty",
+      "correctionTimingLabel": "Correction timing",
+      "difficultyOptions": {
+        "beginner": "Beginner",
+        "intermediate": "Intermediate",
+        "advanced": "Advanced"
+      },
+      "correctionOptions": {
+        "during": "During the answer",
+        "after-each": "After each answer",
+        "end": "At the end"
+      },
+      "onePerLine": "Enter one goal or prompt per line.",
       "level": "A2 target",
       "difficulty": "Intermediate difficulty",
       "correctionTiming": "Correction after each answer",
@@ -184,7 +226,19 @@
       "prepare": "Prepare speaking scenario",
       "preparing": "Preparing speaking scenario…",
       "prepared": "Speaking scenario prepared",
-      "handoffUnavailable": "Exact Codex Voice session handoff is unavailable in this build. The scenario is saved, but no clipboard, manual-selection, or audio fallback is offered."
+      "saved": "Speaking scenario saved.",
+      "voiceStart": "Continue with this scenario in Codex Voice:",
+      "voiceStepOne": "Open a new, empty task in the ChatGPT desktop app.",
+      "voiceStepTwo": "Select Start new voice chat before sending a message.",
+      "voiceStepThree": "Say: Start my latest prepared Open Deutsch speaking scenario.",
+      "savedTitle": "Saved speaking scenarios",
+      "savedBody": "Open or delete a prepared scenario. Codex can retrieve its exact goals and prompts through the Open Deutsch plugin.",
+      "savedEmpty": "No speaking scenarios are prepared yet.",
+      "deleteAction": "Delete",
+      "deleteTitle": "Delete this speaking scenario?",
+      "deleteBody": "This permanently removes the prepared scenario.",
+      "deleteConfirm": "Delete scenario",
+      "handoffUnavailable": "Open Deutsch cannot start an exact Voice task externally. The saved scenario is available to the Open Deutsch plugin from a new Voice task."
     },
     "diagnosticFlow": {
       "title": "Optional lightweight diagnostic",

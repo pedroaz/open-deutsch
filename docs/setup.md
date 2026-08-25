@@ -47,4 +47,4 @@ The application does not run Git commands, manage branches, or promote research 
 
 ## Supported degradation
 
-Listening and speaking remain Codex Voice workflows. Open Deutsch prepares and persists only bounded structured context and accepts explicit structured results or summaries; it has no local audio subsystem, audio files, full-transcript storage, clipboard continuation, manual session picker, generic launcher, or UI automation. Until exact host handoff is supported, the desktop reports `OD_HANDOFF_VOICE_SESSION_UNSUPPORTED` as a release-blocking state.
+Listening and speaking remain Codex Voice workflows. Open Deutsch prepares, persists, reopens, and deletes bounded structured context and accepts explicit structured results or summaries; it has no local audio subsystem, audio files, full-transcript storage, copied-scenario continuation, session picker, generic launcher, or UI automation. The desktop reports `OD_HANDOFF_VOICE_SESSION_UNSUPPORTED` for direct opening, then guides the learner to start a new empty Voice task and ask for the prepared activity, which the plugin reads through MCP.

@@ -8,7 +8,7 @@ The application provides onboarding and data-root management, Dashboard and Week
 
 Open Deutsch targets Linux x86_64 and is packaged as an AppImage. Development uses Node.js 26.5.0 and pnpm 11.0.9; Electron 42 uses its embedded Node.js 24 runtime. A compatible external Codex CLI (`>=0.146.0 <0.146.1`) is required for AI actions and plugin integration, while local non-AI behavior remains available without Codex.
 
-Open Deutsch does not generate, import, store, or play audio. It can prepare structured listening and speaking activities and save explicit structured results or summaries. The current Codex host does not expose a supported external mechanism for Open Deutsch to create or open an exact Voice session, so direct Voice-session opening is unavailable. This limitation does not block the rest of the application, and no clipboard, generic-launch, or UI-automation fallback is provided.
+Open Deutsch does not generate, import, store, or play audio. It prepares configurable listening and speaking activities, keeps them available in the Practice screen, and exposes an exact-or-latest read through its plugin. The current Codex host does not expose a supported external mechanism for Open Deutsch to create or open an exact Voice session. The learner therefore starts a new empty Voice task and asks for the prepared Open Deutsch activity; no scenario text, clipboard, generic launcher, or UI automation is used.
 
 ## Setup and development
 

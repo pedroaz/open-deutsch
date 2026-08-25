@@ -23,6 +23,8 @@ import {
   openDeutschErrorSchema,
   practiceContextReadInputSchema,
   practiceContextReadResultSchema,
+  preparedVoiceActivityReadInputSchema,
+  preparedVoiceActivityReadResultSchema,
   voiceSummarySaveInputSchema,
   voiceSummarySaveResultSchema,
   weeklyPlanReplacementInputSchema,
@@ -140,7 +142,8 @@ async function writeLog(
     severity: fields.severity ?? (kind ? "error" : "info"),
     component: "mcp",
     code: logCode(event),
-    runId: process.env["OPEN_DEUTSCH_RUN_ID"] ?? `mcp_${runtime.sessionId.slice("session_".length)}`,
+    runId:
+      process.env["OPEN_DEUTSCH_RUN_ID"] ?? `mcp_${runtime.sessionId.slice("session_".length)}`,
     sessionId: runtime.sessionId,
     ...(fields.correlationId === undefined ? {} : { correlationId: fields.correlationId }),
     ...(fields.action === undefined && fields.tool === undefined
@@ -231,10 +234,8 @@ function registerLoggedTool(
   config: unknown,
   handler: (raw: unknown) => Promise<CallToolResult>,
 ): void {
-  server.registerTool(
-    name,
-    config as never,
-    (raw: unknown) => withToolLog(runtime, name, handler, raw),
+  server.registerTool(name, config as never, (raw: unknown) =>
+    withToolLog(runtime, name, handler, raw),
   );
 }
 
@@ -501,6 +502,46 @@ export function createProductionServer(runtime: Runtime) {
             ? "stale-data-root"
             : "validation",
           "Curriculum coverage is unavailable.",
+        );
+      }
+    },
+  );
+
+  registerLoggedTool(
+    server,
+    runtime,
+    "open_deutsch_read_prepared_voice_activity",
+    {
+      ...mcpToolContracts.open_deutsch_read_prepared_voice_activity,
+      inputSchema: preparedVoiceActivityReadInputSchema,
+      outputSchema: preparedVoiceActivityReadResultSchema,
+    },
+    async (raw) => {
+      try {
+        const input = preparedVoiceActivityReadInputSchema.parse(raw);
+        return await withInputFreshRoot(runtime, input.dataRootGeneration, async () => {
+          const activity =
+            input.selector.kind === "activity-id"
+              ? await runtime.repository.readPreparedActivity(input.selector.activityId)
+              : await runtime.repository.readLatestPreparedVoiceActivity(
+                  input.selector.activityKind,
+                );
+          if (!activity?.context.voiceContext) {
+            return failureResult("not-found", "No matching prepared Voice activity was found.");
+          }
+          return successResult("Prepared Voice activity is ready.", {
+            activityId: activity.activityId,
+            title: activity.title,
+            preparedAt: activity.preparedAt,
+            context: activity.context.voiceContext,
+          });
+        });
+      } catch (error) {
+        return failureResult(
+          error instanceof Error && error.message.includes("STALE")
+            ? "stale-data-root"
+            : "validation",
+          "The prepared Voice activity is unavailable.",
         );
       }
     },

@@ -31,6 +31,7 @@ export const mcpToolNames = [
   "open_deutsch_read_learner_context",
   "open_deutsch_read_practice_context",
   "open_deutsch_read_curriculum_coverage",
+  "open_deutsch_read_prepared_voice_activity",
   "open_deutsch_create_activity",
   "open_deutsch_save_attempt_feedback",
   "open_deutsch_save_listening_result",
@@ -104,6 +105,22 @@ export const curriculumCoverageReadInputSchema = strictBoundaryObject({
   band: z.enum(["A1", "A2", "B1", "B2"]).optional(),
   domain: text(100).optional(),
   includeLearnerRelevance: z.boolean().default(false),
+});
+export const preparedVoiceActivityReadInputSchema = strictBoundaryObject({
+  ...generationInput,
+  selector: boundaryUnion([
+    strictBoundaryObject({ kind: z.literal("activity-id"), activityId: activityIdSchema }),
+    strictBoundaryObject({
+      kind: z.literal("latest"),
+      activityKind: z.enum(["speaking", "listening"]),
+    }),
+  ]),
+});
+const preparedVoiceActivityDataSchema = z.strictObject({
+  activityId: activityIdSchema,
+  title: text(160),
+  preparedAt: utcInstantSchema,
+  context: voiceActivityContextSchema,
 });
 const curriculumCoverageDataSchema = z.strictObject({
   matchingTopicCount: count,
@@ -245,6 +262,7 @@ const toolResult = <Data extends z.ZodType>(data: Data) =>
 export const learnerContextReadResultSchema = toolResult(learnerContextDataSchema);
 export const practiceContextReadResultSchema = toolResult(practiceContextDataSchema);
 export const curriculumCoverageReadResultSchema = toolResult(curriculumCoverageDataSchema);
+export const preparedVoiceActivityReadResultSchema = toolResult(preparedVoiceActivityDataSchema);
 export const activityCreateResultSchema = toolResult(activityCreateDataSchema);
 export const attemptFeedbackSaveResultSchema = toolResult(attemptFeedbackDataSchema);
 export const listeningResultSaveResultSchema = toolResult(listeningResultDataSchema);
@@ -291,6 +309,15 @@ export const mcpToolContracts = {
     confirmationPolicy: "none",
     inputSchema: curriculumCoverageReadInputSchema,
     resultSchema: curriculumCoverageReadResultSchema,
+  },
+  open_deutsch_read_prepared_voice_activity: {
+    title: "Read a prepared Voice activity",
+    description:
+      "Read one prepared Open Deutsch speaking or listening activity by exact id or select the latest matching activity.",
+    annotations: readAnnotations,
+    confirmationPolicy: "none",
+    inputSchema: preparedVoiceActivityReadInputSchema,
+    resultSchema: preparedVoiceActivityReadResultSchema,
   },
   open_deutsch_create_activity: {
     title: "Create a desktop activity",

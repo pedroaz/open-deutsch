@@ -87,9 +87,9 @@ The desktop app should not become a second general-purpose Codex client. Embedde
 Cross-surface navigation is an adapter capability rather than a database concern. The supported behavior is:
 
 - Codex creates an exact persistent Open Deutsch activity through MCP so it appears on the dashboard; a direct app-launch action is optional and used only if supported; and
-- desktop-originated structured Voice preparation is persisted, but the desktop returns `OD_HANDOFF_VOICE_SESSION_UNSUPPORTED` because the current host exposes no supported exact Voice-session bridge.
+- desktop-originated structured Voice preparation is persisted, can be reopened or deleted in Practice, and is readable by exact ID or latest matching kind through MCP. The desktop still records `OD_HANDOFF_VOICE_SESSION_UNSUPPORTED` because the host exposes no supported external bridge for starting an exact Voice task.
 
-The product does not ship a clipboard, manual-selection, or vague "open Codex" fallback. The unsupported direct Voice-opening capability is an explicit limitation, not a blocker for other learning workflows.
+The supported continuation begins in a new empty Voice task, where the learner asks naturally for the prepared Open Deutsch activity and the plugin retrieves the stored context. The product does not ship copied scenario text, a session picker, a generic launcher, or UI automation. Unsupported direct Voice opening remains explicit.
 
 ## 3. Personal Codex plugin
 

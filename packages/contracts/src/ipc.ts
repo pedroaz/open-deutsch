@@ -53,6 +53,7 @@ export const desktopIpcChannels = [
   "vocabulary/resume",
   "vocabulary/delete",
   "prepared-activity/read",
+  "voice-activity/read",
   "prepared-activity/delete",
   "exercise-set/start",
   "exercise-set/complete",
@@ -279,6 +280,10 @@ const vocabularyDeleteRequest = request(
 );
 const preparedActivityReadRequest = request(
   "prepared-activity/read",
+  z.strictObject({ activityId: activityIdSchema }),
+);
+const voiceActivityReadRequest = request(
+  "voice-activity/read",
   z.strictObject({ activityId: activityIdSchema }),
 );
 const preparedActivityDeleteRequest = request(
@@ -516,6 +521,7 @@ export const desktopIpcRequestSchema = boundaryUnion([
   vocabularyResumeRequest,
   vocabularyDeleteRequest,
   preparedActivityReadRequest,
+  voiceActivityReadRequest,
   preparedActivityDeleteRequest,
   exerciseSetStartRequest,
   exerciseSetCompleteRequest,
@@ -988,6 +994,17 @@ const preparedActivityReadResponse = response(
     output: appServerCandidateOutputSchemas["exercise-generation"],
   }),
 );
+const voiceActivityReadResponse = response(
+  "voice-activity/read",
+  z.strictObject({
+    activityId: activityIdSchema,
+    title: text(160),
+    originSurface: z.enum(["desktop", "codex"]),
+    preparedAt: utcInstantSchema,
+    deletionStatus: z.enum(["available", "cascade", "retained-data"]),
+    context: voiceActivityContextSchema,
+  }),
+);
 const preparedActivityDeleteResponse = response(
   "prepared-activity/delete",
   z.strictObject({ activityId: activityIdSchema, status: z.literal("deleted") }),
@@ -1343,6 +1360,7 @@ export const desktopIpcResponseSchema = boundaryUnion([
   vocabularyResumeResponse,
   vocabularyDeleteResponse,
   preparedActivityReadResponse,
+  voiceActivityReadResponse,
   preparedActivityDeleteResponse,
   exerciseSetStartResponse,
   exerciseSetCompleteResponse,

@@ -2,7 +2,7 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests/live",
-  testMatch: "practice-create.live.spec.mjs",
+  testMatch: ["practice-create.live.spec.mjs", "speaking-scenario.live.spec.mjs"],
   outputDir: "/tmp/open-deutsch-live-playwright",
   fullyParallel: false,
   workers: 1,

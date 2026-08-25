@@ -143,6 +143,8 @@ export {
   mcpToolNameSchema,
   practiceContextReadInputSchema,
   practiceContextReadResultSchema,
+  preparedVoiceActivityReadInputSchema,
+  preparedVoiceActivityReadResultSchema,
   voiceSummarySaveInputSchema,
   voiceSummarySaveResultSchema,
   weeklyPlanReplacementInputSchema,

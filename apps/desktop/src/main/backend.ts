@@ -1213,7 +1213,16 @@ export class DesktopBackend {
     message: string,
     fields: Readonly<{
       action?: string;
-      phase?: "received" | "started" | "queued" | "running" | "validating" | "persisting" | "completed" | "cancelled" | "failed";
+      phase?:
+        | "received"
+        | "started"
+        | "queued"
+        | "running"
+        | "validating"
+        | "persisting"
+        | "completed"
+        | "cancelled"
+        | "failed";
       outcome?: "ok" | "rejected" | "cancelled" | "rate-limited" | "error";
       durationMs?: number;
       metadata?: Readonly<Record<string, string | number | boolean | null>>;
@@ -1225,7 +1234,7 @@ export class DesktopBackend {
         severity,
         component: "desktop",
         code,
-        correlationId,
+        correlationId: correlationIdSchema.parse(correlationId),
         message,
         ...(fields.action === undefined ? {} : { action: fields.action }),
         ...(fields.phase === undefined ? {} : { phase: fields.phase }),
@@ -1282,8 +1291,7 @@ export class DesktopBackend {
         response.result !== null &&
         "status" in response.result &&
         response.result.status === "cancelled";
-      const errorCode =
-        response.status === "error" ? response.error.reference.code : undefined;
+      const errorCode = response.status === "error" ? response.error.reference.code : undefined;
       this.#operationLog(
         response.status === "ok" ? "info" : "warn",
         response.status === "error"
@@ -1301,12 +1309,7 @@ export class DesktopBackend {
             : "Desktop action completed.",
         {
           action,
-          phase:
-            response.status === "error"
-              ? "failed"
-              : cancelled
-                ? "cancelled"
-                : "completed",
+          phase: response.status === "error" ? "failed" : cancelled ? "cancelled" : "completed",
           outcome: response.status === "error" ? "error" : cancelled ? "cancelled" : "ok",
           durationMs: Date.now() - startedAt,
         },
@@ -1915,10 +1918,34 @@ export class DesktopBackend {
           output: generated.output,
         });
       }
+      if (request.channel === "voice-activity/read") {
+        if (!this.#repository) return this.#failure(request, "stale-data-root");
+        const activity = await this.#repository.readPreparedActivity(request.payload.activityId);
+        if (
+          !activity ||
+          !activity.context.voiceContext ||
+          (activity.activityType !== "voice-speaking" &&
+            activity.activityType !== "codex-listening")
+        ) {
+          return this.#failure(request, "not-found");
+        }
+        const deletionStatus = await this.#repository.readPreparedActivityDeletionStatus(
+          activity.activityId,
+        );
+        if (!deletionStatus) return this.#failure(request, "not-found");
+        return this.#success(request, {
+          activityId: activity.activityId,
+          title: activity.title,
+          originSurface: activity.originSurface,
+          preparedAt: activity.preparedAt,
+          deletionStatus,
+          context: activity.context.voiceContext,
+        });
+      }
       if (request.channel === "prepared-activity/delete") {
         if (!this.#repository) return this.#failure(request, "stale-data-root");
-        const generated = await this.#repository.readGeneratedActivity(request.payload.activityId);
-        if (!generated) return this.#failure(request, "not-found");
+        const activity = await this.#repository.readPreparedActivity(request.payload.activityId);
+        if (!activity) return this.#failure(request, "not-found");
         try {
           await this.#repository.deletePreparedActivity(request.payload.activityId);
         } catch (error) {

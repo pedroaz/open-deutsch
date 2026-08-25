@@ -78,6 +78,7 @@
   margin-bottom: var(--od-space-4);
 }
 
+.controlLabel input,
 .controlLabel select,
 .controlLabel textarea {
   background: var(--od-color-surface-raised);
@@ -87,6 +88,38 @@
   font: inherit;
   min-height: var(--od-control-min);
   padding: var(--od-space-2) var(--od-space-3);
+}
+
+.voicePreparation {
+  display: grid;
+  gap: var(--od-space-5);
+}
+
+.voiceSetupGrid {
+  display: grid;
+  gap: 0 var(--od-space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: var(--od-space-5);
+}
+
+.voiceScenarioField {
+  grid-column: 1 / -1;
+}
+
+.voicePreparedPreview {
+  border: var(--od-border-thin) solid var(--od-color-border);
+  border-radius: var(--od-radius-lg);
+  margin: var(--od-space-5) 0;
+  padding: var(--od-space-4);
+}
+
+.voicePreparedPreview h3,
+.voicePreparedPreview h4 {
+  margin-top: 0;
+}
+
+.voicePreparedPreview h4:not(:first-child) {
+  margin-top: var(--od-space-4);
 }
 
 .controlLabel textarea {
@@ -705,13 +738,11 @@
 }
 
 .helperCollapsed {
-  grid-template-columns:
-    var(--od-nav-width) minmax(0, 1fr) var(--od-nav-collapsed-width);
+  grid-template-columns: var(--od-nav-width) minmax(0, 1fr) var(--od-nav-collapsed-width);
 }
 
 .navCollapsed.helperCollapsed {
-  grid-template-columns:
-    var(--od-nav-collapsed-width) minmax(0, 1fr) var(--od-nav-collapsed-width);
+  grid-template-columns: var(--od-nav-collapsed-width) minmax(0, 1fr) var(--od-nav-collapsed-width);
 }
 
 .nav {
@@ -1950,13 +1981,13 @@ summary {
   }
 
   .helperCollapsed {
-    grid-template-columns:
-      var(--od-nav-width) minmax(0, 1fr) var(--od-nav-collapsed-width);
+    grid-template-columns: var(--od-nav-width) minmax(0, 1fr) var(--od-nav-collapsed-width);
   }
 
   .navCollapsed.helperCollapsed {
-    grid-template-columns:
-      var(--od-nav-collapsed-width) minmax(0, 1fr) var(--od-nav-collapsed-width);
+    grid-template-columns: var(--od-nav-collapsed-width) minmax(0, 1fr) var(
+        --od-nav-collapsed-width
+      );
   }
 
   .helper {
@@ -1990,7 +2021,6 @@ summary {
     height: 100vh;
     position: sticky;
   }
-
 }
 
 @media (max-width: 52rem) {
@@ -2086,6 +2116,10 @@ summary {
   .correctionGrid,
   .correctionMistakes,
   .practiceTypeGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .voiceSetupGrid {
     grid-template-columns: 1fr;
   }
 

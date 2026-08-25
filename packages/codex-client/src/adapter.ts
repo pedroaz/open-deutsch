@@ -131,6 +131,7 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
   readonly #listeners = new Set<(event: AppServerEvent) => void>();
   readonly #operations = new OperationController<AppServerOperationStart, AnyResult>();
   readonly #operationInputs = new Map<string, AppServerOperationStart>();
+  readonly #operationStartedAt = new Map<string, number>();
   readonly #log: AppServerProcessManagerOptions["log"];
   #account: AccountState = { status: "signed-out" };
   #models: ModelCatalog = emptyCatalog;
@@ -266,6 +267,7 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
     });
     if (accepted.accepted === "started") {
       this.#operationInputs.set(validated.operationId, validated);
+      this.#operationStartedAt.set(validated.operationId, Date.now());
       this.#operationLog(
         "info",
         "APP_SERVER_OPERATION_STARTED",
@@ -282,10 +284,12 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
       this.#operationInputs.delete(validated.operationId);
     }
     if (outcome.status === "rate-limited") await this.refreshRateLimits();
-    return this.#operationResult(validated, outcome) as AppServerValidatedOperationResult<
+    const result = this.#operationResult(validated, outcome) as AppServerValidatedOperationResult<
       Kind,
       AppServerOutputMap
     >;
+    this.#operationStartedAt.delete(validated.operationId);
+    return result;
   }
 
   async retryOperation<Kind extends AppServerWorkloadKind>(options: {
@@ -317,6 +321,7 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
         : operation;
     if (accepted.accepted === "started") {
       this.#operationInputs.set(operation.operationId, operation);
+      this.#operationStartedAt.set(operation.operationId, Date.now());
       this.#operationLog(
         "info",
         "APP_SERVER_OPERATION_STARTED",
@@ -333,10 +338,12 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
       this.#operationInputs.delete(effective.operationId);
     }
     if (outcome.status === "rate-limited") await this.refreshRateLimits();
-    return this.#operationResult(effective, outcome) as AppServerValidatedOperationResult<
+    const result = this.#operationResult(effective, outcome) as AppServerValidatedOperationResult<
       Kind,
       AppServerOutputMap
     >;
+    this.#operationStartedAt.delete(effective.operationId);
+    return result;
   }
 
   cancelOperation(operationId: Parameters<OpenDeutschAppServerAdapter["cancelOperation"]>[0]) {
@@ -369,9 +376,8 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
           "info",
           "APP_SERVER_OPERATION_STAGE",
           retained,
-          "operation-stage",
-          undefined,
           `Operation ${stage}.`,
+          undefined,
           {
             action: retained.input.kind,
             phase: stage === "validating" ? "validating" : "running",
@@ -608,7 +614,16 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
     errorCode?: string,
     fields: Readonly<{
       action?: string;
-      phase?: "received" | "started" | "queued" | "running" | "validating" | "persisting" | "completed" | "cancelled" | "failed";
+      phase?:
+        | "received"
+        | "started"
+        | "queued"
+        | "running"
+        | "validating"
+        | "persisting"
+        | "completed"
+        | "cancelled"
+        | "failed";
       outcome?: "ok" | "rejected" | "cancelled" | "rate-limited" | "error";
       durationMs?: number;
       metadata?: Readonly<Record<string, string | number | boolean | null>>;
@@ -621,7 +636,10 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
         code === "APP_SERVER_OPERATION_CANCELLED" ||
         code === "APP_SERVER_OPERATION_RATE_LIMITED" ||
         code === "APP_SERVER_OPERATION_FAILED"
-          ? Math.max(0, Date.now() - Date.parse(operation.startedAt))
+          ? Math.max(
+              0,
+              Date.now() - (this.#operationStartedAt.get(operation.operationId) ?? Date.now()),
+            )
           : undefined);
       this.#log?.({
         timestamp: new Date().toISOString(),
@@ -658,7 +676,9 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
         severity: "info",
         component: "app-server",
         code,
-        ...(correlationId === undefined ? {} : { correlationId }),
+        ...(correlationId === undefined
+          ? {}
+          : { correlationId: correlationIdSchema.parse(correlationId) }),
         action,
         phase: "completed",
         outcome: "ok",

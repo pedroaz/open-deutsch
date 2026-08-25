@@ -136,6 +136,10 @@ declare const styles: {
   readonly refreshStamp: string;
   readonly switchConfirmation: string;
   readonly topActions: string;
+  readonly voicePreparation: string;
+  readonly voicePreparedPreview: string;
+  readonly voiceScenarioField: string;
+  readonly voiceSetupGrid: string;
   readonly warning: string;
   readonly warningText: string;
   readonly warningList: string;

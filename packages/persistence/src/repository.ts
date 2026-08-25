@@ -1965,6 +1965,32 @@ export class OpenDeutschRepository {
     });
   }
 
+  async readLatestPreparedVoiceActivity(
+    kind: "speaking" | "listening",
+  ): Promise<PreparedActivityRecord | undefined> {
+    const activityType = kind === "speaking" ? "voice-speaking" : "codex-listening";
+    return withLeasedConnection(this.#database, (connection) => {
+      const row = connection
+        .prepare(
+          `SELECT activity_id, activity_type, title, origin_surface, context_json, prepared_at
+           FROM prepared_activities
+           WHERE activity_type = ? AND status = 'prepared'
+           ORDER BY prepared_at DESC, activity_id DESC
+           LIMIT 1`,
+        )
+        .get(activityType) as Record<string, unknown> | undefined;
+      if (!row) return undefined;
+      return preparedActivitySchema.parse({
+        activityId: row["activity_id"],
+        activityType: row["activity_type"],
+        title: row["title"],
+        originSurface: row["origin_surface"],
+        context: parseJson(row["context_json"]),
+        preparedAt: row["prepared_at"],
+      });
+    });
+  }
+
   async createPersistentHandoff(value: PersistentHandoffCreate): Promise<PersistentHandoffRecord> {
     const record = persistentHandoffCreateSchema.parse(value);
     return withLeasedTransaction(this.#database, (connection) => {
@@ -2059,12 +2085,7 @@ export class OpenDeutschRepository {
     const deletedAt = utcInstantSchema.parse(new Date().toISOString());
     await withLeasedTransaction(this.#database, (connection) => {
       const activity = connection
-        .prepare(
-          `SELECT p.status
-           FROM prepared_activities p
-           JOIN generated_activity_payloads g ON g.activity_id = p.activity_id
-           WHERE p.activity_id = ?`,
-        )
+        .prepare(`SELECT status FROM prepared_activities WHERE activity_id = ?`)
         .get(activityId) as { status: string } | undefined;
       if (!activity) throw new Error("OD_PREPARED_ACTIVITY_NOT_FOUND");
       if (activity.status !== "prepared") {
@@ -2095,9 +2116,7 @@ export class OpenDeutschRepository {
              )`,
         )
         .run(activityId);
-      connection
-        .prepare(`DELETE FROM mcp_attempt_feedback WHERE activity_id = ?`)
-        .run(activityId);
+      connection.prepare(`DELETE FROM mcp_attempt_feedback WHERE activity_id = ?`).run(activityId);
       connection
         .prepare(
           `INSERT INTO attempt_deletions (attempt_id, deleted_at)
