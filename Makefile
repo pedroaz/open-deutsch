@@ -30,15 +30,15 @@ kill: ## Stop only exact tracked Open Deutsch processes; safe when already stopp
 	@echo "+ pnpm run kill"
 	@pnpm run kill
 
-logs: ## Follow current Open Deutsch lifecycle logs.
+logs: ## Show or follow merged lifecycle, desktop, App Server, MCP, and bootstrap logs.
 	@echo "+ pnpm run logs"
 	@pnpm run logs
 
-logs-errors: ## Follow warning and error records from current lifecycle logs.
+logs-errors: ## Show or follow warning and error records from all Open Deutsch logs.
 	@echo "+ pnpm run logs:errors"
 	@pnpm run logs:errors
 
-logs-clear: ## Confirm and clear only resolved Open Deutsch lifecycle logs.
+logs-clear: ## Confirm and clear all resolved Open Deutsch log files.
 	@echo "+ pnpm run logs:clear"
 	@pnpm run logs:clear
 

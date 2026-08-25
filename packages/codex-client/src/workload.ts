@@ -25,6 +25,8 @@ const contextualHelperInstructions =
   " Contextual help is explanation-only. It may provide explanations, examples, alternatives, translations, and mini-exercises. Never return a mutation, patch, replacement action, or direct-apply instruction.";
 const exerciseFeedbackInstructions =
   " Exercise feedback must evaluate only the supplied learner answer against the supplied exercise and objectives. Preserve the learner's meaning, report uncertainty, and provide a suggested answer only when it helps the learner understand a correction.";
+const exerciseGenerationInstructions =
+  " Exercise generation must return exactly requestedExerciseCount exercises. For fill-in-the-blank, short-answer, sentence-correction, and vocabulary-recall exercises, never reproduce a complete accepted answer in the title, instructions, explanation, prompt, question, sentence, cue, surrounding blank text, or hints. Multiple-choice options are the only exception because the learner must see every option. For every short-answer exercise, provide at least two progressive hints leading toward one response in acceptedAnswers: first narrow the vocabulary or idea, then explain the required grammar. When the question allows many valid responses, the hints must explicitly choose one accepted path. Hints may reveal component words but never the complete accepted answer; the app adds the final incomplete sentence frame. Every sentence-correction exercise must contain a genuine error aligned with its objectives, and each accepted answer must be a complete corrected version of that sentence covering the valid corrections.";
 const maximumObservedEvents = 256;
 
 const forbiddenItemTypes = new Set([
@@ -274,7 +276,8 @@ async function runAttempt<Kind extends AppServerWorkloadKind>(options: {
         developerInstructions:
           developerInstructions +
           (options.input.kind === "contextual-help" ? contextualHelperInstructions : "") +
-          (options.input.kind === "exercise-feedback" ? exerciseFeedbackInstructions : ""),
+          (options.input.kind === "exercise-feedback" ? exerciseFeedbackInstructions : "") +
+          (options.input.kind === "exercise-generation" ? exerciseGenerationInstructions : ""),
         config: { web_search: "disabled", features: { shell_tool: false }, mcp_servers: {} },
       },
       {

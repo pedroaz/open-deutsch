@@ -4,7 +4,7 @@ This package owns the self-contained learner data root, SQLite migrations, and r
 
 ## Data-root layout
 
-`resolveDataRootLayout` defines one portable root containing a versioned identity manifest, `open-deutsch.sqlite3`, attachments, research staging/cache, bounded operational logs, redacted diagnostics, and an explicitly test-only directory. Production directory creation omits test-only storage. The manifest stores only root identity, format version, generation, and creation time; it contains no bootstrap path, learner content, backup metadata, or Git state.
+`resolveDataRootLayout` defines one portable root containing a versioned identity manifest, `open-deutsch.sqlite3`, attachments, research staging/cache, bounded operational logs (`desktop.log`, `app-server.log`, and `mcp-server.log`), redacted diagnostics, and an explicitly test-only directory. Production directory creation omits test-only storage. The manifest stores only root identity, format version, generation, and creation time; it contains no bootstrap path, learner content, backup metadata, or Git state.
 
 The layout is lexical only. Canonicalization, ownership, permissions, symlink rejection, creation, and recognition of existing roots belong to the safe selection boundary. Callers must not interpret this helper as proof that a filesystem path is trusted.
 

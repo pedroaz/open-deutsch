@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
-import { readFile, stat } from "node:fs/promises";
+import { readFile, stat, unlink } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
 
 import {
+  applicationLogFiles,
   clearLifecycleLogs,
   killMode,
   lifecycleModes,
@@ -47,18 +48,26 @@ async function kill() {
   if (incomplete) process.exitCode = 1;
 }
 
-async function printLog(log, errorsOnly, offset = 0) {
+function recordTimestamp(line) {
+  const match = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)\s/u.exec(line);
+  return match ? Date.parse(match[1]) : Number.MAX_SAFE_INTEGER;
+}
+
+function isErrorRecord(line) {
+  return /\s(?:WARN|ERROR)\s/u.test(line);
+}
+
+const maximumLogReadBytes = 512 * 1024;
+
+async function readLogLines(log, offset = 0) {
   try {
     const contents = await readFile(log, "utf8");
     const next = Buffer.byteLength(contents);
-    const fresh = Buffer.from(contents).subarray(offset).toString("utf8");
-    for (const line of fresh.split("\n")) {
-      if (line && (!errorsOnly || /\s(?:WARN|ERROR)\s/.test(line)))
-        process.stdout.write(`${line}\n`);
-    }
-    return next;
+    const start = offset === 0 ? Math.max(0, next - maximumLogReadBytes) : offset;
+    const fresh = Buffer.from(contents).subarray(start).toString("utf8");
+    return { next, lines: fresh.split("\n").filter(Boolean) };
   } catch (error) {
-    if (error.code === "ENOENT") return 0;
+    if (error.code === "ENOENT") return { next: 0, lines: [] };
     throw error;
   }
 }
@@ -70,24 +79,41 @@ async function logs() {
     (value) => value && value !== "--follow" && value !== "--errors",
   );
   if (unknown.length > 0) throw new Error(`Unknown logs flag: ${unknown.join(", ")}`);
+  const files = [
+    ...lifecycleModes.map((lifecycleMode) => lifecyclePaths(runtimeRoot, lifecycleMode).log),
+    ...(await applicationLogFiles()),
+  ];
   const positions = new Map();
-  for (const lifecycleMode of lifecycleModes) {
-    const log = lifecyclePaths(runtimeRoot, lifecycleMode).log;
-    positions.set(log, await printLog(log, errorsOnly));
+  const initial = [];
+  for (const log of files) {
+    const result = await readLogLines(log);
+    positions.set(log, result.next);
+    for (const line of result.lines) {
+      if (!errorsOnly || isErrorRecord(line)) initial.push(line);
+    }
   }
+  initial.sort((left, right) => recordTimestamp(left) - recordTimestamp(right));
+  for (const line of initial) process.stdout.write(`${line}\n`);
   if (!follow) return;
-  process.stdout.write("Following Open Deutsch lifecycle logs. Press Ctrl-C to stop.\n");
+  process.stdout.write("Following merged Open Deutsch logs. Press Ctrl-C to stop.\n");
   while (true) {
     await new Promise((resolve) => setTimeout(resolve, 500));
+    const fresh = [];
     for (const [log, position] of positions) {
       try {
         const info = await stat(log);
         const offset = info.size < position ? 0 : position;
-        positions.set(log, await printLog(log, errorsOnly, offset));
+        const result = await readLogLines(log, offset);
+        positions.set(log, result.next);
+        for (const line of result.lines) {
+          if (!errorsOnly || isErrorRecord(line)) fresh.push(line);
+        }
       } catch (error) {
         if (error.code !== "ENOENT") throw error;
       }
     }
+    fresh.sort((left, right) => recordTimestamp(left) - recordTimestamp(right));
+    for (const line of fresh) process.stdout.write(`${line}\n`);
   }
 }
 
@@ -98,11 +124,19 @@ async function logsClear() {
     throw new Error("Log clearing requires an interactive terminal confirmation.");
   }
   const readline = createInterface({ input: process.stdin, output: process.stdout });
-  const answer = await readline.question('Type "clear" to remove only these lifecycle logs: ');
+  const answer = await readline.question('Type "clear" to remove only these Open Deutsch logs: ');
   readline.close();
   if (answer !== "clear") throw new Error("Log clearing cancelled.");
   const removed = await clearLifecycleLogs(runtimeRoot);
-  process.stdout.write(`Removed ${removed.length} Open Deutsch lifecycle log file(s).\n`);
+  for (const file of await applicationLogFiles()) {
+    try {
+      await unlink(file);
+      removed.push(file);
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+  }
+  process.stdout.write(`Removed ${removed.length} Open Deutsch log file(s).\n`);
 }
 
 try {

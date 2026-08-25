@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { readFile, realpath, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -223,9 +224,23 @@ if (!app.requestSingleInstanceLock()) {
     const userData = app.getPath("userData");
     const bootstrapFile = path.join(userData, "bootstrap.json");
     const knownInstallRoots = [app.getAppPath(), process.resourcesPath];
+    const runId = process.env["OPEN_DEUTSCH_RUN_ID"] ?? `desktop_${randomUUID().replaceAll("-", "")}`;
+    const sessionId = `session_${randomUUID().replaceAll("-", "")}`;
     const log = (record: Parameters<typeof appendDesktopLog>[1]) => {
-      void appendDesktopLog(bootstrapFile, record).catch(() => undefined);
+      void appendDesktopLog(bootstrapFile, {
+        ...record,
+        runId,
+        sessionId,
+      }).catch(() => undefined);
     };
+    log({
+      timestamp: new Date().toISOString(),
+      severity: "info",
+      component: "desktop",
+      code: "DESKTOP_STARTED",
+      message: "Open Deutsch desktop process started.",
+      phase: "started",
+    });
     const appServer = new OpenDeutschAppServerClient({
       forbiddenRoots: [userData, ...knownInstallRoots, process.cwd()],
       openExternal: (url) => shell.openExternal(url),
@@ -243,6 +258,8 @@ if (!app.requestSingleInstanceLock()) {
       },
       processOptions: {
         log,
+        runId,
+        sessionId,
       },
     });
     backend = new DesktopBackend({

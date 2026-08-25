@@ -1,7 +1,7 @@
 # Codex development runbook
 
 Status: active agent guidance
-Last updated: 2026-08-24
+Last updated: 2026-08-25
 
 This runbook is the operating companion to the root `AGENTS.md`. The accepted workflow remains authoritative in `docs/development-workflow.md`.
 
@@ -26,8 +26,8 @@ Codex discovers root and nested `AGENTS.md` files from the repository root towar
 - `make prd` builds first, starts the production-like stack, and waits for health. `make start` is its alias.
 - `make status` reports only recorded `dev` and `prd` state.
 - `make kill` signals only a live, identity-matched owned process group. It is idempotent for stopped modes and fails nonzero while retaining state if ownership cannot be proven safely.
-- `make logs` follows lifecycle logs; `make logs-errors` filters warning/error records.
-- `make logs-clear` resolves the bounded lifecycle log directory and requires interactive confirmation before removing only known rotated log names.
+- `make logs` follows merged lifecycle, desktop, App Server, MCP, and bootstrap logs; `make logs-errors` filters warning/error records.
+- `make logs-clear` resolves the bounded Open Deutsch log targets and requires interactive confirmation before removing known current and rotated files.
 
 Lifecycle state and startup logs live below the ignored `.runtime/` directory. Do not delete a retained orphan/PID-reuse record merely to unblock a start. First inspect the state, `/proc` identity, and logs; if exact ownership cannot be established, stop and request a deliberate recovery decision.
 

@@ -233,6 +233,7 @@ export type DashboardSnapshot = Readonly<{
     title: string;
     originSurface: PreparedActivityRecord["originSurface"];
     preparedAt: string;
+    deletionStatus: "available" | "cascade" | "retained-data";
   }>[];
   dueVocabulary: readonly Readonly<{
     vocabularyId: string;
@@ -317,7 +318,7 @@ export const generatedActivityReadSchema = strictBoundaryObject({
 export const generatedExerciseSetStartSchema = strictBoundaryObject({
   activityId: activityIdSchema,
   startedAt: utcInstantSchema,
-  feedbackModeOverride: z.enum(["immediate", "submit-at-end"]).optional(),
+  feedbackModeOverride: z.literal("immediate").optional(),
   exercises: z
     .array(
       z.strictObject({
@@ -1469,9 +1470,21 @@ export class OpenDeutschRepository {
 
       const preparedActivities = connection
         .prepare(
-          `SELECT activity_id, activity_type, title, origin_surface, prepared_at
-           FROM prepared_activities
-           WHERE status = 'prepared'
+          `SELECT p.activity_id, p.activity_type, p.title, p.origin_surface, p.prepared_at,
+             CASE
+               WHEN EXISTS (
+                 SELECT 1 FROM vocabulary_entries v
+                 WHERE json_extract(v.source_json, '$.kind') = 'activity'
+                   AND json_extract(v.source_json, '$.activityId') = p.activity_id
+                   AND v.status <> 'candidate'
+               ) THEN 'retained-data'
+               WHEN EXISTS (
+                 SELECT 1 FROM exercises e WHERE e.activity_id = p.activity_id
+               ) THEN 'cascade'
+               ELSE 'available'
+             END AS deletion_status
+           FROM prepared_activities p
+           WHERE p.status = 'prepared'
            ORDER BY prepared_at DESC, activity_id
            LIMIT 20`,
         )
@@ -1484,6 +1497,9 @@ export class OpenDeutschRepository {
             title: preparedActivitySchema.shape.title.parse(row["title"]),
             originSurface: preparedActivitySchema.shape.originSurface.parse(row["origin_surface"]),
             preparedAt: utcInstantSchema.parse(row["prepared_at"]),
+            deletionStatus: z
+              .enum(["available", "cascade", "retained-data"])
+              .parse(row["deletion_status"]),
           });
         });
 
@@ -2054,15 +2070,6 @@ export class OpenDeutschRepository {
       if (activity.status !== "prepared") {
         throw new Error("OD_PREPARED_ACTIVITY_DELETE_BLOCKED");
       }
-      const started = connection
-        .prepare(`SELECT 1 FROM exercises WHERE activity_id = ? LIMIT 1`)
-        .get(activityId);
-      const retainedFeedback = connection
-        .prepare(`SELECT 1 FROM mcp_attempt_feedback WHERE activity_id = ? LIMIT 1`)
-        .get(activityId);
-      if (started || retainedFeedback) {
-        throw new Error("OD_PREPARED_ACTIVITY_DELETE_BLOCKED");
-      }
       const retainedVocabulary = connection
         .prepare(
           `SELECT 1
@@ -2076,6 +2083,39 @@ export class OpenDeutschRepository {
       if (retainedVocabulary) {
         throw new Error("OD_PREPARED_ACTIVITY_DELETE_BLOCKED");
       }
+      connection
+        .prepare(
+          `DELETE FROM history_entries
+           WHERE entity_kind = 'attempt'
+             AND EXISTS (
+               SELECT 1 FROM attempts a
+               JOIN exercises e ON e.exercise_id = a.exercise_id
+               WHERE a.attempt_id = history_entries.entity_id
+                 AND e.activity_id = ?
+             )`,
+        )
+        .run(activityId);
+      connection
+        .prepare(`DELETE FROM mcp_attempt_feedback WHERE activity_id = ?`)
+        .run(activityId);
+      connection
+        .prepare(
+          `INSERT INTO attempt_deletions (attempt_id, deleted_at)
+           SELECT a.attempt_id, ?
+           FROM attempts a
+           JOIN exercises e ON e.exercise_id = a.exercise_id
+           WHERE e.activity_id = ?`,
+        )
+        .run(deletedAt, activityId);
+      connection
+        .prepare(
+          `DELETE FROM attempts
+           WHERE exercise_id IN (
+             SELECT exercise_id FROM exercises WHERE activity_id = ?
+           )`,
+        )
+        .run(activityId);
+      connection.prepare(`DELETE FROM exercises WHERE activity_id = ?`).run(activityId);
       connection
         .prepare(
           `INSERT INTO vocabulary_deletions (vocabulary_id, deleted_at)
@@ -2409,6 +2449,36 @@ export class OpenDeutschRepository {
     });
   }
 
+  async readPreparedActivityDeletionStatus(
+    activityIdValue: string,
+  ): Promise<"available" | "cascade" | "retained-data" | undefined> {
+    const activityId = activityIdSchema.parse(activityIdValue);
+    return withLeasedConnection(this.#database, (connection) => {
+      const row = connection
+        .prepare(
+          `SELECT CASE
+             WHEN p.status <> 'prepared' THEN 'retained-data'
+             WHEN EXISTS (
+               SELECT 1 FROM vocabulary_entries v
+               WHERE json_extract(v.source_json, '$.kind') = 'activity'
+                 AND json_extract(v.source_json, '$.activityId') = p.activity_id
+                 AND v.status <> 'candidate'
+             ) THEN 'retained-data'
+             WHEN EXISTS (
+               SELECT 1 FROM exercises e WHERE e.activity_id = p.activity_id
+             ) THEN 'cascade'
+             ELSE 'available'
+           END AS deletion_status
+           FROM prepared_activities p
+           WHERE p.activity_id = ?`,
+        )
+        .get(activityId) as { deletion_status: unknown } | undefined;
+      return row === undefined
+        ? undefined
+        : z.enum(["available", "cascade", "retained-data"]).parse(row.deletion_status);
+    });
+  }
+
   async readActiveGeneratedExerciseSet(
     activityIdValue: string,
   ): Promise<ActiveGeneratedExerciseSet | undefined> {
@@ -2668,13 +2738,21 @@ export class OpenDeutschRepository {
             vocabularyCandidateIds: [],
           });
         } else {
-          const outcome = evaluation.status === "correct" ? "demonstrated" : "not-demonstrated";
+          const outcome =
+            evaluation.status === "correct"
+              ? "demonstrated"
+              : evaluation.status === "almost-correct"
+                ? "developing"
+                : "not-demonstrated";
           objectiveEvaluations = snapshot.exercise.objectives.map(() => ({
             outcome,
             evidence:
               evaluation.status === "correct"
                 ? "The submitted answer matched the exercise contract."
-                : "The submitted answer did not match the exercise contract.",
+                : evaluation.status === "almost-correct"
+                  ? "The submitted answer was close to an accepted answer with minor spelling " +
+                    "or diacritic differences."
+                  : "The submitted answer did not match the exercise contract.",
             uncertainty: { level: "none" as const },
           }));
           feedback = attemptFeedbackSchema.parse({
@@ -2682,11 +2760,19 @@ export class OpenDeutschRepository {
             summary:
               evaluation.status === "correct"
                 ? "The answer matched the accepted exercise evidence."
-                : "The answer needs review against the accepted exercise evidence.",
+                : evaluation.status === "almost-correct"
+                  ? "The answer was nearly correct and needs only minor spelling or diacritic review."
+                  : "The answer needs review against the accepted exercise evidence.",
             strengths:
-              evaluation.status === "correct" ? ["The submitted answer was accepted."] : [],
+              evaluation.status === "correct"
+                ? ["The submitted answer was accepted."]
+                : evaluation.status === "almost-correct"
+                  ? ["The submitted answer was close to an accepted correction."]
+                  : [],
             improvements:
-              evaluation.status === "incorrect" ? ["Review the revealed accepted answer."] : [],
+              evaluation.status === "almost-correct" || evaluation.status === "incorrect"
+                ? ["Review the revealed accepted answer."]
+                : [],
             overallUncertainty: { level: "none" },
             mistakeIds: [],
             vocabularyCandidateIds: [],

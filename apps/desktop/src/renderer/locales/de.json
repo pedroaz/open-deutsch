@@ -11,6 +11,8 @@
     "delete": "Eintrag löschen",
     "showHelper": "Hilfe öffnen",
     "hideHelper": "Hilfe schließen",
+    "collapseNavigation": "Navigation einklappen",
+    "expandNavigation": "Navigation ausklappen",
     "startAi": "KI-Schreibprüfung testen",
     "switchLanguage": "English",
     "acknowledge": "Verstanden, weiter"
@@ -27,12 +29,85 @@
     "settings": "Einstellungen/Konto"
   },
   "practice": {
+    "eyebrow": "Wähle deinen Schwerpunkt",
     "title": "Üben",
+    "intro": "Wähle eine Übungsart und arbeite dann in einem fokussierten Bereich. Deine erstellten Übungen bleiben hier, bis du weitermachen möchtest.",
+    "back": "Zurück zu Üben",
     "grammar": "Grammatik",
     "reading": "Lesen",
     "listening": "Codex-Hörübung übergeben",
     "speaking": "Codex-Sprechübung übergeben",
     "diagnostic": "Optionale Einstufung",
+    "chooser": {
+      "title": "Was möchtest du üben?",
+      "body": "Wähle ein Format, um die Vorbereitung zu sehen und zu beginnen."
+    },
+    "types": {
+      "custom": {
+        "title": "Quiz erstellen",
+        "body": "Beschreibe, was du üben möchtest. Das Quiz kann Multiple Choice, Lückentexte, Satzkorrekturen und kurze Schreibantworten mischen."
+      },
+      "grammar": {
+        "title": "Grammatik",
+        "body": "Lies eine kurze Erklärung und beantworte dann Lückentext-, Satzkorrektur- und Kurzantwortfragen."
+      },
+      "reading": {
+        "title": "Lesen",
+        "body": "Lies einen kurzen Alltagstext, wähle Verständnisantworten und schreibe eine kurze Zusammenfassung."
+      },
+      "listening": {
+        "title": "Hören",
+        "body": "Bereite Hörfragen für Codex Voice vor. Audio wird nicht in Open Deutsch abgespielt."
+      },
+      "speaking": {
+        "title": "Sprechen",
+        "body": "Bereite ein praktisches Rollenspiel mit Impulsen und Korrekturzielen vor und sprich dann in Codex Voice."
+      },
+      "diagnostic": {
+        "title": "Niveau einschätzen",
+        "body": "Beantworte Grammatik-, Wortschatz- und Leseaufgaben sowie einen kurzen Schreibimpuls."
+      }
+    },
+    "library": {
+      "title": "Deine erstellten Übungen",
+      "body": "Öffne ein erstelltes Quiz oder Grammatikset und mache dort weiter.",
+      "count_one": "{{count}} bereit",
+      "count_other": "{{count}} bereit",
+      "loading": "Deine Übungen werden geladen…",
+      "empty": "Keine erstellten Übungen warten. Erstelle unten eine passende Übung, wenn du möchtest.",
+      "filterLabel": "Erstellte Übungen nach Typ filtern",
+      "filters": {
+        "all": "Alle",
+        "custom-lesson": "Quiz",
+        "grammar": "Grammatik"
+      },
+      "noFilterResults": "Keine Übungen entsprechen diesem Filter.",
+      "open": "{{title}} öffnen",
+      "deleteAction": "{{title}} löschen",
+      "deleteTitle": "„{{title}}“ löschen?",
+      "deleteBody": "Dadurch werden das Quiz und seine unbestätigten Wortschatzkandidaten dauerhaft gelöscht.",
+      "deleteCascadeBody": "Dadurch werden das Quiz, seine Versuche, Antworten, Rückmeldungen, zugehörigen Verlaufseinträge und unbestätigten Wortschatzkandidaten dauerhaft gelöscht.",
+      "deleteConfirm": "Übung löschen",
+      "deleteBlocked": {
+        "retained-data": "{{title}} ist mit bestätigtem Wortschatz verknüpft und kann hier nicht gelöscht werden."
+      },
+      "deleteStates": {
+        "cascade": "Begonnen",
+        "retained-data": "Bestätigter Wortschatz"
+      },
+      "types": {
+        "grammar": "Grammatikübung",
+        "custom-lesson": "Quiz"
+      }
+    },
+    "session": {
+      "eyebrow": "Erstellte Übung",
+      "exerciseCount_one": "{{count}} Übung",
+      "exerciseCount_other": "{{count}} Übungen",
+      "lessonIncluded": "Lektionshinweise enthalten",
+      "lessonHint": "Öffne die Erklärung, wenn du sie brauchst",
+      "delete": "Löschen"
+    },
     "grammarLesson": {
       "title": "Gezielte Grammatiklektion",
       "body": "Ein auf A2 kalibrierter Einstieg nutzt den geprüften Lehrplan und vorhandene gespeicherte Fehlerbelege über den begrenzten Generierungsdienst.",
@@ -136,18 +211,30 @@
       }
     }
   },
+  "modelControl": {
+    "title": "KI-Modell",
+    "loading": "Modellauswahl wird geladen…",
+    "saving": "Wird gespeichert…",
+    "activity": "KI-Aktivität",
+    "model": "Modell",
+    "reasoning": "Denkaufwand",
+    "reasoningHint": "Niedrig ist schneller. Höhere Stufen können gründlicher sein, brauchen aber länger.",
+    "automatic": "Automatisch — {{model}}",
+    "workloads": {
+      "correction": "Schreiben",
+      "generation": "Üben",
+      "helper": "Hilfe",
+      "research": "Recherche"
+    }
+  },
   "exercises": {
     "ready": "Übungsset bereit",
     "loading": "Übung wird geladen…",
     "readyBody_one": "Dieses Set enthält {{count}} kurze Übung.",
     "readyBody_other": "Dieses Set enthält {{count}} kurze Übungen.",
-    "feedbackMode": "Zeitpunkt der Rückmeldung",
-    "feedbackModes": {
-      "default": "Standard der Übung verwenden",
-      "immediate": "Nach jeder Antwort",
-      "submit-at-end": "Nach dem ganzen Set"
-    },
+    "navigationLabel": "Navigation zwischen besuchten Übungen",
     "start": "Übung starten",
+    "startAgain": "Neu starten",
     "starting": "Übung wird gestartet…",
     "startFailed": "Die Übung konnte nicht gestartet werden. Es wurde keine Antwort gespeichert.",
     "progress": "Übung {{current}} von {{total}}",
@@ -159,8 +246,11 @@
       "production": "Bilde das deutsche Wort oder den Ausdruck."
     },
     "showHint": "Hinweis anzeigen",
+    "answerFrameHint": "Satzgerüst: {{frame}}",
     "submit": "Antwort absenden",
     "answerRequired": "Gib vor dem Absenden eine gültige Antwort ein.",
+    "previous": "Vorherige Übung",
+    "forward": "Nächste besuchte Übung",
     "next": "Nächste Übung",
     "finish": "Set abschließen",
     "completing": "Übung wird gespeichert…",
@@ -170,15 +260,13 @@
     "abandonFailed": "Das Set konnte nicht abgebrochen werden. Deine aktuelle Antwort bleibt sichtbar.",
     "abandoned": "Übungsset abgebrochen",
     "abandonedBody": "Abgeschlossene Antworten wurden nicht im Verlauf gespeichert. Du kannst dieses erzeugte Set später erneut starten.",
-    "interrupted": "Ein früheres Übungsset ist noch aktiv",
-    "interruptedBody": "Brich das unterbrochene Set ab, bevor du diese erzeugte Lektion erneut startest. Im Verlauf wird kein Abschluss gespeichert.",
-    "abandonInterrupted": "Unterbrochenes Set abbrechen",
     "delete": {
-      "trigger": "Vorbereitete Lektion löschen",
-      "deleting": "Vorbereitete Lektion wird gelöscht…",
-      "title": "Diese vorbereitete Lektion löschen?",
-      "body": "Dadurch werden die noch nicht begonnene Lektion und ihre unbestätigten Wortschatzkandidaten dauerhaft gelöscht. Bestätigter Wortschatz und begonnene Übungen verhindern das Löschen.",
-      "confirm": "Vorbereitete Lektion löschen"
+      "trigger": "Quiz löschen",
+      "deleting": "Quiz wird gelöscht…",
+      "title": "Dieses Quiz löschen?",
+      "body": "Dadurch werden das Quiz und seine unbestätigten Wortschatzkandidaten dauerhaft gelöscht. Bestätigter Wortschatz verhindert das Löschen.",
+      "cascadeBody": "Dadurch werden das Quiz, seine Versuche, Antworten, Rückmeldungen, zugehörigen Verlaufseinträge und unbestätigten Wortschatzkandidaten dauerhaft gelöscht.",
+      "confirm": "Quiz löschen"
     },
     "aiFeedback": {
       "evaluating": "Deine Antwort wird geprüft…",
@@ -188,18 +276,22 @@
       "suggestedAnswer": "Vorschlag:"
     },
     "custom": {
-      "title": "Eigene Lektion erstellen",
-      "body": "Bitte um ein Thema, eine Alltagssituation, einen Grammatikschwerpunkt, eine Wortschatzlektion oder ein Übungsformat. Die Lektion bleibt kurz, ohne Zeitdruck und enthält optionale Hinweise.",
+      "title": "Quiz erstellen",
+      "body": "Bitte um ein Thema, eine Alltagssituation, einen Grammatikschwerpunkt, ein Wortschatzthema oder ein Fragenformat. Das Quiz ist ohne Zeitdruck und enthält optionale Hinweise.",
       "request": "Was möchtest du üben?",
-      "generate": "Lektion erstellen",
-      "generating": "Lektion wird erstellt…",
-      "failed": "Die Lektion konnte nicht erstellt werden. Deine Anfrage bleibt für einen neuen Versuch erhalten.",
+      "countLabel": "Quizlänge",
+      "countOption_one": "{{count}} Übung",
+      "countOption_other": "{{count}} Übungen",
+      "generate": "Quiz erstellen",
+      "generating": "Quiz wird erstellt…",
+      "failed": "Das Quiz konnte nicht erstellt werden. Deine Anfrage bleibt für einen neuen Versuch erhalten.",
       "vocabulary": "Wortschatzgrundlagen"
     },
     "complete": "Übung abgeschlossen",
     "acceptedAnswers": "Akzeptierte Antwort",
     "results": {
       "correct": "Richtig",
+      "almost-correct": "Fast richtig — prüfe die kleinen Unterschiede",
       "incorrect": "Überprüfe diese Antwort",
       "requires-ai": "Für diese offene Antwort ist KI-Rückmeldung erforderlich"
     }
@@ -278,8 +370,7 @@
       "quickPractice": "Schnell üben",
       "corrections": "Letzte Korrekturen",
       "mistakes": "Wiederkehrende Fehler",
-      "vocabulary": "Fälliger Wortschatz",
-      "prepared": "Vorbereitete Aktivitäten"
+      "vocabulary": "Fälliger Wortschatz"
     },
     "planWeek": "Woche ab {{date}}",
     "emptyPlan": "Noch kein aktueller Wochenplan gespeichert.",
@@ -287,16 +378,13 @@
     "quickPracticeBody": "Wähle eine fokussierte lokale Aktivität, ohne auf KI zu warten.",
     "openPractice": "Üben öffnen",
     "openWriting": "Schreiben öffnen",
-    "startPrepared": "Aktivität öffnen",
     "correctionItem": "{{count}} geänderte Abschnitte · {{date}}",
     "emptyCorrections": "Noch keine gespeicherten Korrekturen verfügbar.",
     "openHistory": "Verlauf öffnen",
     "mistakeItem": "{{category}} · {{count}} Vorkommen",
     "emptyMistakes": "Noch hat kein wiederkehrendes Muster genügend Belege.",
     "emptyVocabulary": "Heute sind keine Wortschatzkarten fällig.",
-    "openVocabulary": "Wortschatz öffnen",
-    "preparedBy": "Vorbereitet aus {{surface}}",
-    "emptyPrepared": "Keine vorbereitete Desktop- oder Codex-Aktivität wartet."
+    "openVocabulary": "Wortschatz öffnen"
   },
   "progress": {
     "eyebrow": "Belegansicht",
@@ -459,7 +547,7 @@
       "codex-listening": "Codex-Hören",
       "voice-speaking": "Voice-Sprechen",
       "placement": "Einstufung",
-      "custom-lesson": "Eigene Lektion",
+      "custom-lesson": "Quiz",
       "plan-generation": "Planerstellung"
     },
     "topics": "Lehrplanthemen",
@@ -692,15 +780,17 @@
     "automatic": "Automatisch",
     "exactEffort": "Exakt: {{effort}}",
     "exactEfforts": {
-      "low": "Leicht",
+      "none": "Minimal",
+      "low": "Niedrig",
       "medium": "Mittel",
       "high": "Hoch",
-      "xhigh": "Extra hoch"
+      "xhigh": "Extra hoch",
+      "max": "Maximum",
+      "ultra": "Ultra"
     },
     "unavailableSavedModel": "Nicht verfügbares gespeichertes Modell: {{model}}",
     "unavailableSavedEffort": "Nicht verfügbarer gespeicherter Denkaufwand: {{effort}}",
     "savedModelFallback": "Diese gespeicherte Auswahl ist nicht verfügbar. KI-Aktionen verwenden vorübergehend die Laufzeitvorgabe; deine Auswahl bleibt gespeichert.",
-    "efforts": { "fast": "Schnell", "balanced": "Ausgewogen", "deep": "Tief" },
     "workloads": {
       "correction": "Schreibkorrektur",
       "generation": "Übungs- und Lektionserstellung",

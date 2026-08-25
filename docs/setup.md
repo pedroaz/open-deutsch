@@ -39,7 +39,7 @@ The commands use only the `open-deutsch-local` marketplace and `open-deutsch` pl
 
 - `make doctor` checks pinned tools, package health, and local prerequisites without changing user state.
 - `make plugin-status` reports missing, installed, stale, or failed-start integration state.
-- `make logs` and `make logs-errors` show bounded lifecycle logs; `make logs-clear` requires confirmation.
+- `make logs` and `make logs-errors` show or follow the merged bounded lifecycle, desktop, App Server, MCP, and bootstrap logs; `make logs-clear` requires confirmation before clearing them.
 - If the selected root is unavailable, choose or recover a new root through Settings. Do not copy SQLite files or staging content manually into the checkout.
 - If a packaged AppImage needs replacement, close Open Deutsch, replace the AppImage manually, and reopen it. No automatic updater is included and the external bootstrap pointer is preserved.
 

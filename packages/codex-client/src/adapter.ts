@@ -156,6 +156,12 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
         : { presentDeviceCode: options.presentDeviceCode }),
       onAccountChanged: (state) => {
         this.#account = state;
+        this.#stateLog(
+          "APP_SERVER_ACCOUNT_STATE_CHANGED",
+          "codex/account",
+          `Account state changed to ${state.status}.`,
+          { status: state.status },
+        );
         this.#emit({ event: "account-changed", state });
       },
       onLoginChanged: (loginId, state) => {
@@ -167,6 +173,14 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
       onCatalogChanged: (catalog) => {
         const changed = JSON.stringify(catalog) !== JSON.stringify(this.#models);
         this.#models = catalog;
+        if (changed) {
+          this.#stateLog(
+            "APP_SERVER_MODEL_CATALOG_CHANGED",
+            "codex/models",
+            "Model catalog changed.",
+            { count: catalog.models.length },
+          );
+        }
         if (changed) this.#emit({ event: "models-changed" });
       },
     });
@@ -174,6 +188,12 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
       requester: this.#process,
       onRateLimitsChanged: (state) => {
         this.#rateLimits = state;
+        this.#stateLog(
+          "APP_SERVER_RATE_LIMITS_CHANGED",
+          "codex/rate-limits",
+          "Rate-limit state changed.",
+          { status: state.status },
+        );
         this.#emit({ event: "rate-limits-changed" });
       },
     });
@@ -246,7 +266,14 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
     });
     if (accepted.accepted === "started") {
       this.#operationInputs.set(validated.operationId, validated);
-      this.#operationLog("info", "APP_SERVER_OPERATION_STARTED", validated, "Operation started.");
+      this.#operationLog(
+        "info",
+        "APP_SERVER_OPERATION_STARTED",
+        validated,
+        "Operation started.",
+        undefined,
+        { phase: "started" },
+      );
       this.#state(validated, "accepted");
       this.#progress(validated, "queued");
     }
@@ -290,7 +317,14 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
         : operation;
     if (accepted.accepted === "started") {
       this.#operationInputs.set(operation.operationId, operation);
-      this.#operationLog("info", "APP_SERVER_OPERATION_STARTED", operation, "Retry started.");
+      this.#operationLog(
+        "info",
+        "APP_SERVER_OPERATION_STARTED",
+        operation,
+        "Retry started.",
+        undefined,
+        { phase: "started" },
+      );
       this.#state(operation, "accepted");
       this.#progress(operation, "queued");
     }
@@ -331,6 +365,19 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
       signal: context.signal,
       onProgress: (stage) => {
         if (stage === "validating") context.validating();
+        this.#operationLog(
+          "info",
+          "APP_SERVER_OPERATION_STAGE",
+          retained,
+          "operation-stage",
+          undefined,
+          `Operation ${stage}.`,
+          {
+            action: retained.input.kind,
+            phase: stage === "validating" ? "validating" : "running",
+            metadata: { stage },
+          },
+        );
         this.#progress(retained, stage);
       },
     });
@@ -384,6 +431,13 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
   }
 
   #loginEvent(loginId: string, state: ManagedLoginState): void {
+    this.#stateLog(
+      "APP_SERVER_LOGIN_STATE_CHANGED",
+      "codex/account/login",
+      `Account login state changed to ${state.status}.`,
+      { status: state.status },
+      loginId,
+    );
     if (state.status === "failed") {
       this.#emit({
         event: "account-login-changed",
@@ -435,6 +489,8 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
         "APP_SERVER_OPERATION_VALIDATED",
         operation,
         "Operation output validated.",
+        undefined,
+        { phase: "completed", outcome: "ok" },
       );
       const result = {
         operationId: operation.operationId,
@@ -488,6 +544,15 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
           ? "Operation rate limited."
           : "Operation failed.",
       outcome.status === "failed" ? outcome.errorCode : undefined,
+      {
+        phase: outcome.status === "cancelled" ? "cancelled" : "failed",
+        outcome:
+          outcome.status === "cancelled"
+            ? "cancelled"
+            : outcome.status === "rate-limited"
+              ? "rate-limited"
+              : "error",
+      },
     );
     const rateLimit = projectedRateLimitFailure(this.#rateLimits);
     this.#emit({
@@ -541,22 +606,67 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
     operation: AppServerOperationStart,
     message: string,
     errorCode?: string,
+    fields: Readonly<{
+      action?: string;
+      phase?: "received" | "started" | "queued" | "running" | "validating" | "persisting" | "completed" | "cancelled" | "failed";
+      outcome?: "ok" | "rejected" | "cancelled" | "rate-limited" | "error";
+      durationMs?: number;
+      metadata?: Readonly<Record<string, string | number | boolean | null>>;
+    }> = {},
   ): void {
     try {
+      const durationMs =
+        fields.durationMs ??
+        (code === "APP_SERVER_OPERATION_VALIDATED" ||
+        code === "APP_SERVER_OPERATION_CANCELLED" ||
+        code === "APP_SERVER_OPERATION_RATE_LIMITED" ||
+        code === "APP_SERVER_OPERATION_FAILED"
+          ? Math.max(0, Date.now() - Date.parse(operation.startedAt))
+          : undefined);
       this.#log?.({
         timestamp: new Date().toISOString(),
         severity,
         component: "app-server",
         code,
         correlationId: operation.operationId,
+        action: fields.action ?? operation.input.kind,
+        ...(fields.phase === undefined ? {} : { phase: fields.phase }),
+        ...(fields.outcome === undefined ? {} : { outcome: fields.outcome }),
+        ...(durationMs === undefined ? {} : { durationMs }),
         message,
         metadata: {
           reason: operation.input.kind,
           ...(errorCode === undefined ? {} : { code: errorCode }),
+          ...(fields.metadata ?? {}),
         },
       });
     } catch {
       // Diagnostic sinks cannot change operation settlement.
+    }
+  }
+
+  #stateLog(
+    code: string,
+    action: string,
+    message: string,
+    metadata?: Readonly<Record<string, string | number | boolean | null>>,
+    correlationId?: string,
+  ): void {
+    try {
+      this.#log?.({
+        timestamp: new Date().toISOString(),
+        severity: "info",
+        component: "app-server",
+        code,
+        ...(correlationId === undefined ? {} : { correlationId }),
+        action,
+        phase: "completed",
+        outcome: "ok",
+        message,
+        ...(metadata === undefined ? {} : { metadata }),
+      });
+    } catch {
+      // Diagnostic sinks cannot affect adapter state.
     }
   }
 

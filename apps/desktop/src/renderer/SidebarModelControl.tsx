@@ -1,0 +1,233 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { DesktopIpcResponse, OpenDeutschError } from "@open-deutsch/contracts";
+import {
+  modelWorkloads,
+  resolveModelPreference,
+  type ModelWorkload,
+  type WorkloadModelPreference,
+} from "@open-deutsch/domain";
+import { Bot } from "lucide-react";
+import { Button } from "react-aria-components";
+import { useTranslation } from "react-i18next";
+
+import styles from "./App.module.css";
+import { invokeDesktop, normalizeDesktopError, subscribeDesktop } from "./ipc.js";
+import {
+  desktopSettingsAdapter,
+  replaceWorkloadPreference,
+  type DesktopSettingsResult,
+} from "./settings-adapter.js";
+
+type Catalog = Extract<
+  DesktopIpcResponse,
+  { status: "ok"; channel: "codex/models/read" }
+>["result"];
+
+function modelValue(preference: WorkloadModelPreference): string {
+  return preference.model.mode === "automatic" ? "automatic" : preference.model.modelId;
+}
+
+export function SidebarModelControl({ initialWorkload }: { initialWorkload: ModelWorkload }) {
+  const { t } = useTranslation();
+  const [workload, setWorkload] = useState<ModelWorkload>(initialWorkload);
+  const [settings, setSettings] = useState<DesktopSettingsResult>();
+  const [catalog, setCatalog] = useState<Catalog>();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<OpenDeutschError>();
+
+  useEffect(() => {
+    setWorkload(initialWorkload);
+  }, [initialWorkload]);
+
+  const load = useCallback(async () => {
+    try {
+      const [nextSettings, nextCatalog] = await Promise.all([
+        desktopSettingsAdapter.read(),
+        invokeDesktop("codex/models/read", {}),
+      ]);
+      setSettings(nextSettings);
+      setCatalog(nextCatalog);
+      setError(undefined);
+    } catch (cause) {
+      setError(normalizeDesktopError(cause).detail);
+    }
+  }, []);
+
+  useEffect(() => {
+    const initial = window.setTimeout(() => void load(), 0);
+    const unsubscribe = subscribeDesktop((event) => {
+      if (
+        event.event === "state-invalidated" &&
+        (event.scope === "settings" || event.scope === "models")
+      ) {
+        void load();
+      }
+    });
+    return () => {
+      window.clearTimeout(initial);
+      unsubscribe();
+    };
+  }, [load]);
+
+  const preference = settings?.settings.modelPreferences[workload];
+  const resolution = useMemo(
+    () =>
+      preference && catalog
+        ? resolveModelPreference(workload, preference, catalog)
+        : undefined,
+    [catalog, preference, workload],
+  );
+  const runtimeDefaultModel = useMemo(
+    () =>
+      catalog?.models.find(({ id }) => id === catalog.runtimeDefaultModelId) ??
+      catalog?.models.find(({ isDefault }) => isDefault),
+    [catalog],
+  );
+  const effectiveResolution = resolution?.resolution as
+    | { status: string; effectiveModelId?: string; effectiveEffortId?: string }
+    | undefined;
+  const selectedModel = useMemo(() => {
+    if (!catalog || !effectiveResolution?.effectiveModelId) {
+      return undefined;
+    }
+    return catalog.models.find(
+      ({ id }) => id === effectiveResolution.effectiveModelId,
+    );
+  }, [catalog, effectiveResolution]);
+  const effectiveEffort = effectiveResolution?.effectiveEffortId;
+
+  const savePreference = async (nextPreference: WorkloadModelPreference) => {
+    if (!settings) return;
+    setBusy(true);
+    setError(undefined);
+    try {
+      const modelPreferences = replaceWorkloadPreference(
+        settings.settings.modelPreferences,
+        workload,
+        nextPreference,
+      );
+      const next = await desktopSettingsAdapter.update(settings.updatedAt, {
+        ...settings.settings,
+        modelPreferences,
+      });
+      setSettings(next);
+    } catch (cause) {
+      const detail = normalizeDesktopError(cause).detail;
+      await load();
+      setError(detail);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const selectModel = (modelId: string) => {
+    if (!preference) return;
+    const model =
+      modelId === "automatic"
+        ? ({ mode: "automatic" } as const)
+        : ({ mode: "exact", modelId } as const);
+    const nextModel =
+      modelId === "automatic"
+        ? runtimeDefaultModel
+        : catalog?.models.find(({ id }) => id === modelId);
+    const fallbackEffort =
+      nextModel?.defaultReasoningEffort ?? nextModel?.supportedReasoningEfforts[0];
+    const effort =
+      preference.effort.mode === "exact" &&
+      !nextModel?.supportedReasoningEfforts.includes(preference.effort.effortId) &&
+      fallbackEffort
+        ? ({ mode: "exact", effortId: fallbackEffort } as const)
+        : preference.effort;
+    void savePreference({ model, effort });
+  };
+
+  const selectEffort = (effortId: string) => {
+    if (!preference) return;
+    const effort = { mode: "exact", effortId } as const;
+    void savePreference({ ...preference, effort });
+  };
+
+  return (
+    <section className={styles.navModelPanel} aria-busy={busy} aria-label={t("modelControl.title")}>
+      <div className={styles.navModelHeading}>
+        <Bot aria-hidden="true" />
+        <strong>{t("modelControl.title")}</strong>
+      </div>
+      <div
+        aria-label={t("modelControl.activity")}
+        className={styles.navModelWorkloads}
+        role="group"
+      >
+        {modelWorkloads.map((availableWorkload) => (
+          <Button
+            className={styles.navModelWorkloadButton}
+            data-selected={availableWorkload === workload || undefined}
+            isDisabled={busy}
+            key={availableWorkload}
+            onPress={() => {
+              setWorkload(availableWorkload);
+            }}
+          >
+            {t(`modelControl.workloads.${availableWorkload}`)}
+          </Button>
+        ))}
+      </div>
+      {!preference ? (
+        <p className={styles.navModelStatus}>{t("modelControl.loading")}</p>
+      ) : (
+        <>
+          <label className={styles.navModelField}>
+            <span>{t("modelControl.model")}</span>
+            <select
+              disabled={busy}
+              value={modelValue(preference)}
+              onChange={(event) => {
+                selectModel(event.currentTarget.value);
+              }}
+            >
+              <option value="automatic">
+                {t("modelControl.automatic", {
+                  model:
+                    runtimeDefaultModel?.displayName ?? t("settings.automatic"),
+                })}
+              </option>
+              {preference.model.mode === "exact" && !selectedModel ? (
+                <option value={preference.model.modelId}>
+                  {t("settings.unavailableSavedModel", { model: preference.model.modelId })}
+                </option>
+              ) : null}
+              {catalog?.models.map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.displayName}
+                </option>
+              ))}
+            </select>
+          </label>
+          <fieldset className={styles.navModelReasoning}>
+            <legend>{t("modelControl.reasoning")}</legend>
+            <div className={styles.navModelEffortGrid}>
+              {selectedModel?.supportedReasoningEfforts.map((effort) => (
+                <Button
+                  className={styles.navModelEffortButton}
+                  data-selected={
+                    effectiveEffort === effort ? true : undefined
+                  }
+                  isDisabled={busy}
+                  key={effort}
+                  onPress={() => {
+                    selectEffort(effort);
+                  }}
+                >
+                  {t(`settings.exactEfforts.${effort}`, { defaultValue: effort })}
+                </Button>
+              ))}
+            </div>
+          </fieldset>
+          <p className={styles.navModelHint}>{t("modelControl.reasoningHint")}</p>
+        </>
+      )}
+      {error && <p className={styles.navModelError}>{t(error.messageKey)}</p>}
+      {busy && <p className={styles.navModelStatus}>{t("modelControl.saving")}</p>}
+    </section>
+  );
+}

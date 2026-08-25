@@ -1,7 +1,7 @@
 # Development workflow
 
 Status: current engineering guidance
-Last updated: 2026-08-24
+Last updated: 2026-08-25
 
 ## Command boundary
 
@@ -17,9 +17,9 @@ Make is the documented human-facing command surface. Make targets delegate to co
 - `make start` — documented alias for `make prd`.
 - `make status` — show only Open Deutsch-owned process and health state.
 - `make kill` — idempotently stop only tracked Open Deutsch processes.
-- `make logs` — follow current human-readable logs.
-- `make logs-errors` — show/follow warnings and errors.
-- `make logs-clear` — explicitly remove only bounded Open Deutsch log files after confirming the resolved target.
+- `make logs` — show or follow merged lifecycle, desktop, App Server, MCP, and bootstrap records in chronological order.
+- `make logs-errors` — show or follow only warning and error records from the merged logs.
+- `make logs-clear` — explicitly remove bounded Open Deutsch log files after confirming the resolved targets.
 
 Development and production-like runs record exact PIDs and mode-specific state in an ignored runtime directory. Never kill by broad process-name matching. Detect stale PIDs and refuse to target processes whose identity no longer matches.
 

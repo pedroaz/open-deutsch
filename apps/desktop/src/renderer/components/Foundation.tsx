@@ -130,6 +130,7 @@ export function Disclosure(props: { label: string; children: ReactNode }) {
 
 export function DestructiveDialog(props: {
   trigger: string;
+  triggerVariant?: "primary" | "secondary" | "danger";
   title: string;
   body: string;
   confirm: string;
@@ -138,7 +139,7 @@ export function DestructiveDialog(props: {
 }) {
   return (
     <DialogTrigger>
-      <AppButton variant="danger">{props.trigger}</AppButton>
+      <AppButton variant={props.triggerVariant ?? "danger"}>{props.trigger}</AppButton>
       <ModalOverlay className={styles.modalOverlay} isDismissable>
         <Modal className={styles.modal}>
           <Dialog>

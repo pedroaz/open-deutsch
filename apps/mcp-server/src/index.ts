@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { appendFile, mkdir, readFile, realpath, rename, rm, stat } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -41,6 +41,7 @@ import {
 import {
   assertCurrentDataRootLease,
   OpenDeutschRepository,
+  appendOperationalLog,
   openOpenDeutschDatabase,
   readBootstrapPointer,
   resolveDataRootLayout,
@@ -58,6 +59,7 @@ type Runtime = Readonly<{
   bootstrapFile: string;
   dataRoot: string;
   rootGeneration: number;
+  sessionId: string;
   database: OpenDeutschDatabase;
   repository: OpenDeutschRepository;
 }>;
@@ -113,28 +115,127 @@ async function readManifest(): Promise<ReturnType<typeof curriculumManifestSchem
   return curriculumManifestSchema.parse(parsed);
 }
 
-async function writeLog(runtime: Runtime, event: string, kind?: ErrorKind) {
+function logCode(event: string): string {
+  return `MCP_${event.replace(/[^A-Za-z0-9]+/gu, "_").toUpperCase()}`.slice(0, 96);
+}
+
+async function writeLog(
+  runtime: Runtime,
+  event: string,
+  kind?: ErrorKind,
+  fields: Readonly<{
+    severity?: "debug" | "info" | "warn" | "error";
+    correlationId?: string;
+    errorCode?: string;
+    action?: string;
+    phase?: "started" | "completed" | "failed";
+    outcome?: "ok" | "error";
+    durationMs?: number;
+    tool?: string;
+  }> = {},
+) {
   const layout = resolveDataRootLayout(runtime.dataRoot);
-  await mkdir(layout.logs, { recursive: true, mode: 0o700 });
-  if ((await realpath(layout.logs)) !== layout.logs) throw new Error("OD_LOG_DIRECTORY_INVALID");
-  const logFile = path.join(layout.logs, "mcp-server.log");
-  const current = await stat(logFile).catch(() => undefined);
-  if (current && current.size >= 5 * 1024 * 1024) {
-    await rm(`${logFile}.9`, { force: true });
-    for (let index = 8; index >= 1; index -= 1) {
-      await rename(`${logFile}.${String(index)}`, `${logFile}.${String(index + 1)}`).catch(
-        (error: unknown) => {
-          if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-        },
-      );
-    }
-    await rename(logFile, `${logFile}.1`);
-  }
-  const line = `${now()} INFO mcp ${event}${kind ? ` code=${errorDefinitions[kind].code}` : ""}\n`;
-  await appendFile(logFile, line, {
-    encoding: "utf8",
-    mode: 0o600,
+  await appendOperationalLog(layout.logs, "mcp-server.log", {
+    timestamp: now(),
+    severity: fields.severity ?? (kind ? "error" : "info"),
+    component: "mcp",
+    code: logCode(event),
+    runId: process.env["OPEN_DEUTSCH_RUN_ID"] ?? `mcp_${runtime.sessionId.slice("session_".length)}`,
+    sessionId: runtime.sessionId,
+    ...(fields.correlationId === undefined ? {} : { correlationId: fields.correlationId }),
+    ...(fields.action === undefined && fields.tool === undefined
+      ? {}
+      : { action: fields.action ?? fields.tool }),
+    ...(fields.phase === undefined ? {} : { phase: fields.phase }),
+    ...(fields.outcome === undefined ? {} : { outcome: fields.outcome }),
+    ...(fields.durationMs === undefined ? {} : { durationMs: fields.durationMs }),
+    message: kind ? "MCP operation failed." : `MCP ${event.replaceAll("-", " ")}.`,
+    ...(kind === undefined && fields.errorCode === undefined
+      ? {}
+      : {
+          metadata: {
+            ...(kind === undefined ? {} : { code: errorDefinitions[kind].code }),
+            ...(fields.errorCode === undefined ? {} : { errorCode: fields.errorCode }),
+          },
+        }),
   });
+}
+
+function fireLog(
+  runtime: Runtime,
+  event: string,
+  kind?: ErrorKind,
+  fields?: Parameters<typeof writeLog>[3],
+): void {
+  void writeLog(runtime, event, kind, fields).catch(() => undefined);
+}
+
+async function withToolLog<T extends CallToolResult>(
+  runtime: Runtime,
+  tool: string,
+  handler: (raw: unknown) => Promise<T>,
+  raw: unknown,
+): Promise<T> {
+  const correlationId = `correlation_${randomUUID().replaceAll("-", "")}`;
+  const startedAt = Date.now();
+  await writeLog(runtime, "tool-started", undefined, {
+    correlationId,
+    phase: "started",
+    tool,
+  }).catch(() => undefined);
+  try {
+    const result = await handler(raw);
+    const failed =
+      typeof result === "object" &&
+      result !== null &&
+      "isError" in result &&
+      result.isError === true;
+    const errorCode =
+      failed &&
+      typeof result.structuredContent === "object" &&
+      result.structuredContent !== null &&
+      "error" in result.structuredContent &&
+      typeof result.structuredContent.error === "object" &&
+      result.structuredContent.error !== null &&
+      "code" in result.structuredContent.error &&
+      typeof result.structuredContent.error.code === "string"
+        ? result.structuredContent.error.code
+        : undefined;
+    await writeLog(runtime, failed ? "tool-failed" : "tool-completed", undefined, {
+      severity: failed ? "warn" : "info",
+      correlationId,
+      phase: failed ? "failed" : "completed",
+      outcome: failed ? "error" : "ok",
+      durationMs: Date.now() - startedAt,
+      tool,
+      ...(errorCode === undefined ? {} : { errorCode }),
+    }).catch(() => undefined);
+    return result;
+  } catch (error) {
+    await writeLog(runtime, "tool-failed", "mcp", {
+      severity: "error",
+      correlationId,
+      phase: "failed",
+      outcome: "error",
+      durationMs: Date.now() - startedAt,
+      tool,
+    }).catch(() => undefined);
+    throw error;
+  }
+}
+
+function registerLoggedTool(
+  server: McpServer,
+  runtime: Runtime,
+  name: string,
+  config: unknown,
+  handler: (raw: unknown) => Promise<CallToolResult>,
+): void {
+  server.registerTool(
+    name,
+    config as never,
+    (raw: unknown) => withToolLog(runtime, name, handler, raw),
+  );
 }
 
 export async function openRuntimeFromEnvironment(): Promise<Runtime> {
@@ -149,14 +250,20 @@ export async function openRuntimeFromEnvironment(): Promise<Runtime> {
     dataRoot: state.dataRoot,
     rootGeneration: state.rootGeneration,
   });
+  const sessionId = `session_${randomUUID().replaceAll("-", "")}`;
   const runtime = {
     bootstrapFile,
     dataRoot: state.dataRoot,
     rootGeneration: state.rootGeneration,
+    sessionId,
     database,
     repository: new OpenDeutschRepository(database),
   } satisfies Runtime;
-  await writeLog(runtime, "startup-ready");
+  await writeLog(runtime, "startup-ready", undefined, {
+    action: "lifecycle/mcp",
+    phase: "completed",
+    outcome: "ok",
+  });
   return runtime;
 }
 
@@ -232,7 +339,9 @@ export function createProductionServer(runtime: Runtime) {
       "Open Deutsch provides bounded local learner context and explicit learning writes.",
   });
 
-  server.registerTool(
+  registerLoggedTool(
+    server,
+    runtime,
     "open_deutsch_read_learner_context",
     {
       ...mcpToolContracts.open_deutsch_read_learner_context,
@@ -261,11 +370,6 @@ export function createProductionServer(runtime: Runtime) {
           return successResult("Learner context is ready.", data);
         });
       } catch (error) {
-        await writeLog(
-          runtime,
-          "learner-context-failed",
-          error instanceof Error && error.message.includes("STALE") ? "stale-data-root" : "mcp",
-        );
         return failureResult(
           error instanceof Error && error.message.includes("STALE")
             ? "stale-data-root"
@@ -276,7 +380,9 @@ export function createProductionServer(runtime: Runtime) {
     },
   );
 
-  server.registerTool(
+  registerLoggedTool(
+    server,
+    runtime,
     "open_deutsch_read_practice_context",
     {
       ...mcpToolContracts.open_deutsch_read_practice_context,
@@ -334,11 +440,6 @@ export function createProductionServer(runtime: Runtime) {
           return successResult("Practice context is ready.", data);
         });
       } catch (error) {
-        await writeLog(
-          runtime,
-          "practice-context-failed",
-          error instanceof Error && error.message.includes("STALE") ? "stale-data-root" : "mcp",
-        );
         return failureResult(
           error instanceof Error && error.message.includes("STALE")
             ? "stale-data-root"
@@ -349,7 +450,9 @@ export function createProductionServer(runtime: Runtime) {
     },
   );
 
-  server.registerTool(
+  registerLoggedTool(
+    server,
+    runtime,
     "open_deutsch_read_curriculum_coverage",
     {
       ...mcpToolContracts.open_deutsch_read_curriculum_coverage,
@@ -393,11 +496,6 @@ export function createProductionServer(runtime: Runtime) {
           })(),
         });
       } catch (error) {
-        await writeLog(
-          runtime,
-          "curriculum-coverage-failed",
-          error instanceof Error && error.message.includes("STALE") ? "stale-data-root" : "mcp",
-        );
         return failureResult(
           error instanceof Error && error.message.includes("STALE")
             ? "stale-data-root"
@@ -408,7 +506,9 @@ export function createProductionServer(runtime: Runtime) {
     },
   );
 
-  server.registerTool(
+  registerLoggedTool(
+    server,
+    runtime,
     "open_deutsch_create_activity",
     {
       ...mcpToolContracts.open_deutsch_create_activity,
@@ -459,11 +559,6 @@ export function createProductionServer(runtime: Runtime) {
             );
           });
         } catch (error) {
-          await writeLog(
-            runtime,
-            "activity-create-failed",
-            error instanceof Error && error.message.includes("STALE") ? "stale-data-root" : "mcp",
-          );
           return failureResult(
             error instanceof Error && error.message.includes("STALE")
               ? "stale-data-root"
@@ -478,7 +573,9 @@ export function createProductionServer(runtime: Runtime) {
     },
   );
 
-  server.registerTool(
+  registerLoggedTool(
+    server,
+    runtime,
     "open_deutsch_replace_weekly_plan",
     {
       ...mcpToolContracts.open_deutsch_replace_weekly_plan,
@@ -513,11 +610,6 @@ export function createProductionServer(runtime: Runtime) {
             );
           });
         } catch (error) {
-          await writeLog(
-            runtime,
-            "weekly-plan-replace-failed",
-            error instanceof Error && error.message.includes("STALE") ? "stale-data-root" : "mcp",
-          );
           return failureResult(
             error instanceof Error && error.message.includes("STALE")
               ? "stale-data-root"
@@ -530,7 +622,9 @@ export function createProductionServer(runtime: Runtime) {
       }),
   );
 
-  server.registerTool(
+  registerLoggedTool(
+    server,
+    runtime,
     "open_deutsch_save_voice_summary",
     {
       ...mcpToolContracts.open_deutsch_save_voice_summary,
@@ -592,11 +686,6 @@ export function createProductionServer(runtime: Runtime) {
             );
           });
         } catch (error) {
-          await writeLog(
-            runtime,
-            "voice-summary-failed",
-            error instanceof Error && error.message.includes("STALE") ? "stale-data-root" : "mcp",
-          );
           return failureResult(
             error instanceof Error && error.message.includes("STALE")
               ? "stale-data-root"
@@ -609,7 +698,9 @@ export function createProductionServer(runtime: Runtime) {
       }),
   );
 
-  server.registerTool(
+  registerLoggedTool(
+    server,
+    runtime,
     "open_deutsch_save_listening_result",
     {
       ...mcpToolContracts.open_deutsch_save_listening_result,
@@ -643,11 +734,6 @@ export function createProductionServer(runtime: Runtime) {
             );
           });
         } catch (error) {
-          await writeLog(
-            runtime,
-            "listening-result-failed",
-            error instanceof Error && error.message.includes("STALE") ? "stale-data-root" : "mcp",
-          );
           return failureResult(
             error instanceof Error && error.message.includes("STALE")
               ? "stale-data-root"
@@ -662,7 +748,9 @@ export function createProductionServer(runtime: Runtime) {
       }),
   );
 
-  server.registerTool(
+  registerLoggedTool(
+    server,
+    runtime,
     "open_deutsch_save_attempt_feedback",
     {
       ...mcpToolContracts.open_deutsch_save_attempt_feedback,
@@ -691,11 +779,6 @@ export function createProductionServer(runtime: Runtime) {
             );
           });
         } catch (error) {
-          await writeLog(
-            runtime,
-            "attempt-feedback-failed",
-            error instanceof Error && error.message.includes("STALE") ? "stale-data-root" : "mcp",
-          );
           const message = error instanceof Error ? error.message : "";
           return failureResult(
             message.includes("STALE")
@@ -721,7 +804,12 @@ export async function main() {
     const activeRuntime = runtime;
     const handle = serveStdio(() => createProductionServer(activeRuntime), {
       onerror: () => {
-        if (runtime) void writeLog(runtime, "protocol-error", "mcp");
+        if (runtime)
+          fireLog(runtime, "protocol-error", "mcp", {
+            action: "lifecycle/mcp",
+            phase: "failed",
+            outcome: "error",
+          });
         process.stderr.write("OD_MCP_PROTOCOL_ERROR\n");
       },
     });

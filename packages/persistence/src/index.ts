@@ -42,6 +42,8 @@ export { openDeutschMigrations, openOpenDeutschDatabase } from "./migrations.js"
 
 export { completeAttempt, finalizeCorrection } from "./finalization.js";
 
+export { appendOperationalLog } from "./operational-logging.js";
+
 export {
   saveWritingAttempt,
   writingAttemptPersistenceSchema,

@@ -289,7 +289,7 @@ const exerciseSetStartRequest = request(
   "exercise-set/start",
   z.strictObject({
     activityId: activityIdSchema,
-    feedbackModeOverride: z.enum(["immediate", "submit-at-end"]).optional(),
+    feedbackModeOverride: z.literal("immediate").optional(),
   }),
 );
 const exerciseSessionAnswerSchema = z.discriminatedUnion("kind", [
@@ -434,7 +434,11 @@ export const learningOperationInputSchema = z.discriminatedUnion("kind", [
   z.strictObject({
     kind: z.literal("exercise-generation"),
     request: z.discriminatedUnion("source", [
-      z.strictObject({ source: z.literal("natural-request"), naturalRequest: text(2_000) }),
+      z.strictObject({
+        source: z.literal("natural-request"),
+        naturalRequest: text(2_000),
+        exerciseCount: z.int().min(3).max(10).optional(),
+      }),
       z.strictObject({
         source: z.literal("mistake-pattern"),
         category: z.discriminatedUnion("kind", [
@@ -700,6 +704,7 @@ const diagnosticsReadResponse = response(
     journalMode: z.literal("wal"),
     foreignKeysEnabled: z.literal(true),
     logFileCount: z.int().nonnegative().max(1_000),
+    recentLogs: z.record(z.string(), z.array(z.string().min(1).max(1_000)).max(200)),
   }),
 );
 const diagnosticsExportResponse = response(
@@ -742,6 +747,7 @@ const dashboardReadResponse = response(
           title: text(160),
           originSurface: z.enum(["desktop", "codex"]),
           preparedAt: utcInstantSchema,
+          deletionStatus: z.enum(["available", "cascade", "retained-data"]),
         }),
       )
       .max(20),
@@ -970,6 +976,7 @@ const preparedActivityReadResponse = response(
     activityId: activityIdSchema,
     title: text(160),
     curriculumTopicIds: z.array(curriculumTopicIdSchema).max(20),
+    deletionStatus: z.enum(["available", "cascade", "retained-data"]),
     activeSet: z
       .strictObject({
         startedAt: utcInstantSchema,

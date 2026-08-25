@@ -1,6 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title">
-  <title id="title">Open Deutsch OD mark</title>
-  <rect width="512" height="512" rx="112" fill="#f7f3ea"/>
-  <path d="M125 148h116c61 0 101 42 101 108s-40 108-101 108H125V148Zm56 48v120h56c32 0 51-21 51-60s-19-60-51-60h-56Z" fill="#174a73"/>
-  <path d="M316 148h56v216h-56z" fill="#d2684b"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title description">
+  <title id="title">Open Deutsch logo</title>
+  <desc id="description">The letters O and D inside a rounded conversation bubble.</desc>
+  <rect width="512" height="512" rx="112" fill="#fffdf8"/>
+  <path d="M104 72h304c40 0 72 32 72 72v208c0 40-32 72-72 72H228l-104 64 18-64h-38c-40 0-72-32-72-72V144c0-40 32-72 72-72Z" fill="#295f9e"/>
+  <path d="M190 161a87 87 0 1 1 0 174 87 87 0 0 1 0-174Zm0 36a51 51 0 1 0 0 102 51 51 0 0 0 0-102Z" fill="#fffdf8" fill-rule="evenodd"/>
+  <path d="M296 179h42c58 0 94 25 94 69s-36 69-94 69h-42V179Zm36 34v70h12c32 0 51-12 51-35s-19-35-51-35h-12Z" fill="#fffdf8"/>
+  <path d="M146 139h34v22h-34zm54 0h34v22h-34z" fill="#d2684b"/>
 </svg>

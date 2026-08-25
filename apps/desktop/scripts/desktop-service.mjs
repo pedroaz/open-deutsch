@@ -15,6 +15,8 @@ if (mode !== "dev" && mode !== "prd") {
 const children = new Set();
 let stopping = false;
 let failService;
+const serviceRunId = process.env["OPEN_DEUTSCH_RUN_ID"] ?? `service_${Date.now().toString(36)}`;
+const serviceSessionId = `session_${process.pid.toString(36)}`;
 const serviceFailure = new Promise((_, reject) => {
   failService = reject;
 });
@@ -23,8 +25,9 @@ function start(command, args, environment = process.env, essential = false) {
   const child = spawn(command, args, {
     cwd: repositoryRoot,
     env: environment,
-    stdio: "inherit",
+    stdio: ["ignore", "pipe", "pipe"],
   });
+  attachOutput(child, command);
   children.add(child);
   child.once("exit", (code, signal) => {
     children.delete(child);
@@ -35,6 +38,41 @@ function start(command, args, environment = process.env, essential = false) {
     }
   });
   return child;
+}
+
+function attachOutput(child, command) {
+  let stdout = "";
+  let stderr = "";
+  const emit = (severity, stream, line) => {
+    const home = process.env["HOME"];
+    const safe = line
+      .replaceAll("\u001b[2K", "")
+      .replaceAll(/\u001b\[[0-9;]*m/gu, "")
+      .replaceAll(repositoryRoot, "<workspace>")
+      .replaceAll(/\/(?:home|Users)\/[^\s:]+/gu, "<private-path>")
+      .replaceAll(/\/tmp\/[^\s:]+/gu, "<temporary-path>")
+      .replaceAll(home ?? "<missing-home-never-matches>", "<home>")
+      .trim()
+      .slice(0, 1_000);
+    if (!safe) return;
+    process.stdout.write(
+      `${new Date().toISOString()} ${severity} ${stream === "stderr" ? "electron" : "build"} PROCESS_${stream.toUpperCase()} run=${serviceRunId} session=${serviceSessionId} correlation=- action=${command.replace(/[^a-z0-9]+/giu, "-").toLowerCase()} phase=running outcome=- duration_ms=- ${safe}\n`,
+    );
+  };
+  const consume = (severity, stream, chunk) => {
+    const state = stream === "stderr" ? stderr : stdout;
+    const lines = `${state}${chunk.toString("utf8")}`.split("\n");
+    const remainder = lines.pop() ?? "";
+    for (const line of lines) emit(severity, stream, line);
+    if (stream === "stderr") stderr = remainder;
+    else stdout = remainder;
+  };
+  child.stdout.on("data", (chunk) => consume("INFO", "stdout", chunk));
+  child.stderr.on("data", (chunk) => consume("WARN", "stderr", chunk));
+  child.once("close", () => {
+    if (stdout) emit("INFO", "stdout", stdout);
+    if (stderr) emit("WARN", "stderr", stderr);
+  });
 }
 
 async function run(command, args) {

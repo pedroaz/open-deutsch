@@ -57,7 +57,7 @@ The initial learner is currently around A2 and is working toward B1. Generated c
 - Open on a main dashboard that summarizes the useful current learning context without turning it into a formal progress tracker.
 - Provide quick entry points into writing practice, mistake review, vocabulary review, and the weekly plan.
 - Show the current weekly plan, quick practice actions, recent corrections, recurring mistakes, and vocabulary due for review.
-- Use persistent navigation for **Dashboard**, **Practice**, **Writing**, **Vocabulary**, **History**, **Weekly plan**, and **Settings/Account**. Practice contains grammar, reading, Codex listening/speaking, and diagnostic entry points; mistake review is available from History and contextual shortcuts.
+- Use persistent, collapsible navigation for **Dashboard**, **Practice**, **Writing**, **Vocabulary**, **History**, **Weekly plan**, and **Settings/Account**. The navigation provides a compact activity switcher for writing correction, practice generation, contextual help, and curriculum research, then lets the learner choose a runtime-reported model and one of that model's supported reasoning levels. The contextual helper is independently collapsible. Practice contains a filterable generated-quiz library with direct open and delete actions plus grammar, reading, Codex listening/speaking, and diagnostic entry points. Confirmed deletion of a started quiz cascades through its attempts, answers, feedback, related History entries, and unconfirmed vocabulary candidates; confirmed vocabulary continues to block deletion. Quiz generation offers explicit 3-, 6-, and 10-exercise lengths. An opened generated quiz uses a focused workspace with lesson notes available progressively; mistake review is available from History and contextual shortcuts.
 - Keep curriculum research, coverage review, and authoring in Codex and repository files. The desktop does not become a second research agent or Git client.
 
 ### 2. Placement and diagnostic assessment
@@ -127,11 +127,13 @@ The initial learner is currently around A2 and is working toward B1. Generated c
 - Let the learner ask naturally for a lesson, scenario, topic, or exercise type.
 - Let Codex assemble a session from the learner profile and local history.
 - Generate the exercise content with AI from structured exercise formats and learner context rather than relying on a large hand-authored exercise bank.
-- Favor short, simple, untimed exercises with optional hints.
-- Support both immediate-feedback and submit-at-the-end modes. Default based on exercise type and allow the learner to switch modes.
+- Favor short, simple, untimed exercises with optional hints. Generated short-answer exercises provide at least two progressive hints that narrow vocabulary or intent and then scaffold the required grammar toward one accepted response. The app adds a final incomplete sentence frame derived from that response without revealing it in full.
+- Show feedback after every submitted answer. Never advance automatically after grading; require an explicit learner action after displaying whether the answer is correct, almost correct, or incorrect and any AI explanation. Keep the completed explanation visible on the current exercise in a scrollable, clearly separated feedback layout.
 - Begin with free writing, short-answer production, fill-in-the-blank, sentence correction, multiple choice, and vocabulary recall.
-- Support structured exercise formats in the desktop app and conversational formats in Codex.
+- Evaluate generated sentence-correction exercises locally against their accepted corrections. Ignore capitalization, spacing, and sentence-ending punctuation differences; report a distinct almost-correct result for a few spelling or diacritic differences when the answer is closer to an accepted correction than to the original erroneous sentence. Reveal an accepted correction immediately after an unmatched answer. Do not start a model request for this closed exercise type.
+- Support structured exercise formats in the desktop app and conversational formats in Codex. During a generated quiz, preserve per-exercise answers, feedback, and revealed hints while the learner navigates backward and forward only across exercises already reached in the current run; never allow navigation to skip into untouched exercises.
 - Discard unused generations. Once an exercise starts, save the content required to understand it together with the learner's answers, feedback, mistakes, and result as an attempt.
+- Generated quizzes do not resume interrupted in-memory progress. Starting an interrupted quiz again abandons the stale attempt set and immediately creates a fresh set from the same generated quiz.
 - When asked what to practice, let Codex read the weekly plan, recent mistakes, due vocabulary, and curriculum progress, then recommend one primary activity and a few alternatives.
 - Recommendations may use the weekly plan as context but should not automatically mark it complete or rewrite it after an activity.
 - Where the host supports it, hand structured activities from Codex to the exact exercise in the desktop app.

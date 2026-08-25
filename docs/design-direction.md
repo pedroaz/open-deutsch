@@ -65,6 +65,8 @@ Use progressive disclosure: corrected text and important changes appear first; d
 
 Optimize for desktop windows rather than mobile pages. At standard width use navigation, main workspace, and optional helper. At moderately narrow width collapse the helper into a drawer or tab without hiding the primary action or creating horizontal document scrolling.
 
+An opened exercise session fits within the desktop viewport and keeps the outer document and exercise card stationary while the learner answers. Remove nonessential session chrome, use compact answer spacing, and reduce completed multiple-choice questions to the selected answer and result instead of introducing a nested scrollbar. Expanded lesson notes may contain their own overflow when unusually long content requires it. Library, menu, and settings views continue to use normal document scrolling.
+
 ## Visual review
 
 When the user explicitly requests visual verification, inspect the affected production screen in English and German at standard and narrow window sizes. Review translations, overflow, accessible names and roles, focus behavior, console errors, and design-token consistency directly. Do not maintain a component-test gallery or screenshot regression suite.

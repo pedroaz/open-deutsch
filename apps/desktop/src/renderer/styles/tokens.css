@@ -55,7 +55,8 @@
   --od-motion-fast: 120ms;
   --od-motion-normal: 180ms;
   --od-nav-width: 15rem;
-  --od-helper-width: 19rem;
+  --od-nav-collapsed-width: 4.75rem;
+  --od-helper-width: 15rem;
   --od-content-max: 52rem;
   --od-field-max: 32rem;
   --od-icon-sm: 1rem;

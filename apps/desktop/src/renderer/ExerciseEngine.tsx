@@ -5,14 +5,13 @@ import {
   type ExerciseDefinition,
   type ExerciseEvaluation,
 } from "@open-deutsch/domain";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Button } from "react-aria-components";
 import { useTranslation } from "react-i18next";
 
 import styles from "./App.module.css";
 import { StatusMessage, SurfaceCard } from "./components/Foundation.js";
-
-type FeedbackMode = "immediate" | "submit-at-end";
 
 function answerFor(definition: ExerciseDefinition, values: readonly string[]): ExerciseAnswer {
   if (definition.kind === "free-writing") return { kind: definition.kind, text: values[0] ?? "" };
@@ -29,12 +28,28 @@ function answerFor(definition: ExerciseDefinition, values: readonly string[]): E
   return { kind: definition.kind, text: values[0] ?? "" };
 }
 
+function incompleteSentenceFrame(answer: string): string {
+  const answerWords = answer.match(/[\p{L}\p{N}]+/gu) ?? [];
+  const fallbackMaskPosition = Math.max(0, answerWords.length - 1);
+  let wordPosition = 0;
+  return answer.replaceAll(/[\p{L}\p{N}]+/gu, (word) => {
+    const currentPosition = wordPosition;
+    wordPosition += 1;
+    const mask = word.length > 3 || currentPosition === fallbackMaskPosition;
+    if (!mask) return word;
+    const [first = ""] = [...word];
+    return `${first}${"_".repeat(Math.min(8, Math.max(1, [...word].length - 1)))}`;
+  });
+}
+
 function ExerciseContent({
   definition,
+  evaluated,
   values,
   setValue,
 }: {
   definition: ExerciseDefinition;
+  evaluated: boolean;
   values: readonly string[];
   setValue: (position: number, value: string) => void;
 }) {
@@ -46,6 +61,7 @@ function ExerciseContent({
         <textarea
           aria-label={t("exercises.answer")}
           maxLength={definition.answerContract.maximumCharacters}
+          readOnly={evaluated}
           value={values[0] ?? ""}
           onChange={(event) => {
             setValue(0, event.target.value);
@@ -60,6 +76,7 @@ function ExerciseContent({
         {definition.content.question}
         <textarea
           aria-label={t("exercises.answer")}
+          readOnly={evaluated}
           value={values[0] ?? ""}
           onChange={(event) => {
             setValue(0, event.target.value);
@@ -77,6 +94,7 @@ function ExerciseContent({
             <label>
               <input
                 aria-label={t("exercises.blank", { number: position + 1 })}
+                readOnly={evaluated}
                 value={values[position] ?? ""}
                 onChange={(event) => {
                   setValue(position, event.target.value);
@@ -97,6 +115,7 @@ function ExerciseContent({
           {t("exercises.correctedSentence")}
           <textarea
             aria-label={t("exercises.correctedSentence")}
+            readOnly={evaluated}
             value={values[0] ?? ""}
             onChange={(event) => {
               setValue(0, event.target.value);
@@ -110,11 +129,12 @@ function ExerciseContent({
     return (
       <fieldset>
         <legend>{definition.content.question}</legend>
-        <div className={styles.optionGroup}>
+        <div className={styles.optionGroup} data-evaluated={evaluated || undefined}>
           {definition.content.options.map((option, position) => (
             <label className={styles.optionCard} key={`${String(position)}:${option.label}`}>
               <input
                 checked={values[0] === String(position)}
+                disabled={evaluated}
                 name={definition.exerciseId}
                 type="radio"
                 value={position}
@@ -135,6 +155,7 @@ function ExerciseContent({
       <small>{t(`exercises.direction.${definition.content.direction}`)}</small>
       <textarea
         aria-label={t("exercises.answer")}
+        readOnly={evaluated}
         value={values[0] ?? ""}
         onChange={(event) => {
           setValue(0, event.target.value);
@@ -144,28 +165,43 @@ function ExerciseContent({
   );
 }
 
-function Evaluation({ evaluation }: { evaluation: ExerciseEvaluation }) {
+type ExerciseAiFeedback = AppServerCandidateOutputMap["exercise-feedback"];
+
+function Evaluation({
+  evaluation,
+  aiFeedback,
+}: {
+  evaluation: ExerciseEvaluation;
+  aiFeedback?: ExerciseAiFeedback;
+}) {
   const { t } = useTranslation();
+  const displayedStatus =
+    evaluation.status === "requires-ai" && aiFeedback
+      ? aiFeedback.outcome === "demonstrated"
+        ? "correct"
+        : aiFeedback.outcome === "developing"
+          ? "almost-correct"
+          : "incorrect"
+      : evaluation.status;
   const tone =
-    evaluation.status === "correct"
+    displayedStatus === "correct"
       ? "success"
-      : evaluation.status === "incorrect"
-        ? "warning"
-        : "neutral";
+      : displayedStatus === "almost-correct"
+        ? "neutral"
+        : displayedStatus === "incorrect"
+          ? "warning"
+          : "neutral";
   return (
     <StatusMessage tone={tone}>
-      <strong>{t(`exercises.results.${evaluation.status}`)}</strong>
+      <strong>{t(`exercises.results.${displayedStatus}`)}</strong>
       {evaluation.acceptedAnswerReveal.length > 0 && (
-        <span>
-          {" "}
+        <span className={styles.acceptedAnswers}>
           {t("exercises.acceptedAnswers")}: {evaluation.acceptedAnswerReveal.join(" / ")}
         </span>
       )}
     </StatusMessage>
   );
 }
-
-type ExerciseAiFeedback = AppServerCandidateOutputMap["exercise-feedback"];
 
 function AiFeedback({ feedback }: { feedback: ExerciseAiFeedback }) {
   const { t } = useTranslation();
@@ -203,13 +239,15 @@ function AiFeedback({ feedback }: { feedback: ExerciseAiFeedback }) {
 
 export function ExerciseEngine({
   exercises,
+  restart = false,
   onStarted,
   onCompleted,
   onAbandoned,
   onAiEvaluationRequested,
 }: {
   exercises: readonly ExerciseDefinition[];
-  onStarted?: (feedbackMode: FeedbackMode) => void | Promise<void>;
+  restart?: boolean;
+  onStarted?: () => void | Promise<void>;
   onCompleted?: (evaluations: readonly ExerciseEvaluation[]) => void | Promise<void>;
   onAbandoned?: () => void | Promise<void>;
   onAiEvaluationRequested?: (
@@ -220,11 +258,17 @@ export function ExerciseEngine({
   const { t } = useTranslation();
   const [started, setStarted] = useState(false);
   const [position, setPosition] = useState(0);
+  const [furthestPosition, setFurthestPosition] = useState(0);
   const [values, setValues] = useState<readonly string[]>([]);
+  const [valuesByPosition, setValuesByPosition] = useState<
+    Readonly<Record<number, readonly string[]>>
+  >({});
   const [hintCount, setHintCount] = useState(0);
+  const [hintCountByPosition, setHintCountByPosition] = useState<
+    Readonly<Record<number, number>>
+  >({});
   const [evaluations, setEvaluations] = useState<readonly ExerciseEvaluation[]>([]);
   const [currentEvaluation, setCurrentEvaluation] = useState<ExerciseEvaluation>();
-  const [modeOverride, setModeOverride] = useState<FeedbackMode>();
   const [starting, setStarting] = useState(false);
   const [startFailed, setStartFailed] = useState(false);
   const [completing, setCompleting] = useState(false);
@@ -257,7 +301,10 @@ export function ExerciseEngine({
         <ol className={styles.compactList}>
           {evaluations.map((evaluation, index) => (
             <li key={`${evaluation.exerciseKind}:${String(index)}`}>
-              <Evaluation evaluation={evaluation} />
+              <Evaluation
+                evaluation={evaluation}
+                aiFeedback={aiFeedbackByPosition[index]}
+              />
               {aiFeedbackByPosition[index] && <AiFeedback feedback={aiFeedbackByPosition[index]} />}
             </li>
           ))}
@@ -266,13 +313,34 @@ export function ExerciseEngine({
     ) : null;
   }
 
-  const mode = modeOverride ?? definition.feedbackMode;
+  const displayedHints =
+    definition.kind === "short-answer"
+      ? [
+          ...definition.hints,
+          {
+            text: t("exercises.answerFrameHint", {
+              frame: incompleteSentenceFrame(
+                definition.answerContract.acceptedAnswers[0] ?? "",
+              ),
+            }),
+          },
+        ]
+      : definition.hints;
   const setValue = (answerPosition: number, value: string) => {
-    setValues((current) => {
-      const next = [...current];
-      next[answerPosition] = value;
-      return next;
-    });
+    const next = [...values];
+    next[answerPosition] = value;
+    setValues(next);
+    setValuesByPosition((byPosition) => ({ ...byPosition, [position]: next }));
+  };
+  const navigateTo = (nextPosition: number) => {
+    if (nextPosition < 0 || nextPosition > furthestPosition) return;
+    setPosition(nextPosition);
+    setValues(valuesByPosition[nextPosition] ?? []);
+    setHintCount(hintCountByPosition[nextPosition] ?? 0);
+    setCurrentEvaluation(evaluations[nextPosition]);
+    setCurrentAiFeedback(aiFeedbackByPosition[nextPosition]);
+    setAnswerInvalid(false);
+    setAiEvaluationFailed(false);
   };
   const advance = async (nextEvaluations: readonly ExerciseEvaluation[]) => {
     const nextPosition = position + 1;
@@ -289,10 +357,11 @@ export function ExerciseEngine({
       }
     }
     setPosition(nextPosition);
-    setValues([]);
-    setHintCount(0);
-    setCurrentEvaluation(undefined);
-    setCurrentAiFeedback(undefined);
+    setFurthestPosition((current) => Math.max(current, nextPosition));
+    setValues(valuesByPosition[nextPosition] ?? []);
+    setHintCount(hintCountByPosition[nextPosition] ?? 0);
+    setCurrentEvaluation(nextEvaluations[nextPosition]);
+    setCurrentAiFeedback(aiFeedbackByPosition[nextPosition]);
   };
   const submit = async () => {
     let evaluation: ExerciseEvaluation;
@@ -315,12 +384,8 @@ export function ExerciseEngine({
         const nextEvaluations = [...evaluations, evaluation];
         setEvaluations(nextEvaluations);
         setAiFeedbackByPosition((current) => ({ ...current, [position]: feedback }));
-        if (mode === "immediate") {
-          setCurrentAiFeedback(feedback);
-          setCurrentEvaluation(evaluation);
-        } else {
-          await advance(nextEvaluations);
-        }
+        setCurrentAiFeedback(feedback);
+        setCurrentEvaluation(evaluation);
       } catch {
         setAiEvaluationFailed(true);
       } finally {
@@ -330,8 +395,7 @@ export function ExerciseEngine({
     }
     const nextEvaluations = [...evaluations, evaluation];
     setEvaluations(nextEvaluations);
-    if (mode === "immediate") setCurrentEvaluation(evaluation);
-    else void advance(nextEvaluations);
+    setCurrentEvaluation(evaluation);
   };
 
   if (!started) {
@@ -339,7 +403,7 @@ export function ExerciseEngine({
       setStarting(true);
       setStartFailed(false);
       try {
-        await onStarted?.(mode);
+        await onStarted?.();
         setStarted(true);
       } catch {
         setStartFailed(true);
@@ -351,24 +415,11 @@ export function ExerciseEngine({
       <SurfaceCard>
         <h2>{t("exercises.ready")}</h2>
         <p>{t("exercises.readyBody", { count: exercises.length })}</p>
-        <label className={styles.controlLabel}>
-          {t("exercises.feedbackMode")}
-          <select
-            value={modeOverride ?? "default"}
-            onChange={(event) => {
-              setModeOverride(
-                event.target.value === "default" ? undefined : (event.target.value as FeedbackMode),
-              );
-            }}
-          >
-            <option value="default">{t("exercises.feedbackModes.default")}</option>
-            <option value="immediate">{t("exercises.feedbackModes.immediate")}</option>
-            <option value="submit-at-end">{t("exercises.feedbackModes.submit-at-end")}</option>
-          </select>
-        </label>
         {startFailed && <StatusMessage tone="error">{t("exercises.startFailed")}</StatusMessage>}
         <Button className={styles.primary} isDisabled={starting} onPress={() => void start()}>
-          {starting ? t("exercises.starting") : t("exercises.start")}
+          {starting
+            ? t("exercises.starting")
+            : t(restart ? "exercises.startAgain" : "exercises.start")}
         </Button>
       </SurfaceCard>
     );
@@ -376,15 +427,58 @@ export function ExerciseEngine({
 
   return (
     <SurfaceCard>
-      <p className={styles.eyebrow}>
-        {t("exercises.progress", { current: position + 1, total: exercises.length })}
-      </p>
+      <div className={styles.exerciseCardHeader}>
+        <p className={styles.eyebrow}>
+          {t("exercises.progress", { current: position + 1, total: exercises.length })}
+        </p>
+        <div
+          className={styles.exerciseNavigation}
+          aria-label={t("exercises.navigationLabel")}
+          role="group"
+        >
+          <Button
+            aria-label={t("exercises.previous")}
+            className={styles.exerciseNavButton}
+            isDisabled={position === 0 || evaluatingWithAi || completing}
+            onPress={() => navigateTo(position - 1)}
+            title={t("exercises.previous")}
+          >
+            <ChevronLeft aria-hidden="true" />
+          </Button>
+          <Button
+            aria-label={t("exercises.forward")}
+            className={styles.exerciseNavButton}
+            isDisabled={position >= furthestPosition || evaluatingWithAi || completing}
+            onPress={() => navigateTo(position + 1)}
+            title={t("exercises.forward")}
+          >
+            <ChevronRight aria-hidden="true" />
+          </Button>
+        </div>
+      </div>
       <h2>{definition.instructions}</h2>
       {definition.explanation && <p>{definition.explanation}</p>}
-      <ExerciseContent definition={definition} values={values} setValue={setValue} />
-      {definition.hints.slice(0, hintCount).map((hint, index) => (
+      <ExerciseContent
+        definition={definition}
+        evaluated={currentEvaluation !== undefined}
+        values={values}
+        setValue={setValue}
+      />
+      {displayedHints.slice(0, hintCount).map((hint, index) => (
         <StatusMessage key={`${String(index)}:${hint.text}`}>{hint.text}</StatusMessage>
       ))}
+      {answerInvalid && <StatusMessage tone="error">{t("exercises.answerRequired")}</StatusMessage>}
+      {completionFailed && (
+        <StatusMessage tone="error">{t("exercises.completionFailed")}</StatusMessage>
+      )}
+      {abandonFailed && <StatusMessage tone="error">{t("exercises.abandonFailed")}</StatusMessage>}
+      {aiEvaluationFailed && (
+        <StatusMessage tone="error">{t("exercises.aiFeedback.failed")}</StatusMessage>
+      )}
+      {currentEvaluation && (
+        <Evaluation evaluation={currentEvaluation} aiFeedback={currentAiFeedback} />
+      )}
+      {currentAiFeedback && <AiFeedback feedback={currentAiFeedback} />}
       <div className={styles.buttonRow}>
         {onAbandoned && (
           <Button
@@ -408,11 +502,16 @@ export function ExerciseEngine({
             {abandoning ? t("exercises.abandoning") : t("exercises.abandon")}
           </Button>
         )}
-        {hintCount < definition.hints.length && !currentEvaluation && (
+        {hintCount < displayedHints.length && !currentEvaluation && (
           <Button
             className={styles.secondary}
             onPress={() => {
-              setHintCount((count) => count + 1);
+              const next = hintCount + 1;
+              setHintCount(next);
+              setHintCountByPosition((byPosition) => ({
+                ...byPosition,
+                [position]: next,
+              }));
             }}
           >
             {t("exercises.showHint")}
@@ -429,6 +528,7 @@ export function ExerciseEngine({
         )}
         {currentEvaluation &&
           (currentEvaluation.status !== "requires-ai" || currentAiFeedback) &&
+          position === furthestPosition &&
           position + 1 < exercises.length && (
             <Button className={styles.primary} onPress={() => void advance(evaluations)}>
               {t("exercises.next")}
@@ -436,6 +536,7 @@ export function ExerciseEngine({
           )}
         {currentEvaluation &&
           (currentEvaluation.status !== "requires-ai" || currentAiFeedback) &&
+          position === furthestPosition &&
           position + 1 === exercises.length && (
             <Button
               className={styles.primary}
@@ -446,16 +547,6 @@ export function ExerciseEngine({
             </Button>
           )}
       </div>
-      {answerInvalid && <StatusMessage tone="error">{t("exercises.answerRequired")}</StatusMessage>}
-      {completionFailed && (
-        <StatusMessage tone="error">{t("exercises.completionFailed")}</StatusMessage>
-      )}
-      {abandonFailed && <StatusMessage tone="error">{t("exercises.abandonFailed")}</StatusMessage>}
-      {aiEvaluationFailed && (
-        <StatusMessage tone="error">{t("exercises.aiFeedback.failed")}</StatusMessage>
-      )}
-      {currentEvaluation && <Evaluation evaluation={currentEvaluation} />}
-      {currentAiFeedback && <AiFeedback feedback={currentAiFeedback} />}
     </SurfaceCard>
   );
 }

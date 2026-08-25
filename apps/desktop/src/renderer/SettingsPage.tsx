@@ -3,6 +3,7 @@ import type { DesktopIpcResponse, OpenDeutschError } from "@open-deutsch/contrac
 import {
   defaultModelPreferences,
   modelWorkloads,
+  resolveModelPreference,
   type ModelPreferences,
   type ModelWorkload,
 } from "@open-deutsch/domain";
@@ -70,12 +71,6 @@ function SettingsError({ error }: { error: OpenDeutschError }) {
 
 function modelValue(preference: ModelPreferences[ModelWorkload]): string {
   return preference.model.mode === "automatic" ? "automatic" : `exact:${preference.model.modelId}`;
-}
-
-function effortValue(preference: ModelPreferences[ModelWorkload]): string {
-  return preference.effort.mode === "semantic"
-    ? `semantic:${preference.effort.effort}`
-    : `exact:${preference.effort.effortId}`;
 }
 
 export function SettingsPage({
@@ -154,6 +149,8 @@ export function SettingsPage({
         ["account", "models", "rate-limits"].includes(event.scope)
       ) {
         void refreshRuntime();
+      } else if (event.event === "state-invalidated" && event.scope === "settings") {
+        void load();
       }
     });
     return () => {
@@ -319,9 +316,7 @@ export function SettingsPage({
   const setEffort = (workload: ModelWorkload, value: string) => {
     if (!draft) return;
     const current = draft.modelPreferences[workload];
-    const effort = value.startsWith("semantic:")
-      ? { mode: "semantic" as const, effort: value.slice(9) as "fast" | "balanced" | "deep" }
-      : { mode: "exact" as const, effortId: value.slice(6) };
+    const effort = { mode: "exact" as const, effortId: value };
     setProfile(
       "modelPreferences",
       replaceWorkloadPreference(draft.modelPreferences, workload, { ...current, effort }),
@@ -602,11 +597,25 @@ export function SettingsPage({
             const preference = draft.modelPreferences[workload];
             const savedModelId =
               preference.model.mode === "exact" ? preference.model.modelId : undefined;
-            const selectedModel = savedModelId
-              ? catalog?.models.find(({ id }) => id === savedModelId)
-              : catalog?.models.find(({ isDefault }) => isDefault);
+            const modelResolution = catalog
+              ? resolveModelPreference(workload, preference, catalog)
+              : undefined;
+            const effectiveModelId =
+              modelResolution && modelResolution.resolution.status !== "unavailable"
+                ? modelResolution.resolution.effectiveModelId
+                : undefined;
+            const selectedModel = effectiveModelId
+              ? catalog?.models.find(({ id }) => id === effectiveModelId)
+              : undefined;
             const efforts = selectedModel?.supportedReasoningEfforts ?? [];
-            const unavailableModelId = savedModelId && !selectedModel ? savedModelId : undefined;
+            const resolvedEffortId =
+              modelResolution && modelResolution.resolution.status !== "unavailable"
+                ? modelResolution.resolution.effectiveEffortId
+                : undefined;
+            const unavailableModelId =
+              savedModelId && !catalog?.models.some(({ id }) => id === savedModelId)
+                ? savedModelId
+                : undefined;
             const savedEffortId =
               preference.effort.mode === "exact" ? preference.effort.effortId : undefined;
             const unavailableEffortId =
@@ -640,24 +649,15 @@ export function SettingsPage({
                 <label className={styles.controlLabel}>
                   <span>{t("settings.effort")}</span>
                   <select
-                    value={effortValue(preference)}
+                    value={resolvedEffortId ?? ""}
                     onChange={(event) => {
                       setEffort(workload, event.currentTarget.value);
                     }}
                   >
-                    {(["fast", "balanced", "deep"] as const).map((effort) => (
-                      <option key={effort} value={`semantic:${effort}`}>
-                        {t(`settings.efforts.${effort}`)}
-                      </option>
-                    ))}
-                    {unavailableEffortId ? (
-                      <option value={`exact:${unavailableEffortId}`}>
-                        {t("settings.unavailableSavedEffort", { effort: unavailableEffortId })}
-                      </option>
-                    ) : null}
+                    {!resolvedEffortId && <option value="">{t("settings.notReported")}</option>}
                     {efforts.map((effort) => (
-                      <option key={effort} value={`exact:${effort}`}>
-                        {t(`settings.exactEfforts.${effort}`)}
+                      <option key={effort} value={effort}>
+                        {t(`settings.exactEfforts.${effort}`, { defaultValue: effort })}
                       </option>
                     ))}
                   </select>

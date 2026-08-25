@@ -77,7 +77,7 @@ Local MCP server
 - The plugin owns Codex-facing instructions and tool registration, not desktop UI or the canonical learner database.
 - A compatible, authenticated Codex installation is a prerequisite for AI actions. Open Deutsch does not bundle Codex, collect an API key, or provide an alternate model provider; local non-AI behavior remains available without it.
 - App Server operations run with a bounded working directory, explicit sandbox/approval policy, minimal tools, and only the context required by the selected learning action.
-- All processes share a redacted structured-event vocabulary that renders to bounded, human-readable local logs with correlation IDs.
+- Application semantic records use the runtime-validated operational log vocabulary. Desktop, App Server, and MCP records are stored in separate bounded component files, while lifecycle/build streams render the same canonical shape and are merged chronologically by the lifecycle log command; records carry run/session/correlation IDs and never contain learner content or raw protocols.
 
 ## Plugin packaging direction
 

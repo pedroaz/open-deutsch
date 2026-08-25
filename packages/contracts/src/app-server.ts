@@ -231,6 +231,7 @@ const generatedExerciseContentSchema = z.discriminatedUnion("kind", [
   z.strictObject({
     ...candidateExerciseShape,
     kind: z.literal("short-answer"),
+    hints: z.array(text(1_000)).min(2).max(5),
     question: text(12_000),
     acceptedAnswers: z.array(text(500)).min(1).max(20),
   }),
@@ -508,6 +509,7 @@ export const appServerWorkloadInputSchema = z.discriminatedUnion("kind", [
   z.strictObject({
     kind: z.literal("exercise-generation"),
     naturalRequest: text(2_000),
+    requestedExerciseCount: z.int().min(3).max(10),
     calibration: learnerCalibrationSchema,
     curriculumTopicIds: z.array(curriculumTopicIdSchema).max(20),
     relevantMistakeIds: z.array(mistakeIdSchema).max(12),

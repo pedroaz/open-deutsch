@@ -4,6 +4,8 @@ import {
   type SpawnOptionsWithoutStdio,
 } from "node:child_process";
 
+import type { OperationalLogRecord } from "@open-deutsch/contracts";
+
 import { discoverCodex, resolveCodexExecutable, type CodexDiscovery } from "./discovery.js";
 import { scrubCodexEnvironment } from "./environment.js";
 import { AppServerTransportError, JsonRpcTransport, type JsonRpcHistoryEntry } from "./json-rpc.js";
@@ -11,15 +13,7 @@ import { AppServerTransportError, JsonRpcTransport, type JsonRpcHistoryEntry } f
 export type AppServerLifecycleState =
   "stopped" | "discovering" | "starting" | "initializing" | "ready" | "stopping" | "failed";
 
-export type AppServerLogRecord = Readonly<{
-  timestamp: string;
-  severity: "info" | "warn" | "error";
-  component: "app-server" | "desktop";
-  code: string;
-  message: string;
-  correlationId?: string;
-  metadata?: Readonly<Record<string, string | number | boolean | null>>;
-}>;
+export type AppServerLogRecord = OperationalLogRecord;
 
 export type AppServerProcessManagerOptions = Readonly<{
   executable?: string;
@@ -31,6 +25,8 @@ export type AppServerProcessManagerOptions = Readonly<{
   maximumProtocolLineBytes?: number;
   maximumHistoryEntries?: number;
   maximumStderrBytes?: number;
+  runId?: string;
+  sessionId?: string;
   log?: (record: AppServerLogRecord) => void;
   onNotification?: (method: string, params: unknown) => void;
   onServerRequest?: (method: string, params: unknown) => void;
@@ -353,6 +349,11 @@ export class AppServerProcessManager {
           component: "app-server",
           code,
           message,
+          action: "lifecycle/app-server",
+          phase: severity === "error" ? "failed" : "completed",
+          outcome: severity === "error" ? "error" : "ok",
+          ...(this.#options.runId === undefined ? {} : { runId: this.#options.runId }),
+          ...(this.#options.sessionId === undefined ? {} : { sessionId: this.#options.sessionId }),
           ...(metadata === undefined ? {} : { metadata: Object.freeze({ ...metadata }) }),
         }),
       );

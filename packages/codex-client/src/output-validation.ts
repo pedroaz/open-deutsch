@@ -71,9 +71,15 @@ export function parseAppServerCandidateOutput<Kind extends AppServerWorkloadKind
     );
   }
   if (kind === "exercise-generation") {
+    const workloadInput: AppServerWorkloadInput | undefined = input;
     assertExerciseGenerationQuality(
       parsed.data as AppServerCandidateOutputMap["exercise-generation"],
-      input?.kind === "exercise-generation" ? input.calibration.approximateLevel : undefined,
+      workloadInput?.kind === "exercise-generation"
+        ? workloadInput.calibration.approximateLevel
+        : undefined,
+      workloadInput?.kind === "exercise-generation"
+        ? workloadInput.requestedExerciseCount
+        : undefined,
     );
   }
   return parsed.data as AppServerCandidateOutputMap[Kind];
@@ -81,6 +87,22 @@ export function parseAppServerCandidateOutput<Kind extends AppServerWorkloadKind
 
 function normalized(value: string): string {
   return value.normalize("NFKC").trim().replaceAll(/\s+/gu, " ").toLocaleLowerCase("de-DE");
+}
+
+function containsCompleteAnswer(text: string, answer: string): boolean {
+  const haystack = normalized(text);
+  const needle = normalized(answer);
+  if (needle.length < 3) return false;
+  let position = haystack.indexOf(needle);
+  while (position >= 0) {
+    const before = haystack.slice(Math.max(0, position - 1), position);
+    const after = haystack.slice(position + needle.length, position + needle.length + 1);
+    if (!/[\p{L}\p{N}]/u.test(before) && !/[\p{L}\p{N}]/u.test(after)) {
+      return true;
+    }
+    position = haystack.indexOf(needle, position + 1);
+  }
+  return false;
 }
 
 function assertDistinct(values: readonly string[], code: string): void {
@@ -126,7 +148,11 @@ function visibleExerciseText(
 function assertExerciseGenerationQuality(
   output: AppServerCandidateOutputMap["exercise-generation"],
   expectedLevel?: "A1" | "A2" | "B1" | "B2",
+  expectedExerciseCount?: number,
 ): void {
+  if (expectedExerciseCount !== undefined && output.exercises.length !== expectedExerciseCount) {
+    throw new AppServerOutputValidationError("OD_EXERCISE_COUNT_MISMATCH");
+  }
   assertDistinct(
     output.exercises.map(({ title }) => title),
     "OD_EXERCISE_DUPLICATE_TITLE",
@@ -154,12 +180,7 @@ function assertExerciseGenerationQuality(
       const preSubmitText = normalized(
         `${visibleExerciseText(exercise)} ${exercise.hints.join(" ")}`,
       );
-      if (
-        answers.some((answer) => {
-          const key = normalized(answer);
-          return key.length >= 3 && preSubmitText.includes(key);
-        })
-      ) {
+      if (answers.some((answer) => containsCompleteAnswer(preSubmitText, answer))) {
         throw new AppServerOutputValidationError("OD_EXERCISE_ANSWER_LEAK");
       }
     }

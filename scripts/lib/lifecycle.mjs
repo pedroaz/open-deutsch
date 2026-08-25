@@ -35,6 +35,43 @@ export function lifecyclePaths(root, mode) {
   };
 }
 
+export async function applicationLogFiles() {
+  const candidates = [];
+  const configured = process.env.OPEN_DEUTSCH_BOOTSTRAP_FILE;
+  if (configured) candidates.push(path.resolve(configured));
+  const configRoot = process.env.XDG_CONFIG_HOME || path.join(process.env.HOME || ".", ".config");
+  candidates.push(path.join(configRoot, "Electron", "bootstrap.json"));
+  candidates.push(path.join(configRoot, "Open Deutsch", "bootstrap.json"));
+  candidates.push(path.join(configRoot, "open-deutsch", "bootstrap.json"));
+  const files = [];
+  for (const bootstrap of candidates) {
+    try {
+      const pointer = JSON.parse(await readFile(bootstrap, "utf8"));
+      if (typeof pointer.dataRoot !== "string" || !path.isAbsolute(pointer.dataRoot)) continue;
+      const logs = path.join(pointer.dataRoot, "logs");
+      for (const name of [
+        "desktop.log",
+        "app-server.log",
+        "mcp-server.log",
+        "desktop-app-server.log",
+      ]) {
+        for (let index = 0; index < retainedLogs; index += 1) {
+          files.push(path.join(logs, `${name}${index === 0 ? "" : `.${index}`}`));
+        }
+      }
+      break;
+    } catch {
+      // The desktop may not have configured a data root yet.
+    }
+  }
+  for (const bootstrap of candidates) {
+    for (let index = 0; index < retainedLogs; index += 1) {
+      files.push(path.join(path.dirname(bootstrap), `bootstrap.log${index === 0 ? "" : `.${index}`}`));
+    }
+  }
+  return [...new Set(files)];
+}
+
 async function pathExists(target) {
   try {
     await stat(target);
@@ -105,7 +142,10 @@ async function rotateLog(log) {
 }
 
 async function lifecycleLog(log, level, code, runId, message) {
-  const line = `${new Date().toISOString()} ${level} lifecycle ${code} run=${runId} correlation=- ${message}\n`;
+  const failed = level === "ERROR";
+  const phase = failed ? "failed" : code === "LIFECYCLE_STARTING" ? "started" : "completed";
+  const outcome = failed ? "error" : "ok";
+  const line = `${new Date().toISOString()} ${level} lifecycle ${code} run=${runId} session=- correlation=- action=lifecycle phase=${phase} outcome=${outcome} duration_ms=- ${message}\n`;
   await appendFile(log, line, { encoding: "utf8", mode: 0o600 });
 }
 

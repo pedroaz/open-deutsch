@@ -109,6 +109,15 @@ export {
 } from "./app-server-state.js";
 
 export {
+  operationalLogComponentSchema,
+  operationalLogOutcomeSchema,
+  operationalLogPhaseSchema,
+  operationalLogRecordSchema,
+  operationalLogSeveritySchema,
+  type OperationalLogRecord,
+} from "./operational-log.js";
+
+export {
   listeningResultSchema,
   voiceActivityContextSchema,
   type ListeningResult,

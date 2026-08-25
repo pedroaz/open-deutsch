@@ -3,7 +3,6 @@ import type { DesktopIpcResponse, OpenDeutschError } from "@open-deutsch/contrac
 import {
   BookOpen,
   CalendarDays,
-  Clock3,
   FilePenLine,
   History,
   LibraryBig,
@@ -28,11 +27,9 @@ function EmptyCard({ children }: { children: string }) {
 export function Dashboard({
   onAi,
   onNavigate,
-  onOpenActivity,
 }: {
   onAi: () => void;
   onNavigate: (destination: Destination) => void;
-  onOpenActivity: (activityId: Snapshot["preparedActivities"][number]["activityId"]) => void;
 }) {
   const { t } = useTranslation();
   const [snapshot, setSnapshot] = useState<Snapshot>();
@@ -90,7 +87,7 @@ export function Dashboard({
         <Button
           className={styles.primary}
           onPress={() => {
-            onNavigate("writing");
+            onNavigate("practice");
           }}
         >
           <FilePenLine aria-hidden="true" /> {t("dashboard.primary")}
@@ -224,32 +221,6 @@ export function Dashboard({
           </Button>
         </SurfaceCard>
 
-        <SurfaceCard>
-          <Clock3 aria-hidden="true" />
-          <h2>{t("dashboard.cards.prepared")}</h2>
-          {snapshot && snapshot.preparedActivities.length > 0 ? (
-            <ul className={styles.compactList}>
-              {snapshot.preparedActivities.map((activity) => (
-                <li key={activity.activityId}>
-                  <strong>{activity.title}</strong>
-                  <span className={styles.muted}>
-                    {t("dashboard.preparedBy", { surface: activity.originSurface })}
-                  </span>
-                  <Button
-                    className={styles.secondary}
-                    onPress={() => {
-                      onOpenActivity(activity.activityId);
-                    }}
-                  >
-                    {t("dashboard.startPrepared")}
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyCard>{t("dashboard.emptyPrepared")}</EmptyCard>
-          )}
-        </SurfaceCard>
       </div>
       {snapshot && (
         <p className={styles.refreshStamp} role="status">

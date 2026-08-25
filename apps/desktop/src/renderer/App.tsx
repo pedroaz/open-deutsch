@@ -9,12 +9,13 @@ import {
   type DesktopIpcResponse,
   type OpenDeutschError,
 } from "@open-deutsch/contracts";
-import { materializeGeneratedExerciseSet } from "@open-deutsch/domain";
+import { materializeGeneratedExerciseSet, type ModelWorkload } from "@open-deutsch/domain";
 import {
   AlertCircle,
+  ArrowLeft,
   BookOpen,
   CalendarDays,
-  CircleHelp,
+  ChevronRight,
   FilePenLine,
   Gauge,
   History,
@@ -23,17 +24,29 @@ import {
   LibraryBig,
   LoaderCircle,
   MessageSquareText,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
   Settings,
   ShieldCheck,
   Sparkles,
+  Trash2,
   TriangleAlert,
   UserRound,
   Volume2,
-  X,
 } from "lucide-react";
-import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
+import {
+  Button,
+  Dialog,
+  DialogTrigger,
+  Heading,
+  Modal,
+  ModalOverlay,
+} from "react-aria-components";
 import { useTranslation } from "react-i18next";
 
+import openDeutschLogo from "../../assets/open-deutsch.svg";
 import styles from "./App.module.css";
 import { DestructiveDialog, StatusMessage, SurfaceCard } from "./components/Foundation.js";
 import i18n from "./i18n.js";
@@ -50,6 +63,7 @@ import {
 import { ProfileOnboarding } from "./ProfileOnboarding.js";
 import { ProgressPage } from "./ProgressPage.js";
 import { SettingsPage } from "./SettingsPage.js";
+import { SidebarModelControl } from "./SidebarModelControl.js";
 import { VocabularyPage } from "./VocabularyPage.js";
 import { WeeklyPlanPage } from "./WeeklyPlanPage.js";
 import { WritingWorkspace } from "./WritingWorkspace.js";
@@ -63,6 +77,12 @@ type PreparedActivityId = Extract<
   DesktopIpcResponse,
   { status: "ok"; channel: "dashboard/read" }
 >["result"]["preparedActivities"][number]["activityId"];
+type PreparedActivity = Extract<
+  DesktopIpcResponse,
+  { status: "ok"; channel: "dashboard/read" }
+>["result"]["preparedActivities"][number];
+type PracticeKind = "custom" | "grammar" | "reading" | "listening" | "speaking" | "diagnostic";
+type PracticeLibraryFilter = "all" | "custom-lesson" | "grammar";
 type Page =
   | "dashboard"
   | "practice"
@@ -889,13 +909,13 @@ function CodexActivityPreparation({ kind }: { kind: "listening" | "speaking" }) 
 function PracticePage({
   activityId,
   requestAiAccess,
-  onGenerated,
-  onDeleted,
+  onOpenActivity,
+  onCloseActivity,
 }: {
   activityId?: PreparedActivityId;
   requestAiAccess: () => Promise<boolean>;
-  onGenerated: () => void;
-  onDeleted: () => void;
+  onOpenActivity: (activityId: PreparedActivityId) => void;
+  onCloseActivity: () => void;
 }) {
   const { t } = useTranslation();
   const [generated, setGenerated] =
@@ -911,11 +931,57 @@ function PracticePage({
       >["result"]["attemptIds"]
     >();
   const [customRequest, setCustomRequest] = useState("");
+  const [exerciseCount, setExerciseCount] = useState(6);
   const [generating, setGenerating] = useState(false);
   const [generationFailed, setGenerationFailed] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [selectedKind, setSelectedKind] = useState<PracticeKind>("custom");
+  const [libraryFilter, setLibraryFilter] = useState<PracticeLibraryFilter>("all");
+  const [preparedActivities, setPreparedActivities] = useState<readonly PreparedActivity[]>([]);
+  const [libraryBusy, setLibraryBusy] = useState(false);
+  const [libraryError, setLibraryError] = useState<OpenDeutschError>();
+
+  const refreshPreparedActivities = useCallback(async () => {
+    setLibraryBusy(true);
+    setLibraryError(undefined);
+    try {
+      const snapshot = await invokeDesktop("dashboard/read", {});
+      const generatedActivities = snapshot.preparedActivities.filter(
+        (activity) =>
+          activity.activityType === "grammar" || activity.activityType === "custom-lesson",
+      );
+      setPreparedActivities(generatedActivities);
+      return generatedActivities;
+    } catch (cause) {
+      setLibraryError(normalizeDesktopError(cause).detail);
+      return [];
+    } finally {
+      setLibraryBusy(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activityId) return;
+    const initial = window.setTimeout(() => void refreshPreparedActivities(), 0);
+    const onFocus = () => void refreshPreparedActivities();
+    const unsubscribe = subscribeDesktop((event) => {
+      if (event.event === "state-invalidated" && event.scope === "dashboard") {
+        void refreshPreparedActivities();
+      }
+    });
+    window.addEventListener("focus", onFocus);
+    return () => {
+      window.clearTimeout(initial);
+      window.removeEventListener("focus", onFocus);
+      unsubscribe();
+    };
+  }, [activityId, refreshPreparedActivities]);
+
   useEffect(() => {
     if (!activityId) return;
+    setGenerated(undefined);
+    setError(undefined);
+    setStartedAttemptIds(undefined);
     void invokeDesktop("prepared-activity/read", { activityId })
       .then((result) => {
         setGenerated(result);
@@ -947,13 +1013,30 @@ function PracticePage({
         : [],
     [generated],
   );
+  const filteredActivities =
+    libraryFilter === "all"
+      ? preparedActivities
+      : preparedActivities.filter(({ activityType }) => activityType === libraryFilter);
+  const deletePreparedActivity = async (activityToDelete: PreparedActivity) => {
+    setLibraryError(undefined);
+    try {
+      await invokeDesktop("prepared-activity/delete", {
+        activityId: activityToDelete.activityId,
+      });
+      setPreparedActivities((current) =>
+        current.filter(({ activityId: currentId }) => currentId !== activityToDelete.activityId),
+      );
+    } catch (cause: unknown) {
+      setLibraryError(normalizeDesktopError(cause).detail);
+    }
+  };
   if (activityId) {
     const deleteGeneratedLesson = async () => {
       setDeleting(true);
       setError(undefined);
       try {
         await invokeDesktop("prepared-activity/delete", { activityId });
-        onDeleted();
+        onCloseActivity();
       } catch (cause: unknown) {
         setError(normalizeDesktopError(cause).detail);
       } finally {
@@ -961,142 +1044,167 @@ function PracticePage({
       }
     };
     return (
-      <section className={styles.page}>
-        <h1>{generated?.title ?? t("exercises.loading")}</h1>
+      <section className={`${styles.page} ${styles.practiceSession}`}>
+        <header className={styles.practiceSessionHeader}>
+          <Button className={styles.backButton} onPress={onCloseActivity}>
+            <ArrowLeft aria-hidden="true" /> {t("practice.back")}
+          </Button>
+          <div className={styles.practiceSessionTitleRow}>
+            <div>
+              <p className={styles.eyebrow}>{t("practice.session.eyebrow")}</p>
+              <h1>{generated?.title ?? t("exercises.loading")}</h1>
+              {generated && (
+                <div className={styles.practiceSessionMeta}>
+                  <span>
+                    {t("practice.session.exerciseCount", { count: exercises.length })}
+                  </span>
+                  {generated.output.lesson && <span>{t("practice.session.lessonIncluded")}</span>}
+                </div>
+              )}
+            </div>
+            {generated && generated.deletionStatus !== "retained-data" && (
+                <DestructiveDialog
+                  body={t(
+                    generated.deletionStatus === "cascade"
+                      ? "exercises.delete.cascadeBody"
+                      : "exercises.delete.body",
+                  )}
+                  cancel={t("actions.cancel")}
+                  confirm={t("exercises.delete.confirm")}
+                  onConfirm={() => void deleteGeneratedLesson()}
+                  title={t("exercises.delete.title")}
+                  trigger={
+                    deleting ? t("exercises.delete.deleting") : t("practice.session.delete")
+                  }
+                  triggerVariant="secondary"
+                />
+            )}
+          </div>
+        </header>
         {error && <OperationError error={error} />}
         {generated?.output.lesson && (
-          <SurfaceCard>
-            <h2>{generated.output.lesson.title}</h2>
-            <p>{generated.output.lesson.explanation}</p>
-            {generated.output.lesson.sections.map((section) => (
-              <section key={section.heading}>
-                <h3>{section.heading}</h3>
-                <p>{section.content}</p>
-              </section>
-            ))}
-            {generated.output.lesson.vocabularyFoundations.length > 0 && (
-              <section>
-                <h3>{t("exercises.custom.vocabulary")}</h3>
-                <ul className={styles.compactList}>
-                  {generated.output.lesson.vocabularyFoundations.map((item) => (
-                    <li key={`${item.german}:${item.example}`}>
-                      <strong>{item.german}</strong> — {item.explanation}
-                      <span className={styles.muted}>{item.example}</span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-          </SurfaceCard>
+          <details className={styles.practiceLessonDisclosure}>
+            <summary>
+              <span>
+                <BookOpen aria-hidden="true" />
+                <span>
+                  <strong>{generated.output.lesson.title}</strong>
+                  <small>{t("practice.session.lessonHint")}</small>
+                </span>
+              </span>
+            </summary>
+            <div className={styles.practiceLessonBody}>
+              <p>{generated.output.lesson.explanation}</p>
+              {generated.output.lesson.sections.map((section) => (
+                <section key={section.heading}>
+                  <h3>{section.heading}</h3>
+                  <p>{section.content}</p>
+                </section>
+              ))}
+              {generated.output.lesson.vocabularyFoundations.length > 0 && (
+                <section>
+                  <h3>{t("exercises.custom.vocabulary")}</h3>
+                  <ul className={styles.compactList}>
+                    {generated.output.lesson.vocabularyFoundations.map((item) => (
+                      <li key={`${item.german}:${item.example}`}>
+                        <strong>{item.german}</strong> — {item.explanation}
+                        <span className={styles.muted}>{item.example}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+            </div>
+          </details>
         )}
-        {generated?.activeSet && !startedAttemptIds && (
-          <SurfaceCard>
-            <h2>{t("exercises.interrupted")}</h2>
-            <p>{t("exercises.interruptedBody")}</p>
-            <Button
-              className={styles.secondary}
-              onPress={() => {
-                void invokeDesktop("exercise-set/abandon", { activityId })
-                  .then(() => {
-                    setGenerated((current) =>
-                      current ? { ...current, activeSet: null } : current,
-                    );
-                  })
-                  .catch((cause: unknown) => {
-                    setError(normalizeDesktopError(cause).detail);
-                  });
-              }}
-            >
-              {t("exercises.abandonInterrupted")}
-            </Button>
-          </SurfaceCard>
-        )}
-        {generated && !generated.activeSet && !startedAttemptIds && (
-          <DestructiveDialog
-            body={t("exercises.delete.body")}
-            cancel={t("actions.cancel")}
-            confirm={t("exercises.delete.confirm")}
-            onConfirm={() => void deleteGeneratedLesson()}
-            title={t("exercises.delete.title")}
-            trigger={deleting ? t("exercises.delete.deleting") : t("exercises.delete.trigger")}
-          />
-        )}
-        {generated && !generated.activeSet && (
-          <ExerciseEngine
-            exercises={exercises}
-            onStarted={async (feedbackModeOverride) => {
-              const started = await invokeDesktop("exercise-set/start", {
-                activityId,
-                feedbackModeOverride,
-              });
-              setStartedAttemptIds(started.attemptIds);
-            }}
-            onAiEvaluationRequested={async (evaluation, exercisePosition) => {
-              const attemptId = startedAttemptIds?.[exercisePosition];
-              if (!attemptId) throw new Error("OD_EXERCISE_ATTEMPT_SET_INVALID");
-              if (
-                evaluation.answer.kind !== "free-writing" &&
-                evaluation.answer.kind !== "short-answer" &&
-                evaluation.answer.kind !== "sentence-correction"
-              ) {
-                throw new Error("OD_EXERCISE_AI_FEEDBACK_NOT_REQUIRED");
-              }
-              const submissionId = createDesktopSubmissionId();
-              return new Promise((resolve, reject) => {
-                const unsubscribe = subscribeDesktop((event) => {
-                  if (
-                    event.event !== "learning-operation-finished" ||
-                    event.kind !== "exercise-feedback" ||
-                    event.submissionId !== submissionId
-                  ) {
-                    return;
-                  }
-                  unsubscribe();
-                  if (event.outcome.status === "validated") {
-                    resolve(exerciseFeedbackCandidateSchema.parse(event.outcome.output));
-                  } else reject(new Error(`OD_EXERCISE_AI_FEEDBACK_${event.outcome.status}`));
-                });
-                const input = learningOperationInputSchema.parse({
-                  kind: "exercise-feedback",
-                  activityId,
-                  attemptId,
-                  answer: evaluation.answer,
-                });
-                void invokeDesktop("learning-operation/start", {
-                  submissionId,
-                  input,
-                }).catch((cause: unknown) => {
-                  unsubscribe();
-                  reject(
-                    cause instanceof Error ? cause : new Error("OD_EXERCISE_AI_FEEDBACK_FAILED"),
+        {generated && (
+          <div className={styles.practiceRunner}>
+            <ExerciseEngine
+              exercises={exercises}
+              restart={Boolean(generated.activeSet)}
+              onStarted={async () => {
+                if (generated.activeSet) {
+                  await invokeDesktop("exercise-set/abandon", { activityId });
+                  setGenerated((current) =>
+                    current ? { ...current, activeSet: null } : current,
                   );
+                }
+                const started = await invokeDesktop("exercise-set/start", {
+                  activityId,
+                  feedbackModeOverride: "immediate",
                 });
-              });
-            }}
-            onAbandoned={async () => {
-              await invokeDesktop("exercise-set/abandon", { activityId });
-              setStartedAttemptIds(undefined);
-            }}
-            onCompleted={async (evaluations) => {
-              if (!startedAttemptIds || startedAttemptIds.length !== evaluations.length) {
-                throw new Error("OD_EXERCISE_ATTEMPT_SET_INVALID");
-              }
-              await invokeDesktop("exercise-set/complete", {
-                activityId,
-                answers: evaluations.map((evaluation, position) => {
-                  const attemptId = startedAttemptIds[position];
-                  if (!attemptId) throw new Error("OD_EXERCISE_ATTEMPT_SET_INVALID");
-                  return { attemptId, answer: evaluation.answer };
-                }),
-              });
-            }}
-          />
+                setStartedAttemptIds(started.attemptIds);
+              }}
+              onAiEvaluationRequested={async (evaluation, exercisePosition) => {
+                const attemptId = startedAttemptIds?.[exercisePosition];
+                if (!attemptId) throw new Error("OD_EXERCISE_ATTEMPT_SET_INVALID");
+                if (
+                  evaluation.answer.kind !== "free-writing" &&
+                  evaluation.answer.kind !== "short-answer" &&
+                  evaluation.answer.kind !== "sentence-correction"
+                ) {
+                  throw new Error("OD_EXERCISE_AI_FEEDBACK_NOT_REQUIRED");
+                }
+                const submissionId = createDesktopSubmissionId();
+                return new Promise((resolve, reject) => {
+                  const unsubscribe = subscribeDesktop((event) => {
+                    if (
+                      event.event !== "learning-operation-finished" ||
+                      event.kind !== "exercise-feedback" ||
+                      event.submissionId !== submissionId
+                    ) {
+                      return;
+                    }
+                    unsubscribe();
+                    if (event.outcome.status === "validated") {
+                      resolve(exerciseFeedbackCandidateSchema.parse(event.outcome.output));
+                    } else reject(new Error(`OD_EXERCISE_AI_FEEDBACK_${event.outcome.status}`));
+                  });
+                  const input = learningOperationInputSchema.parse({
+                    kind: "exercise-feedback",
+                    activityId,
+                    attemptId,
+                    answer: evaluation.answer,
+                  });
+                  void invokeDesktop("learning-operation/start", {
+                    submissionId,
+                    input,
+                  }).catch((cause: unknown) => {
+                    unsubscribe();
+                    reject(
+                      cause instanceof Error
+                        ? cause
+                        : new Error("OD_EXERCISE_AI_FEEDBACK_FAILED"),
+                    );
+                  });
+                });
+              }}
+              onAbandoned={async () => {
+                await invokeDesktop("exercise-set/abandon", { activityId });
+                setStartedAttemptIds(undefined);
+              }}
+              onCompleted={async (evaluations) => {
+                if (!startedAttemptIds || startedAttemptIds.length !== evaluations.length) {
+                  throw new Error("OD_EXERCISE_ATTEMPT_SET_INVALID");
+                }
+                await invokeDesktop("exercise-set/complete", {
+                  activityId,
+                  answers: evaluations.map((evaluation, position) => {
+                    const attemptId = startedAttemptIds[position];
+                    if (!attemptId) throw new Error("OD_EXERCISE_ATTEMPT_SET_INVALID");
+                    return { attemptId, answer: evaluation.answer };
+                  }),
+                });
+              }}
+            />
+          </div>
         )}
       </section>
     );
   }
   const generateCustomLesson = async (requestedLesson = customRequest.trim()) => {
     if (!requestedLesson.trim() || !(await requestAiAccess())) return;
+    const knownActivityIds = new Set(preparedActivities.map(({ activityId }) => activityId));
     setGenerating(true);
     setGenerationFailed(false);
     const submissionId = createDesktopSubmissionId();
@@ -1118,79 +1226,289 @@ function PracticePage({
           submissionId,
           input: {
             kind: "exercise-generation",
-            request: { source: "natural-request", naturalRequest: requestedLesson.trim() },
+            request: {
+              source: "natural-request",
+              naturalRequest: requestedLesson.trim(),
+              exerciseCount,
+            },
           },
         }).catch((cause: unknown) => {
           unsubscribe();
           reject(cause instanceof Error ? cause : new Error("OD_EXERCISE_GENERATION_FAILED"));
         });
       });
-      onGenerated();
+      setCustomRequest("");
+      const refreshedActivities = await refreshPreparedActivities();
+      const generatedActivity = refreshedActivities.find(
+        ({ activityId: refreshedActivityId }) => !knownActivityIds.has(refreshedActivityId),
+      );
+      if (generatedActivity) onOpenActivity(generatedActivity.activityId);
     } catch {
       setGenerationFailed(true);
     } finally {
       setGenerating(false);
     }
   };
+  const practiceKinds: ReadonlyArray<{
+    kind: PracticeKind;
+    icon: typeof BookOpen;
+  }> = [
+    { kind: "custom", icon: Sparkles },
+    { kind: "grammar", icon: BookOpen },
+    { kind: "reading", icon: MessageSquareText },
+    { kind: "listening", icon: Volume2 },
+    { kind: "speaking", icon: UserRound },
+    { kind: "diagnostic", icon: Gauge },
+  ];
+  const quizLengthControl = (
+    <fieldset className={styles.quizLength}>
+      <legend>{t("exercises.custom.countLabel")}</legend>
+      <div className={styles.quizLengthOptions}>
+        {([3, 6, 10] as const).map((count) => (
+          <Button
+            aria-pressed={exerciseCount === count}
+            className={styles.quizLengthButton}
+            data-selected={exerciseCount === count || undefined}
+            key={count}
+            onPress={() => {
+              setExerciseCount(count);
+            }}
+          >
+            {t("exercises.custom.countOption", { count })}
+          </Button>
+        ))}
+      </div>
+    </fieldset>
+  );
   return (
     <section className={styles.page}>
-      <h1>{t("practice.title")}</h1>
-      <SurfaceCard>
-        <h2>{t("exercises.custom.title")}</h2>
-        <p>{t("exercises.custom.body")}</p>
-        <label className={styles.controlLabel}>
-          {t("exercises.custom.request")}
-          <textarea
-            maxLength={2_000}
-            value={customRequest}
-            onChange={(event) => {
-              setCustomRequest(event.target.value);
-            }}
-          />
-        </label>
-        {generationFailed && (
-          <StatusMessage tone="error">{t("exercises.custom.failed")}</StatusMessage>
+      <header className={styles.practiceHeader}>
+        <p className={styles.eyebrow}>{t("practice.eyebrow")}</p>
+        <h1>{t("practice.title")}</h1>
+        <p className={styles.lead}>{t("practice.intro")}</p>
+      </header>
+
+      <section className={styles.generatedLibrary} aria-busy={libraryBusy}>
+        <div className={styles.practiceSectionHeader}>
+          <div>
+            <h2>{t("practice.library.title")}</h2>
+            <p>{t("practice.library.body")}</p>
+          </div>
+          {preparedActivities.length > 0 && (
+            <span className={styles.countBadge}>
+              {t("practice.library.count", { count: preparedActivities.length })}
+            </span>
+          )}
+        </div>
+        {preparedActivities.length > 0 && (
+          <div
+            aria-label={t("practice.library.filterLabel")}
+            className={styles.libraryFilters}
+            role="group"
+          >
+            {(["all", "custom-lesson", "grammar"] as const).map((filter) => {
+              const count =
+                filter === "all"
+                  ? preparedActivities.length
+                  : preparedActivities.filter(({ activityType }) => activityType === filter).length;
+              return (
+                <Button
+                  className={styles.libraryFilterButton}
+                  data-selected={libraryFilter === filter || undefined}
+                  key={filter}
+                  onPress={() => {
+                    setLibraryFilter(filter);
+                  }}
+                >
+                  {t(`practice.library.filters.${filter}`)}
+                  <span>{count}</span>
+                </Button>
+              );
+            })}
+          </div>
         )}
-        <Button
-          className={styles.primary}
-          isDisabled={generating || !customRequest.trim()}
-          onPress={() => void generateCustomLesson()}
-        >
-          {generating ? t("exercises.custom.generating") : t("exercises.custom.generate")}
-        </Button>
-      </SurfaceCard>
-      <SurfaceCard>
-        <h2>{t("practice.grammarLesson.title")}</h2>
-        <p>{t("practice.grammarLesson.body")}</p>
-        <p className={styles.muted}>{t("practice.grammarLesson.topic")}</p>
-        <Button
-          className={styles.secondary}
-          onPress={() => void generateCustomLesson(t("practice.grammarLesson.request"))}
-        >
-          <BookOpen aria-hidden="true" /> {t("practice.grammarLesson.start")}
-        </Button>
-      </SurfaceCard>
-      <ReadingPractice />
-      <CodexActivityPreparation kind="listening" />
-      <CodexActivityPreparation kind="speaking" />
-      <PlacementDiagnostic />
-      <ul className={styles.practiceList}>
-        <li>
-          <BookOpen aria-hidden="true" /> {t("practice.grammar")}
-        </li>
-        <li>
-          <MessageSquareText aria-hidden="true" /> {t("practice.reading")}
-        </li>
-        <li>
-          <Volume2 aria-hidden="true" /> {t("practice.listening")}
-        </li>
-        <li>
-          <UserRound aria-hidden="true" /> {t("practice.speaking")}
-        </li>
-        <li>
-          <Gauge aria-hidden="true" /> {t("practice.diagnostic")}
-        </li>
-      </ul>
+        {libraryError && <OperationError error={libraryError} />}
+        {!libraryError && libraryBusy && preparedActivities.length === 0 && (
+          <p className={styles.muted}>{t("practice.library.loading")}</p>
+        )}
+        {!libraryError && preparedActivities.length === 0 && !libraryBusy && (
+          <p className={styles.muted}>{t("practice.library.empty")}</p>
+        )}
+        {filteredActivities.length > 0 && (
+          <div className={styles.generatedActivityList}>
+            {filteredActivities.map((activity) => {
+              const deletionBlocked = activity.deletionStatus === "retained-data";
+              const deleteLabel = deletionBlocked
+                ? t(`practice.library.deleteBlocked.${activity.deletionStatus}`, {
+                    title: activity.title,
+                  })
+                : t("practice.library.deleteAction", { title: activity.title });
+              return (
+                <div className={styles.generatedActivity} key={activity.activityId}>
+                  <Button
+                    aria-label={t("practice.library.open", { title: activity.title })}
+                    className={styles.generatedActivityOpen}
+                    onPress={() => {
+                      onOpenActivity(activity.activityId);
+                    }}
+                  >
+                    <span className={styles.generatedActivityCopy}>
+                      <strong>{activity.title}</strong>
+                      <span>
+                        {t(`practice.library.types.${activity.activityType}`)} ·{" "}
+                        {activity.preparedAt.slice(0, 10)}
+                        {activity.deletionStatus !== "available"
+                          ? ` · ${t(`practice.library.deleteStates.${activity.deletionStatus}`)}`
+                          : ""}
+                      </span>
+                    </span>
+                    <ChevronRight aria-hidden="true" />
+                  </Button>
+                  {deletionBlocked ? (
+                    <span className={styles.generatedActivityDeleteWrapper} title={deleteLabel}>
+                      <Button
+                        aria-label={deleteLabel}
+                        className={styles.generatedActivityDelete}
+                        isDisabled
+                      >
+                        <Trash2 aria-hidden="true" />
+                      </Button>
+                    </span>
+                  ) : (
+                    <DialogTrigger>
+                      <Button
+                        aria-label={deleteLabel}
+                        className={styles.generatedActivityDelete}
+                      >
+                        <Trash2 aria-hidden="true" />
+                      </Button>
+                      <ModalOverlay className={styles.modalOverlay} isDismissable>
+                        <Modal className={styles.modal}>
+                          <Dialog>
+                            {({ close }) => (
+                              <>
+                                <Heading slot="title">
+                                  {t("practice.library.deleteTitle", { title: activity.title })}
+                                </Heading>
+                                <p>
+                                  {t(
+                                    activity.deletionStatus === "cascade"
+                                      ? "practice.library.deleteCascadeBody"
+                                      : "practice.library.deleteBody",
+                                  )}
+                                </p>
+                                <div className={styles.buttonRow}>
+                                  <Button
+                                    className={styles.danger}
+                                    onPress={() => {
+                                      close();
+                                      void deletePreparedActivity(activity);
+                                    }}
+                                  >
+                                    {t("practice.library.deleteConfirm")}
+                                  </Button>
+                                  <Button className={styles.secondary} onPress={close}>
+                                    {t("actions.cancel")}
+                                  </Button>
+                                </div>
+                              </>
+                            )}
+                          </Dialog>
+                        </Modal>
+                      </ModalOverlay>
+                    </DialogTrigger>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {preparedActivities.length > 0 && filteredActivities.length === 0 && (
+          <p className={styles.muted}>{t("practice.library.noFilterResults")}</p>
+        )}
+      </section>
+
+      <section className={styles.practiceSection} aria-labelledby="practice-type-heading">
+        <div className={styles.practiceSectionHeader}>
+          <div>
+            <h2 id="practice-type-heading">{t("practice.chooser.title")}</h2>
+            <p>{t("practice.chooser.body")}</p>
+          </div>
+        </div>
+        <div className={styles.practiceTypeGrid}>
+          {practiceKinds.map(({ kind, icon: Icon }) => (
+            <Button
+              aria-pressed={selectedKind === kind}
+              className={styles.practiceTypeCard}
+              data-selected={selectedKind === kind || undefined}
+              key={kind}
+              onPress={() => {
+                setSelectedKind(kind);
+              }}
+            >
+              <span className={styles.practiceTypeIcon}>
+                <Icon aria-hidden="true" />
+              </span>
+              <span className={styles.practiceTypeCopy}>
+                <strong>{t(`practice.types.${kind}.title`)}</strong>
+                <span>{t(`practice.types.${kind}.body`)}</span>
+              </span>
+            </Button>
+          ))}
+        </div>
+      </section>
+
+      <div className={styles.practiceContent}>
+        {selectedKind === "custom" && (
+          <SurfaceCard>
+            <h2>{t("exercises.custom.title")}</h2>
+            <p>{t("exercises.custom.body")}</p>
+            <label className={styles.controlLabel}>
+              {t("exercises.custom.request")}
+              <textarea
+                maxLength={2_000}
+                value={customRequest}
+                onChange={(event) => {
+                  setCustomRequest(event.target.value);
+                }}
+              />
+            </label>
+            {quizLengthControl}
+            {generationFailed && (
+              <StatusMessage tone="error">{t("exercises.custom.failed")}</StatusMessage>
+            )}
+            <Button
+              className={styles.primary}
+              isDisabled={generating || !customRequest.trim()}
+              onPress={() => void generateCustomLesson()}
+            >
+              {generating ? t("exercises.custom.generating") : t("exercises.custom.generate")}
+            </Button>
+          </SurfaceCard>
+        )}
+        {selectedKind === "grammar" && (
+          <SurfaceCard>
+            <h2>{t("practice.grammarLesson.title")}</h2>
+            <p>{t("practice.grammarLesson.body")}</p>
+            <p className={styles.muted}>{t("practice.grammarLesson.topic")}</p>
+            {quizLengthControl}
+            <Button
+              className={styles.secondary}
+              isDisabled={generating}
+              onPress={() => void generateCustomLesson(t("practice.grammarLesson.request"))}
+            >
+              <BookOpen aria-hidden="true" />
+              {generating
+                ? t("exercises.custom.generating")
+                : t("practice.grammarLesson.start")}
+            </Button>
+          </SurfaceCard>
+        )}
+        {selectedKind === "reading" && <ReadingPractice />}
+        {selectedKind === "listening" && <CodexActivityPreparation kind="listening" />}
+        {selectedKind === "speaking" && <CodexActivityPreparation kind="speaking" />}
+        {selectedKind === "diagnostic" && <PlacementDiagnostic />}
+      </div>
     </section>
   );
 }
@@ -1244,7 +1562,10 @@ function FirstAiReminder({ close }: { close: () => void }) {
 function AppShell({ readiness, reload }: { readiness: Readiness; reload: () => Promise<void> }) {
   const { t } = useTranslation();
   const [page, setPage] = useState<Page>("dashboard");
-  const [helperOpen, setHelperOpen] = useState(false);
+  const [navCollapsed, setNavCollapsed] = useState(false);
+  const [helperOpen, setHelperOpen] = useState(() =>
+    window.matchMedia("(min-width: 68.01rem)").matches,
+  );
   const [reminderOpen, setReminderOpen] = useState(false);
   const [accountSignedOut, setAccountSignedOut] = useState(false);
   const [operationError, setOperationError] = useState<OpenDeutschError>();
@@ -1318,48 +1639,67 @@ function AppShell({ readiness, reload }: { readiness: Readiness; reload: () => P
     if (destination === "practice") setPreparedActivityId(undefined);
     setPage(destination);
   };
+  const modelWorkload: ModelWorkload = page === "writing" ? "correction" : "generation";
 
   return (
-    <div className={styles.shell}>
+    <div
+      className={`${styles.shell} ${
+        page === "practice" && preparedActivityId ? styles.exerciseMode : ""
+      } ${navCollapsed ? styles.navCollapsed : ""} ${
+        helperOpen ? "" : styles.helperCollapsed
+      }`}
+    >
       <nav className={styles.nav} aria-label={t("nav.label")}>
-        <div className={styles.brand}>
-          <span className={styles.brandMark} aria-hidden="true">
-            OD
-          </span>
-          <span className={styles.brandText}>{t("app.name")}</span>
+        <div className={styles.navInner}>
+          <div className={styles.brand}>
+            <img alt="" className={styles.brandMark} src={openDeutschLogo} />
+            <span className={styles.brandText}>{t("app.name")}</span>
+            <Button
+              aria-label={
+                navCollapsed ? t("actions.expandNavigation") : t("actions.collapseNavigation")
+              }
+              className={styles.sidebarToggle}
+              title={
+                navCollapsed ? t("actions.expandNavigation") : t("actions.collapseNavigation")
+              }
+              onPress={() => {
+                setNavCollapsed((current) => !current);
+              }}
+            >
+              {navCollapsed ? (
+                <PanelLeftOpen aria-hidden="true" />
+              ) : (
+                <PanelLeftClose aria-hidden="true" />
+              )}
+            </Button>
+          </div>
+          <ul className={styles.navList}>
+            {navigation.map(({ page: destination, icon: Icon }) => (
+              <li key={destination}>
+                <button
+                  aria-current={page === destination ? "page" : undefined}
+                  className={styles.navButton}
+                  data-nav
+                  onClick={() => {
+                    navigate(destination);
+                  }}
+                  onKeyDown={moveNavFocus}
+                  title={navCollapsed ? t(`nav.${destination}`) : undefined}
+                  type="button"
+                >
+                  <Icon aria-hidden="true" />
+                  <span className={styles.navLabel}>{t(`nav.${destination}`)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <SidebarModelControl initialWorkload={modelWorkload} />
         </div>
-        <ul className={styles.navList}>
-          {navigation.map(({ page: destination, icon: Icon }) => (
-            <li key={destination}>
-              <button
-                aria-current={page === destination ? "page" : undefined}
-                className={styles.navButton}
-                data-nav
-                onClick={() => {
-                  navigate(destination);
-                }}
-                onKeyDown={moveNavFocus}
-                type="button"
-              >
-                <Icon aria-hidden="true" />
-                {t(`nav.${destination}`)}
-              </button>
-            </li>
-          ))}
-        </ul>
       </nav>
       <main className={styles.workspace} id="main-content">
         <div className={styles.workspaceInner}>
           <header className={styles.workspaceHeader}>
             <LanguageButton />
-            <Button
-              className={`${styles.secondary} ${styles.helperToggle}`}
-              onPress={() => {
-                setHelperOpen(true);
-              }}
-            >
-              <CircleHelp aria-hidden="true" /> {t("actions.showHelper")}
-            </Button>
           </header>
           <CodexBanner readiness={readiness} />
           {operationError && <OperationError error={operationError} />}
@@ -1369,26 +1709,17 @@ function AppShell({ readiness, reload }: { readiness: Readiness; reload: () => P
             </div>
           )}
           {page === "dashboard" ? (
-            <Dashboard
-              onAi={() => void openAi()}
-              onNavigate={navigate}
-              onOpenActivity={(activityId) => {
-                setPreparedActivityId(activityId);
-                setPage("practice");
-              }}
-            />
+            <Dashboard onAi={() => void openAi()} onNavigate={navigate} />
           ) : null}
           {page === "practice" ? (
             <PracticePage
               {...(preparedActivityId ? { activityId: preparedActivityId } : {})}
               requestAiAccess={openAi}
-              onGenerated={() => {
-                setPreparedActivityId(undefined);
-                setPage("dashboard");
+              onOpenActivity={(activityId) => {
+                setPreparedActivityId(activityId);
               }}
-              onDeleted={() => {
+              onCloseActivity={() => {
                 setPreparedActivityId(undefined);
-                setPage("dashboard");
               }}
             />
           ) : null}
@@ -1440,28 +1771,40 @@ function AppShell({ readiness, reload }: { readiness: Readiness; reload: () => P
       </main>
       <aside
         className={styles.helper}
-        data-hidden={!helperOpen}
+        data-collapsed={!helperOpen}
         aria-label={t("dashboard.helperTitle")}
       >
-        <Button
-          className={`${styles.secondary} ${styles.helperToggle}`}
-          onPress={() => {
-            setHelperOpen(false);
-          }}
-        >
-          <X aria-hidden="true" /> {t("actions.hideHelper")}
-        </Button>
-        <h2>{t("dashboard.helperTitle")}</h2>
-        <p className={styles.muted}>{t("dashboard.helperBody")}</p>
-        {helperSelection ? (
-          <ContextualHelper
-            key={helperSelection.sessionId}
-            selection={helperSelection}
-            requestAiAccess={openAi}
-          />
-        ) : (
-          <StatusMessage>{t("helper.selectText")}</StatusMessage>
-        )}
+        <div className={styles.helperInner}>
+          <div className={styles.helperHeader}>
+            <h2>{t("dashboard.helperTitle")}</h2>
+            <Button
+              aria-label={helperOpen ? t("actions.hideHelper") : t("actions.showHelper")}
+              className={styles.sidebarToggle}
+              title={helperOpen ? t("actions.hideHelper") : t("actions.showHelper")}
+              onPress={() => {
+                setHelperOpen((current) => !current);
+              }}
+            >
+              {helperOpen ? (
+                <PanelRightClose aria-hidden="true" />
+              ) : (
+                <PanelRightOpen aria-hidden="true" />
+              )}
+            </Button>
+          </div>
+          <div className={styles.helperContent}>
+            <p className={styles.muted}>{t("dashboard.helperBody")}</p>
+            {helperSelection ? (
+              <ContextualHelper
+                key={helperSelection.sessionId}
+                selection={helperSelection}
+                requestAiAccess={openAi}
+              />
+            ) : (
+              <StatusMessage>{t("helper.selectText")}</StatusMessage>
+            )}
+          </div>
+        </div>
       </aside>
       {reminderOpen && (
         <FirstAiReminder

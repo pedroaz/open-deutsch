@@ -22,6 +22,22 @@ function normalized(value: string): string {
   return value.normalize("NFKC").trim().replaceAll(/\s+/gu, " ").toLocaleLowerCase("de-DE");
 }
 
+function containsCompleteAnswer(text: string, answer: string): boolean {
+  const haystack = normalized(text);
+  const needle = normalized(answer);
+  if (needle.length < 3) return false;
+  let position = haystack.indexOf(needle);
+  while (position >= 0) {
+    const before = haystack.slice(Math.max(0, position - 1), position);
+    const after = haystack.slice(position + needle.length, position + needle.length + 1);
+    if (!/[\p{L}\p{N}]/u.test(before) && !/[\p{L}\p{N}]/u.test(after)) {
+      return true;
+    }
+    position = haystack.indexOf(needle, position + 1);
+  }
+  return false;
+}
+
 function assertDistinct(values: readonly string[], code: string): void {
   const keys = values.map(normalized);
   if (new Set(keys).size !== keys.length) throw new Error(code);
@@ -74,12 +90,7 @@ function assertCandidateQuality(candidate: Candidate): void {
   const preSubmitText = normalized(
     `${visibleCandidateText(candidate)} ${candidate.hints.join(" ")}`,
   );
-  if (
-    answers.some((answer) => {
-      const key = normalized(answer);
-      return key.length >= 3 && preSubmitText.includes(key);
-    })
-  ) {
+  if (answers.some((answer) => containsCompleteAnswer(preSubmitText, answer))) {
     throw new Error("OD_EXERCISE_ANSWER_LEAK");
   }
 }
@@ -151,7 +162,7 @@ export function materializeGeneratedExercise(
       answerContract: {
         kind: "corrected-sentence",
         acceptedAnswers: candidate.acceptedAnswers,
-        evaluation: "accepted-answer-or-ai",
+        evaluation: "accepted-answer",
       },
     });
   }
