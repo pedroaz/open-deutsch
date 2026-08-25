@@ -11,9 +11,7 @@
     "build": "tsc -b --force && vite build --config vite.config.ts && vite build --config vite.preload.config.ts",
     "service:dev": "node scripts/desktop-service.mjs dev",
     "service:prd": "node scripts/desktop-service.mjs prd",
-    "package:appimage": "pnpm --workspace-root exec electron-builder --config apps/desktop/electron-builder.yml --linux AppImage --publish never",
-    "test": "pnpm --workspace-root exec vitest run --config vitest.config.mjs --project desktop",
-    "test:e2e": "xvfb-run -a node scripts/desktop-e2e.mjs playwright.config.mjs"
+    "package:appimage": "pnpm --workspace-root exec electron-builder --config apps/desktop/electron-builder.yml --linux AppImage --publish never"
   },
   "dependencies": {
     "@open-deutsch/codex-client": "workspace:*",
@@ -28,12 +26,9 @@
     "react-i18next": "17.0.11"
   },
   "devDependencies": {
-    "@testing-library/react": "16.3.2",
-    "@testing-library/user-event": "14.6.5",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "@vitejs/plugin-react": "6.0.5",
-    "electron": "42.7.1",
-    "jsdom": "30.0.1"
+    "electron": "42.7.1"
   }
 }

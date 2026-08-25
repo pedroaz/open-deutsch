@@ -157,6 +157,7 @@ The initial learner is currently around A2 and is working toward B1. Generated c
 - Show recent sessions and attempts.
 - Provide one general History area with filters by skill, activity type, date, curriculum topic, and mistake category.
 - Reconstruct saved activities and feedback, allow deletion, and offer **Practice this again** without mutating weekly-plan completion.
+- On an opened, unstarted generated activity, offer **Delete prepared lesson** behind destructive confirmation. Delete it only when no exercise has started, no retained MCP feedback exists, and no sourced vocabulary has been confirmed; otherwise preserve all learner evidence and show a recoverable error.
 - Show progress across the four skills and selected grammar/vocabulary areas.
 - Surface recurring mistakes and overdue review.
 - Group mistakes by grammar or vocabulary category and date.
@@ -231,7 +232,7 @@ The initial learner is currently around A2 and is working toward B1. Generated c
 - At least one writing flow and one speaking flow produce useful saved evidence.
 - The desktop app makes history and next actions clearer than a folder of chat transcripts.
 - The system still works as a conversational teacher when custom plugin UI is unavailable.
-- Deterministic unit, SQLite, contract, and MCP protocol tests are fast enough for an agent to run repeatedly.
-- The principal desktop journeys are automatable without using the learner's real data or consuming live model usage.
+- Static formatting, lint, and strict TypeScript checks remain fast enough for an agent to run repeatedly.
+- User-requested desktop journeys run on demand against the production app, connected Codex account, and selected learner data, with an immediate warning and visible product cleanup but no confirmation prompt.
 
 A target date for B1 remains optional and does not change scheduling behavior. Open Deutsch never generates, imports, stores, or plays audio; imported text follows the same local-storage, cloud-processing disclosure, and untrusted-content controls as other learning material.

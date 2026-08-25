@@ -7,10 +7,9 @@ The desktop workspace owns the Linux Electron application. Its TypeScript projec
 - `make dev` builds and watches main, preload, and renderer entrypoints, then reports ready only after the renderer bridge is usable.
 - `make prd` builds production assets before launching the same owned background lifecycle.
 - `make status` reports exact owned process state; `make kill` stops the complete owned process group.
-- `pnpm --filter @open-deutsch/desktop test` runs component tests.
-- `make test-e2e` builds and launches production Electron journeys under Xvfb.
+- `make test` warns, then builds and launches the explicitly requested production Electron journey under Xvfb with real services and learner data without pausing for confirmation.
 
-The development-only component gallery is enabled by the test harness or `OPEN_DEUTSCH_DESKTOP_GALLERY=1` in test mode. It is not a production route.
+There is no component-test suite or synthetic desktop harness. Live journeys are added only at the user's request and exercise production UI boundaries.
 
 ## Boundaries
 

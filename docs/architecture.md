@@ -89,8 +89,8 @@ Do not add MCP Apps UI merely to mirror the desktop app. Add compact plugin UI l
 
 ## Build and distribution direction
 
-- Expose public workflows through `make help`, `make setup`, `make dev`, `make prd`, `make start`, `make kill`, `make check`, and focused test/verification targets. Make delegates to exact pinned pnpm workspace scripts.
-- Build and test the MCP server before wiring its command into the plugin manifest.
+- Expose public workflows through `make help`, `make setup`, `make dev`, `make prd`, `make start`, `make kill`, `make check`, and the explicitly requested `make test` live journey. Make delegates to exact pinned pnpm workspace scripts.
+- Build the MCP server before wiring its command into the plugin manifest.
 - Produce a Linux x86_64 AppImage.
 - Ask the learner to choose the single self-contained application data root during onboarding. Keep only a minimal pointer to it in the platform-appropriate configuration directory.
 - Do not add an automatic backup/snapshot subsystem or data-folder migration workflow.
@@ -107,14 +107,14 @@ Do not add MCP Apps UI merely to mirror the desktop app. Add compact plugin UI l
 5. An AppImage and the MCP helper can resolve the user-selected data root after restart through the shared bootstrap configuration.
 6. Open Deutsch prepares structured listening/speaking context and returns an explicit unsupported-handoff state because the current host has no supported exact Codex Voice bridge. Codex can create an exact persistent desktop activity through MCP. Neither direction uses clipboard/manual continuation UI or generic launch fallbacks.
 
-## Testability boundary
+## Live journey boundary
 
-- Keep App Server, plugin-installation status, native dialogs, and bootstrap resolution behind narrow adapters so tests can provide deterministic fakes.
-- Give every automated run a disposable data root; never use the learner's configured folder.
-- Use fast domain/SQLite/MCP protocol tests for the default agent loop and Playwright Electron journeys for the complete accepted feature breadth, with a smaller smoke subset for rapid iteration.
-- Keep the manually invoked live account/model verification separate from deterministic acceptance tests and all automated test discovery.
-- Use that explicitly confirmed live verification to prove the real supported App Server runtime enforces the bounded filesystem/tool/network policy with harmless disposable canaries; fake protocol tests alone are not sufficient enforcement evidence.
-- Validate both locales, keyboard/focus behavior, design-token consistency, log redaction/rotation, unsafe data-root cases, and App Server sandbox/prompt-injection boundaries.
+- Keep App Server, plugin-installation status, native dialogs, and bootstrap resolution behind narrow production adapters.
+- Do not maintain unit, component, mock-service, fixture-driven, coverage, artifact-validation, or unattended end-to-end suites.
+- Add a Playwright Electron journey only for a user-visible behavior the user explicitly requests. Run the production build with the connected Codex account, real App Server, default application profile, and selected learner data.
+- Print a warning immediately before a live journey without pausing for confirmation. The application must already be closed; the runner never kills an existing process.
+- Live journeys use visible product actions for cleanup and never direct database cleanup. They capture no screenshots, traces, videos, DOM dumps, learner text, prompts, or model output; failures expose only bounded diagnostic codes and report when manual cleanup is required.
+- `make check`, pull-request gates, CI, and unattended automation run only Prettier, ESLint, and strict TypeScript checks. Live journeys never join those gates.
 
 See `testing-strategy.md`.
 

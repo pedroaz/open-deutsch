@@ -33,10 +33,6 @@ declare const styles: {
   readonly eyebrow: string;
   readonly field: string;
   readonly fieldHint: string;
-  readonly gallery: string;
-  readonly galleryGrid: string;
-  readonly galleryHeader: string;
-  readonly gallerySection: string;
   readonly generatedPrompt: string;
   readonly helper: string;
   readonly helperConversation: string;

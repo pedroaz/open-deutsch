@@ -4,12 +4,12 @@ This package is the single owner of shared boundary schemas and their inferred T
 
 ## Runtime schema convention
 
-- Define every IPC, MCP, AI structured-output, persisted JSON metadata, and test-fixture boundary once with the package's pinned Zod 4 export.
+- Define every IPC, MCP, AI structured-output, and persisted JSON metadata boundary once with the package's pinned Zod 4 export.
 - Mint every top-level object boundary with `strictBoundaryObject`. The owned capability makes runtime parsing reject raw `z.object` schemas that would silently strip unknown keys while advertising a closed JSON Schema. Nested object schemas must also use `z.strictObject` unless a documented protocol explicitly permits extension keys.
 - Parse untrusted values with `parseBoundary`/`safeParseBoundary`; never rely on a TypeScript assertion as validation.
 - Derive TypeScript types with `z.input`, `z.output`, or `z.infer`; do not maintain parallel handwritten shapes.
 - Use `toBoundaryJsonSchema` for MCP/AI JSON Schema. It targets Draft 2020-12 and fails on cycles or unrepresentable transforms instead of weakening them to `unknown`.
-- Keep wire/persisted schemas JSON-compatible. Convert richer runtime values outside the boundary or with a separately tested codec whose wire schema remains explicit.
+- Keep wire/persisted schemas JSON-compatible. Convert richer runtime values outside the boundary with an explicit codec whose wire schema remains clear.
 - `validationIssues` retains only bounded paths with redacted string-key markers plus diagnostic codes, never raw field names, dynamic keys, messages, or values. Project it into the shared application error model; do not expose raw validation objects across IPC or MCP.
 
 ## Common scalar convention
@@ -17,7 +17,7 @@ This package is the single owner of shared boundary schemas and their inferred T
 - Entity identifiers are opaque lowercase prefixed strings. Prefixes distinguish entity families at runtime; Zod brands distinguish them at compile time. Business code never infers dates, ownership, ordering, or other meaning from an identifier.
 - `DataRootGeneration` is a positive safe integer and is not interchangeable with an entity identifier.
 - `UtcInstant` is a canonical ISO 8601 UTC string with exactly millisecond precision; `CalendarDate` is a date-only ISO string; `DurationMilliseconds` is a non-negative safe integer.
-- Production adapters own random/monotonic identifier generation and wall-clock reads. Deterministic tests use `tests/support/contract-factories.ts`, whose sequence and instant are explicit.
+- Production adapters own random/monotonic identifier generation and wall-clock reads.
 
 ## Error boundary convention
 

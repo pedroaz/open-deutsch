@@ -657,7 +657,7 @@ export function SettingsPage({
                     ) : null}
                     {efforts.map((effort) => (
                       <option key={effort} value={`exact:${effort}`}>
-                        {t("settings.exactEffort", { effort })}
+                        {t(`settings.exactEfforts.${effort}`)}
                       </option>
                     ))}
                   </select>

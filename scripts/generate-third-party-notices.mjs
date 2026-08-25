@@ -1,21 +1,13 @@
 #!/usr/bin/env node
 
-import { readdir, readFile, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { promisify } from "node:util";
 
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
-const pnpmStore = path.join(repositoryRoot, "node_modules", ".pnpm");
 const outputFile = path.join(repositoryRoot, "docs", "third-party-notices.md");
-
-function packagePathParts(relativePath) {
-  const parts = relativePath.split(path.sep);
-  const nodeModulesIndex = parts.indexOf("node_modules");
-  if (nodeModulesIndex < 0) return undefined;
-  const packageParts = parts.slice(nodeModulesIndex + 1, -1);
-  if (packageParts.length === 1) return packageParts;
-  if (packageParts.length === 2 && packageParts[0].startsWith("@")) return packageParts;
-  return undefined;
-}
+const execFileAsync = promisify(execFile);
 
 function licenseOf(manifest) {
   if (typeof manifest.license === "string" && manifest.license.trim())
@@ -30,34 +22,28 @@ function licenseOf(manifest) {
 }
 
 async function readInstalledPackages() {
+  const { stdout } = await execFileAsync(
+    "pnpm",
+    ["list", "--recursive", "--json", "--depth", "Infinity"],
+    { cwd: repositoryRoot, maxBuffer: 64 * 1024 * 1024 },
+  );
+  const workspaces = JSON.parse(stdout);
   const packages = new Map();
-  const storeEntries = await readdir(pnpmStore, { withFileTypes: true });
-  for (const storeEntry of storeEntries) {
-    if (!storeEntry.isDirectory()) continue;
-    const storeRoot = path.join(pnpmStore, storeEntry.name, "node_modules");
-    let scopes;
-    try {
-      scopes = await readdir(storeRoot, { withFileTypes: true });
-    } catch {
-      continue;
-    }
-    for (const scope of scopes) {
-      const scopeRoot = path.join(storeRoot, scope.name);
-      let candidates;
+  const visited = new Set();
+  async function visitDependencies(dependencies) {
+    if (!dependencies || typeof dependencies !== "object") return;
+    for (const dependency of Object.values(dependencies)) {
+      if (!dependency || typeof dependency !== "object") continue;
+      const dependencyPath = dependency.path;
+      if (typeof dependencyPath !== "string" || visited.has(dependencyPath)) continue;
+      visited.add(dependencyPath);
       try {
-        candidates = scope.name.startsWith("@")
-          ? (await readdir(scopeRoot, { withFileTypes: true })).map((entry) =>
-              path.join(scopeRoot, entry.name, "package.json"),
-            )
-          : [path.join(scopeRoot, "package.json")];
-      } catch {
-        continue;
-      }
-      for (const candidate of candidates) {
-        try {
-          const manifest = JSON.parse(await readFile(candidate, "utf8"));
-          const relative = path.relative(pnpmStore, candidate);
-          if (!packagePathParts(relative) || typeof manifest.name !== "string") continue;
+        const manifest = JSON.parse(await readFile(path.join(dependencyPath, "package.json")));
+        if (
+          typeof manifest.name === "string" &&
+          manifest.name !== "open-deutsch" &&
+          !manifest.name.startsWith("@open-deutsch/")
+        ) {
           const key = `${manifest.name}@${manifest.version ?? "unknown"}`;
           packages.set(key, {
             name: manifest.name,
@@ -65,11 +51,19 @@ async function readInstalledPackages() {
             license: licenseOf(manifest),
             homepage: typeof manifest.homepage === "string" ? manifest.homepage : undefined,
           });
-        } catch {
-          // Ignore package metadata that disappeared during an interrupted install.
         }
+      } catch {
+        // Ignore optional package metadata that is unavailable on this platform.
       }
+      await visitDependencies(dependency.dependencies);
+      await visitDependencies(dependency.devDependencies);
+      await visitDependencies(dependency.optionalDependencies);
     }
+  }
+  for (const workspace of workspaces) {
+    await visitDependencies(workspace.dependencies);
+    await visitDependencies(workspace.devDependencies);
+    await visitDependencies(workspace.optionalDependencies);
   }
   return [...packages.values()].sort((left, right) =>
     `${left.name}@${left.version}`.localeCompare(`${right.name}@${right.version}`),
@@ -102,7 +96,6 @@ const lines = [
   "## Release boundary",
   "",
   "The Linux AppImage includes this notice, the Open Deutsch licensing note, and the immutable curriculum/plugin/helper snapshot. It does not include learner data, credentials, or a Codex account. A compatible external Codex installation remains a prerequisite for AI actions.",
-  "",
 ];
 await writeFile(outputFile, `${lines.join("\n")}\n`, { encoding: "utf8", mode: 0o644 });
 process.stdout.write(

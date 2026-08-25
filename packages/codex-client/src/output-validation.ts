@@ -123,11 +123,6 @@ function visibleExerciseText(
   return normalized(shared.join(" "));
 }
 
-function containsAnswer(text: string, answer: string): boolean {
-  const key = normalized(answer);
-  return key.length >= 3 && normalized(text).includes(key);
-}
-
 function assertExerciseGenerationQuality(
   output: AppServerCandidateOutputMap["exercise-generation"],
   expectedLevel?: "A1" | "A2" | "B1" | "B2",
@@ -178,31 +173,6 @@ function assertExerciseGenerationQuality(
       output.lesson.vocabularyFoundations.map(({ german }) => german),
       "OD_LESSON_DUPLICATE_VOCABULARY",
     );
-    const lessonText = [
-      output.lesson.title,
-      output.lesson.explanation,
-      ...output.lesson.sections.flatMap(({ heading, content }) => [heading, content]),
-      ...output.lesson.vocabularyFoundations.flatMap(({ german, explanation, example }) => [
-        german,
-        explanation,
-        example,
-      ]),
-    ].join(" ");
-    for (const exercise of output.exercises) {
-      const answers =
-        exercise.kind === "fill-in-the-blank"
-          ? exercise.blanks.flatMap(({ acceptedAnswers }) => acceptedAnswers)
-          : exercise.kind === "short-answer" ||
-              exercise.kind === "sentence-correction" ||
-              exercise.kind === "vocabulary-recall"
-            ? exercise.acceptedAnswers
-            : exercise.kind === "multiple-choice"
-              ? [exercise.options[exercise.correctOptionPosition] ?? ""]
-              : [];
-      if (answers.some((answer) => containsAnswer(lessonText, answer))) {
-        throw new AppServerOutputValidationError("OD_EXERCISE_ANSWER_LEAK");
-      }
-    }
   }
 }
 

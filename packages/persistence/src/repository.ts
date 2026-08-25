@@ -2040,7 +2040,60 @@ export class OpenDeutschRepository {
 
   async deletePreparedActivity(activityIdValue: string): Promise<void> {
     const activityId = activityIdSchema.parse(activityIdValue);
+    const deletedAt = utcInstantSchema.parse(new Date().toISOString());
     await withLeasedTransaction(this.#database, (connection) => {
+      const activity = connection
+        .prepare(
+          `SELECT p.status
+           FROM prepared_activities p
+           JOIN generated_activity_payloads g ON g.activity_id = p.activity_id
+           WHERE p.activity_id = ?`,
+        )
+        .get(activityId) as { status: string } | undefined;
+      if (!activity) throw new Error("OD_PREPARED_ACTIVITY_NOT_FOUND");
+      if (activity.status !== "prepared") {
+        throw new Error("OD_PREPARED_ACTIVITY_DELETE_BLOCKED");
+      }
+      const started = connection
+        .prepare(`SELECT 1 FROM exercises WHERE activity_id = ? LIMIT 1`)
+        .get(activityId);
+      const retainedFeedback = connection
+        .prepare(`SELECT 1 FROM mcp_attempt_feedback WHERE activity_id = ? LIMIT 1`)
+        .get(activityId);
+      if (started || retainedFeedback) {
+        throw new Error("OD_PREPARED_ACTIVITY_DELETE_BLOCKED");
+      }
+      const retainedVocabulary = connection
+        .prepare(
+          `SELECT 1
+           FROM vocabulary_entries
+           WHERE json_extract(source_json, '$.kind') = 'activity'
+             AND json_extract(source_json, '$.activityId') = ?
+             AND status <> 'candidate'
+           LIMIT 1`,
+        )
+        .get(activityId);
+      if (retainedVocabulary) {
+        throw new Error("OD_PREPARED_ACTIVITY_DELETE_BLOCKED");
+      }
+      connection
+        .prepare(
+          `INSERT INTO vocabulary_deletions (vocabulary_id, deleted_at)
+           SELECT vocabulary_id, ?
+           FROM vocabulary_entries
+           WHERE status = 'candidate'
+             AND json_extract(source_json, '$.kind') = 'activity'
+             AND json_extract(source_json, '$.activityId') = ?`,
+        )
+        .run(deletedAt, activityId);
+      connection
+        .prepare(
+          `DELETE FROM vocabulary_entries
+           WHERE status = 'candidate'
+             AND json_extract(source_json, '$.kind') = 'activity'
+             AND json_extract(source_json, '$.activityId') = ?`,
+        )
+        .run(activityId);
       const result = connection
         .prepare(`DELETE FROM prepared_activities WHERE activity_id = ?`)
         .run(activityId);

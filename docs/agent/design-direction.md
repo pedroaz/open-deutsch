@@ -21,10 +21,6 @@ Verify keyboard operation, logical focus movement/restoration, visible focus, na
 
 ## Visual workflow
 
-1. Add every shared component and meaningful state to the development-only component gallery.
-2. Exercise the changed gallery state and affected product screen in English and German.
-3. Inspect standard and moderately narrow desktop widths; the main document must not develop horizontal scrolling.
-4. Capture representative acceptance screenshots through the committed Playwright journey when available.
-5. Check screenshots, trace, console, main-process log, focus behavior, translations, overflow, and token consistency before accepting the change.
+Only perform a live visual journey when the user explicitly requests it. Exercise the affected production screen in English and German at standard and moderately narrow desktop widths, and confirm the main document does not develop horizontal scrolling. Inspect the visible UI, focus behavior, translations, overflow, console, and bounded operational logs without capturing screenshots, traces, videos, DOM dumps, or learner/model content.
 
 Avoid flags, mascots, stereotypical German imagery, decorative gradients, generic chat-shell composition, arbitrary untokenized values, and motion without a functional purpose.

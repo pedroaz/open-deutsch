@@ -53,6 +53,7 @@ export const desktopIpcChannels = [
   "vocabulary/resume",
   "vocabulary/delete",
   "prepared-activity/read",
+  "prepared-activity/delete",
   "exercise-set/start",
   "exercise-set/complete",
   "exercise-set/abandon",
@@ -278,6 +279,10 @@ const vocabularyDeleteRequest = request(
 );
 const preparedActivityReadRequest = request(
   "prepared-activity/read",
+  z.strictObject({ activityId: activityIdSchema }),
+);
+const preparedActivityDeleteRequest = request(
+  "prepared-activity/delete",
   z.strictObject({ activityId: activityIdSchema }),
 );
 const exerciseSetStartRequest = request(
@@ -507,6 +512,7 @@ export const desktopIpcRequestSchema = boundaryUnion([
   vocabularyResumeRequest,
   vocabularyDeleteRequest,
   preparedActivityReadRequest,
+  preparedActivityDeleteRequest,
   exerciseSetStartRequest,
   exerciseSetCompleteRequest,
   exerciseSetAbandonRequest,
@@ -975,6 +981,10 @@ const preparedActivityReadResponse = response(
     output: appServerCandidateOutputSchemas["exercise-generation"],
   }),
 );
+const preparedActivityDeleteResponse = response(
+  "prepared-activity/delete",
+  z.strictObject({ activityId: activityIdSchema, status: z.literal("deleted") }),
+);
 const exerciseSetStartResponse = response(
   "exercise-set/start",
   z.strictObject({
@@ -1326,6 +1336,7 @@ export const desktopIpcResponseSchema = boundaryUnion([
   vocabularyResumeResponse,
   vocabularyDeleteResponse,
   preparedActivityReadResponse,
+  preparedActivityDeleteResponse,
   exerciseSetStartResponse,
   exerciseSetCompleteResponse,
   exerciseSetAbandonResponse,

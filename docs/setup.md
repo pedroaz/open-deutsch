@@ -9,8 +9,7 @@ From the repository root:
 ```text
 make setup
 make doctor
-make test-fast
-make test-all
+make check
 ```
 
 Use `make dev` for the development stack or `make prd` for the production-like local stack. `make start` is the exact `make prd` alias. Use `make status`, `make logs`, `make logs-errors`, and `make kill` only for the Open Deutsch-owned lifecycle.
@@ -21,7 +20,7 @@ During onboarding, choose a private learner data directory outside the checkout 
 
 The app warns when a choice is inside a Git worktree, broadly readable, or an install directory. Research files remain under `research/staging/{notes,downloads,candidates,validation}` until an explicit review and promotion; canonical curriculum remains in `content/curriculum` and is read-only in packaged applications.
 
-For a disposable development reset, stop the owned stack with `make kill`, remove only the disposable data root and redirected Codex/XDG directories created for that run, then rerun setup. Never point tests or reset commands at the learner's real selected root.
+For a disposable development reset, stop the owned stack with `make kill`, remove only the disposable data root and redirected Codex/XDG directories created for that run, then rerun setup. Reset and diagnostic commands never target the learner's real selected root. An explicitly requested live journey warns without pausing, may use the selected root, and cleans up through learner-visible UI actions.
 
 ## Codex integration
 
@@ -34,7 +33,7 @@ make refresh-plugin
 make uninstall-plugin
 ```
 
-The commands use only the `open-deutsch-local` marketplace and `open-deutsch` plugin. Installation and refresh verify the installed version and MCP discovery before reporting success; uninstall removes only that scoped plugin and marketplace entry. The desktop Settings page provides the same explicit actions and shows the verified result. Live host skill activation remains behind the separately confirmed `make verify-plugin` boundary.
+The commands use only the `open-deutsch-local` marketplace and `open-deutsch` plugin. Installation and refresh verify the installed version and MCP discovery before reporting success; uninstall removes only that scoped plugin and marketplace entry. The desktop Settings page provides the same explicit actions and shows the verified result.
 
 ## Diagnostics and recovery
 

@@ -46,11 +46,7 @@ import {
   type ModelWorkload,
   type WeeklyPlan,
 } from "@open-deutsch/domain";
-import {
-  discoverCodex,
-  type AppServerLogRecord,
-  type CodexDiscovery,
-} from "@open-deutsch/codex-client";
+import { discoverCodex, type AppServerLogRecord } from "@open-deutsch/codex-client";
 import { readPluginIntegrationState, runPluginIntegrationAction } from "./plugin-integration.js";
 import {
   initializeOpenDeutschDataRoot,
@@ -238,12 +234,6 @@ const operationModelWorkload = {
 } as const satisfies Record<string, ModelWorkload>;
 const appServerLevel = { a1: "A1", a2: "A2", b1: "B1", b2: "B2" } as const;
 
-function fixtureScenario(): string | undefined {
-  return process.env["OPEN_DEUTSCH_TEST_MODE"] === "1"
-    ? process.env["OPEN_DEUTSCH_DESKTOP_SCENARIO"]
-    : undefined;
-}
-
 function exerciseHistoryPrompt(
   exercise: Extract<
     HistoryEntryRecord["detail"],
@@ -295,10 +285,6 @@ export class DesktopBackend {
   >();
   #database: OpenDeutschDatabase | undefined;
   #repository: OpenDeutschRepository | undefined;
-  #fixturePrivacyAcknowledged = false;
-  #fixtureLearnerSettings:
-    Awaited<ReturnType<OpenDeutschRepository["createLearnerSettings"]>> | undefined;
-  #fixtureRecovered = false;
   #appServerStart: Promise<unknown> | undefined;
 
   constructor(options: {
@@ -333,7 +319,6 @@ export class DesktopBackend {
     this.#operationsBySubmission.clear();
     this.#activeOperations.clear();
     this.#retryableOperations.clear();
-    this.#fixtureLearnerSettings = undefined;
   }
 
   async shutdown(): Promise<void> {
@@ -849,7 +834,7 @@ export class DesktopBackend {
   async #hasAcknowledgedAiDisclosure(): Promise<boolean> {
     return this.#repository
       ? this.#repository.hasAcknowledgedFirstAiDisclosure()
-      : this.#fixturePrivacyAcknowledged;
+      : Promise.resolve(false);
   }
 
   #profileSummary(settings: Awaited<ReturnType<OpenDeutschRepository["createLearnerSettings"]>>) {
@@ -869,46 +854,8 @@ export class DesktopBackend {
     } as const;
   }
 
-  #defaultFixtureLearnerSettings(): LearnerSettingsRecord | undefined {
-    if (!fixtureScenario() || fixtureScenario() === "first-run") return undefined;
-    const timestamp = utcInstantSchema.parse("2026-08-15T08:30:00.000Z");
-    return {
-      profile: createInitialLearnerProfile({
-        schemaVersion: 1,
-        learnerId: activeLearnerId,
-        levelEstimate: {
-          currentLevel: "a2",
-          targetLevel: "b1",
-          basis: "self-reported",
-          updatedAt: timestamp,
-        },
-        everydayGermanyGoal: "Handle everyday appointments in German.",
-        motivation: "Handle everyday appointments in German.",
-        interests: [],
-        preferredTopics: [],
-        availableStudyMinutesPerWeek: 90,
-        correctionPreferences: {
-          timing: "immediate",
-          coverage: "all-meaningful",
-          showConciseExplanation: true,
-          showNaturalAlternative: true,
-        },
-        onboardingState: "complete",
-        inferredStrengths: [],
-        inferredWeaknesses: [],
-        teachingLanguage: "en",
-        defaultTeachingProfileId: "conversation-partner",
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      }),
-      modelPreferences: defaultModelPreferences,
-    };
-  }
-
   async #readActiveLearnerSettings(): Promise<LearnerSettingsRecord | undefined> {
-    if (this.#repository) return this.#repository.readLearnerSettings(activeLearnerId);
-    this.#fixtureLearnerSettings ??= this.#defaultFixtureLearnerSettings();
-    return this.#fixtureLearnerSettings;
+    return this.#repository?.readLearnerSettings(activeLearnerId);
   }
 
   async #activeLogFiles(): Promise<readonly string[]> {
@@ -1127,37 +1074,6 @@ export class DesktopBackend {
   }
 
   async #dataRootState(correlationId: string) {
-    const scenario = fixtureScenario();
-    if (scenario === "first-run" && !this.#database) return { status: "unconfigured" as const };
-    if (
-      !this.#fixtureRecovered &&
-      ["missing-root", "stale-root", "newer-schema", "locked-database"].includes(scenario ?? "")
-    ) {
-      const kind =
-        scenario === "stale-root"
-          ? "stale-data-root"
-          : scenario === "missing-root"
-            ? "not-found"
-            : "database";
-      const reason =
-        scenario === "stale-root"
-          ? "stale"
-          : scenario === "missing-root"
-            ? "missing"
-            : scenario === "newer-schema"
-              ? "schema-newer"
-              : "database-busy";
-      return { status: "unavailable" as const, reason, error: safeError(kind, correlationId) };
-    }
-    if (scenario) {
-      return {
-        status: "ready" as const,
-        generation: dataRootGenerationSchema.parse(1),
-        displayName: "Learning data",
-        warnings: [],
-      };
-    }
-
     const state = await readBootstrapPointer(this.#bootstrapFile);
     if (state.status === "unconfigured") return { status: "unconfigured" as const };
     if (state.status !== "ready") {
@@ -1210,28 +1126,10 @@ export class DesktopBackend {
   }
 
   async #codexState(correlationId: string) {
-    const scenario = fixtureScenario();
-    let discovery: CodexDiscovery;
-    if (scenario === "missing-codex") {
-      discovery = { status: "unavailable", reason: "missing" };
-    } else if (scenario === "unsupported-codex") {
-      discovery = { status: "unavailable", reason: "unsupported-version" };
-    } else if (scenario) {
-      discovery = { status: "available", version: "0.146.0" };
-    } else {
-      discovery = await discoverCodex(
-        process.env["OPEN_DEUTSCH_TEST_MODE"] === "1" &&
-          process.env["OPEN_DEUTSCH_TEST_CODEX_EXECUTABLE"]
-          ? { executable: process.env["OPEN_DEUTSCH_TEST_CODEX_EXECUTABLE"] }
-          : {},
-      );
-    }
+    const discovery = await discoverCodex();
     if (discovery.status === "available") {
-      let plugin: "not-installed" | "installed" | "refresh-required" = "not-installed";
-      if (process.env["OPEN_DEUTSCH_TEST_MODE"] !== "1" && !scenario) {
-        const state = await readPluginIntegrationState(discovery.version, correlationId);
-        plugin = state.status === "available" ? state.plugin : "refresh-required";
-      }
+      const state = await readPluginIntegrationState(discovery.version, correlationId);
+      const plugin = state.status === "available" ? state.plugin : "refresh-required";
       return {
         status: "available" as const,
         codexVersion: discovery.version,
@@ -1329,11 +1227,8 @@ export class DesktopBackend {
         const plan = await inspectDataRootChoice(chosen, {
           knownInstallRoots: this.#knownInstallRoots,
         });
-        const pointer = fixtureScenario()
-          ? undefined
-          : await readBootstrapPointer(this.#bootstrapFile);
-        const pointerGeneration =
-          pointer && "rootGeneration" in pointer ? pointer.rootGeneration : null;
+        const pointer = await readBootstrapPointer(this.#bootstrapFile);
+        const pointerGeneration = "rootGeneration" in pointer ? pointer.rootGeneration : null;
         const expectedGeneration =
           current.status === "ready" ? current.generation : pointerGeneration;
         const mode =
@@ -1389,7 +1284,6 @@ export class DesktopBackend {
             testMode,
           });
         }
-        this.#fixtureRecovered = true;
         this.#repository = new OpenDeutschRepository(this.#database);
         const state = await this.#dataRootState(request.requestId);
         if (state.status === "ready") {
@@ -1404,15 +1298,12 @@ export class DesktopBackend {
       if (request.channel === "privacy/ai-disclosure/read") {
         const acknowledged = this.#repository
           ? await this.#repository.hasAcknowledgedFirstAiDisclosure()
-          : this.#fixturePrivacyAcknowledged;
+          : false;
         return this.#success(request, { acknowledged });
       }
       if (request.channel === "privacy/ai-disclosure/acknowledge") {
-        if (this.#repository) {
-          await this.#repository.acknowledgeFirstAiDisclosure(new Date().toISOString());
-        } else {
-          this.#fixturePrivacyAcknowledged = true;
-        }
+        if (!this.#repository) return this.#failure(request, "stale-data-root");
+        await this.#repository.acknowledgeFirstAiDisclosure(new Date().toISOString());
         return this.#success(request, { acknowledged: true });
       }
       if (request.channel === "learner-profile/read") {
@@ -1468,11 +1359,9 @@ export class DesktopBackend {
           createdAt: timestamp,
           updatedAt: timestamp,
         });
+        if (!this.#repository) return this.#failure(request, "stale-data-root");
         const settings = { profile, modelPreferences: defaultModelPreferences };
-        const stored = this.#repository
-          ? await this.#repository.createLearnerSettings(settings)
-          : settings;
-        this.#fixtureLearnerSettings = stored;
+        const stored = await this.#repository.createLearnerSettings(settings);
         this.#emitEvent?.({ event: "state-invalidated", scope: "dashboard" });
         return this.#success(request, {
           status: "ready",
@@ -1497,22 +1386,14 @@ export class DesktopBackend {
             updatedAt: timestamp,
           },
         };
-        const stored = this.#repository
-          ? await this.#repository.updateLearnerSettings({
-              expectedUpdatedAt: current.profile.updatedAt,
-              settings: next,
-            })
-          : next;
-        const historyEntryId = this.#repository
-          ? (await this.#repository.savePlacementResult(request.payload.result, request.requestId))
-              .historyEntryId
-          : historyEntryIdSchema.parse(
-              `history-entry_${createHash("sha256")
-                .update(request.requestId, "utf8")
-                .digest("hex")
-                .slice(0, 32)}`,
-            );
-        this.#fixtureLearnerSettings = stored;
+        if (!this.#repository) return this.#failure(request, "stale-data-root");
+        const stored = await this.#repository.updateLearnerSettings({
+          expectedUpdatedAt: current.profile.updatedAt,
+          settings: next,
+        });
+        const historyEntryId = (
+          await this.#repository.savePlacementResult(request.payload.result, request.requestId)
+        ).historyEntryId;
         this.#emitEvent?.({ event: "state-invalidated", scope: "settings" });
         this.#emitEvent?.({ event: "state-invalidated", scope: "history" });
         this.#emitEvent?.({ event: "state-invalidated", scope: "dashboard" });
@@ -1605,25 +1486,18 @@ export class DesktopBackend {
           },
           modelPreferences: editable.modelPreferences,
         };
+        if (!this.#repository) return this.#failure(request, "stale-data-root");
         let stored: LearnerSettingsRecord;
-        if (this.#repository) {
-          try {
-            stored = await this.#repository.updateLearnerSettings({
-              expectedUpdatedAt: utcInstantSchema.parse(request.payload.expectedUpdatedAt),
-              settings: next,
-            });
-          } catch (error) {
-            if (error instanceof Error && error.message === "OD_LEARNER_SETTINGS_CONFLICT") {
-              return this.#failure(request, "conflict");
-            }
-            throw error;
-          }
-        } else {
-          if (request.payload.expectedUpdatedAt !== current.profile.updatedAt) {
+        try {
+          stored = await this.#repository.updateLearnerSettings({
+            expectedUpdatedAt: utcInstantSchema.parse(request.payload.expectedUpdatedAt),
+            settings: next,
+          });
+        } catch (error) {
+          if (error instanceof Error && error.message === "OD_LEARNER_SETTINGS_CONFLICT") {
             return this.#failure(request, "conflict");
           }
-          stored = next;
-          this.#fixtureLearnerSettings = stored;
+          throw error;
         }
         this.#emitEvent?.({ event: "state-invalidated", scope: "settings" });
         return this.#success(request, this.#settingsProjection(stored, dataRoot));
@@ -1924,6 +1798,18 @@ export class DesktopBackend {
           output: generated.output,
         });
       }
+      if (request.channel === "prepared-activity/delete") {
+        if (!this.#repository) return this.#failure(request, "stale-data-root");
+        const generated = await this.#repository.readGeneratedActivity(request.payload.activityId);
+        if (!generated) return this.#failure(request, "not-found");
+        await this.#repository.deletePreparedActivity(request.payload.activityId);
+        this.#emitEvent?.({ event: "state-invalidated", scope: "dashboard" });
+        this.#emitEvent?.({ event: "state-invalidated", scope: "vocabulary" });
+        return this.#success(request, {
+          activityId: request.payload.activityId,
+          status: "deleted",
+        });
+      }
       if (request.channel === "exercise-set/start") {
         if (!this.#repository) return this.#failure(request, "stale-data-root");
         const generated = await this.#repository.readGeneratedActivity(request.payload.activityId);
@@ -2145,19 +2031,6 @@ export class DesktopBackend {
       if (request.channel === "codex/integration/action") {
         const current = await this.#codexState(request.requestId);
         if (current.status !== "available") return this.#failure(request, "app-server");
-        if (process.env["OPEN_DEUTSCH_TEST_MODE"] === "1" || fixtureScenario()) {
-          return this.#success(request, {
-            action: request.payload.action,
-            result: "verified",
-            sourceVersion: "0.1.0",
-            status: {
-              status: "available",
-              codexVersion: current.codexVersion,
-              plugin: request.payload.action === "uninstall" ? "not-installed" : "installed",
-            },
-            steps: ["Verified the deterministic integration fixture without changing the host."],
-          });
-        }
         return this.#success(
           request,
           await runPluginIntegrationAction(

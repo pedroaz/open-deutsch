@@ -5,7 +5,6 @@
   "description": "Versioned Open Deutsch Codex plugin payload workspace.",
   "type": "module",
   "scripts": {
-    "test:plugin": "node scripts/test-plugin.mjs",
     "plugin:install": "node scripts/plugin-lifecycle.mjs install",
     "plugin:refresh": "node scripts/plugin-lifecycle.mjs refresh",
     "plugin:status": "node scripts/plugin-lifecycle.mjs status",

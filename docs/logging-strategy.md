@@ -53,6 +53,6 @@ Create a redacted diagnostic bundle only after an explicit user action. Include 
 
 Open Deutsch sends no telemetry, logs, or crash reports to a cloud service.
 
-## Test artifacts
+## Live journey privacy
 
-Automated tests use disposable log roots. Failed Playwright journeys preserve their isolated application logs beside traces and screenshots. Successful tests clean temporary logs unless a diagnostic mode explicitly retains them.
+Explicitly requested Playwright journeys use the selected learner root and its normal bounded, redacted operational logs. They do not capture screenshots, traces, videos, DOM dumps, prompts, learner text, or model output. A failure returns a stable bounded diagnostic code; if product cleanup cannot complete safely, it reports that manual cleanup is required and preserves the learner record.

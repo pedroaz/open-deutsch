@@ -11,7 +11,7 @@ import {
   readSupportedCodexVersion,
   waitForProjectedAccountState,
 } from "./lib/app-server-probe.mjs";
-import { createDisposableDataHarness } from "../tests/support/disposable-data.mjs";
+import { createDisposableDataHarness } from "./lib/disposable-data.mjs";
 
 if (process.env.OPEN_DEUTSCH_INTERACTIVE_CONFIRMATION !== "yes") {
   throw new Error("LIVE_AUTH_CONFIRMATION_REQUIRED");

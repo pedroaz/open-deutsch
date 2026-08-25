@@ -7,7 +7,7 @@ import {
   buildIsolatedCodexEnvironment,
   readSupportedCodexVersion,
 } from "./lib/app-server-probe.mjs";
-import { createDisposableDataHarness } from "../tests/support/disposable-data.mjs";
+import { createDisposableDataHarness } from "./lib/disposable-data.mjs";
 
 const execFileAsync = promisify(execFile);
 const marketplaceName = "open-deutsch-local";

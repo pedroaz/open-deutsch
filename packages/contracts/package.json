@@ -12,8 +12,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -b --force",
-    "test": "pnpm --workspace-root exec vitest run --config vitest.config.mjs --project contracts"
+    "build": "tsc -b --force"
   },
   "dependencies": {
     "zod": "4.4.3"

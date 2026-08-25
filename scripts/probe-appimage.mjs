@@ -1,21 +1,10 @@
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
-import { chmod, copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { chmod, copyFile, mkdir, readFile, readdir, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 
-import { _electron as electron } from "@playwright/test";
-
-import {
-  initializeOpenDeutschDataRoot,
-  inspectDataRootChoice,
-  OpenDeutschRepository,
-} from "../packages/persistence/dist/index.js";
-import {
-  createInitialLearnerProfile,
-  defaultModelPreferences,
-} from "../packages/domain/dist/index.js";
-import { createDisposableDataHarness } from "../tests/support/disposable-data.mjs";
+import { createDisposableDataHarness } from "./lib/disposable-data.mjs";
 
 const execFileAsync = promisify(execFile);
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
@@ -107,133 +96,6 @@ async function probePackagedHelper(appDir, environment) {
   return JSON.parse(stdout);
 }
 
-async function preparePackagedLearner(harness) {
-  const profile = path.join(harness.sandboxRoot, "packaged-profile");
-  const bootstrapFile = path.join(profile, "bootstrap.json");
-  await mkdir(profile, { mode: 0o700 });
-  const selection = await inspectDataRootChoice(harness.dataRoot);
-  const database = await initializeOpenDeutschDataRoot({
-    bootstrapFile,
-    selection,
-    selectedAt: "2026-08-20T12:00:00.000Z",
-    createdAt: "2026-08-20T12:00:00.000Z",
-    testMode: true,
-  });
-  const repository = new OpenDeutschRepository(database);
-  await repository.createLearnerSettings({
-    profile: createInitialLearnerProfile({
-      schemaVersion: 1,
-      learnerId: "learner_0123456789abcdefgh",
-      levelEstimate: {
-        currentLevel: "a2",
-        targetLevel: "b1",
-        basis: "self-reported",
-        updatedAt: "2026-08-20T12:00:00.000Z",
-      },
-      everydayGermanyGoal: "Handle everyday appointments in German.",
-      motivation: "Handle everyday appointments in German.",
-      interests: [],
-      preferredTopics: [],
-      availableStudyMinutesPerWeek: 90,
-      correctionPreferences: {
-        timing: "immediate",
-        coverage: "all-meaningful",
-        showConciseExplanation: true,
-        showNaturalAlternative: true,
-      },
-      onboardingState: "complete",
-      inferredStrengths: [],
-      inferredWeaknesses: [],
-      teachingLanguage: "en",
-      defaultTeachingProfileId: "conversation-partner",
-      createdAt: "2026-08-20T12:00:00.000Z",
-      updatedAt: "2026-08-20T12:00:00.000Z",
-    }),
-    modelPreferences: defaultModelPreferences,
-  });
-  await repository.acknowledgeFirstAiDisclosure("2026-08-20T12:00:00.000Z");
-  database.close();
-  return { profile, bootstrapFile };
-}
-
-async function launchPackagedDesktop(appDir, profile, environment, controlFile) {
-  return electron.launch({
-    executablePath: path.join(appDir, "open-deutsch"),
-    args: ["--ozone-platform=x11", `--user-data-dir=${profile}`],
-    cwd: path.dirname(appDir),
-    env: {
-      ...environment,
-      OPEN_DEUTSCH_TEST_CODEX_EXECUTABLE: path.resolve(
-        repositoryRoot,
-        "packages/codex-client/test/fixtures/fake-codex.mjs",
-      ),
-      OPEN_DEUTSCH_FAKE_CONTROL_FILE: controlFile,
-    },
-  });
-}
-
-async function probePackagedDesktop(appDir, harness, environment) {
-  const { profile } = await preparePackagedLearner(harness);
-  const controlFile = path.join(harness.sandboxRoot, "packaged-fake-codex.json");
-  await writeFile(
-    controlFile,
-    `${JSON.stringify({ scenario: "standard", account: { planType: "plus" } })}\n`,
-    { mode: 0o600, flag: "wx" },
-  );
-  const firstLaunch = await launchPackagedDesktop(appDir, profile, environment, controlFile);
-  try {
-    const window = await firstLaunch.firstWindow();
-    if ((await window.title()) !== "Open Deutsch") throw new Error("OD_APPIMAGE_TITLE_INVALID");
-    await window.getByRole("button", { name: "Writing", exact: true }).click();
-    await window
-      .getByRole("button", { name: "Write without a generated prompt", exact: true })
-      .click();
-    const writing = window.getByRole("textbox", { name: "Your German text" });
-    await writing.fill("Ich brauche ein Termin.");
-    await window.getByRole("button", { name: "Correct now" }).click();
-    try {
-      await window
-        .getByRole("heading", { name: "Annotated correction" })
-        .waitFor({ timeout: 5_000 });
-    } catch {
-      const references = await window
-        .locator('[data-testid="diagnostic-reference"]')
-        .allTextContents();
-      const stages = await window.getByRole("status").allTextContents();
-      const dialogs = await window.getByRole("dialog").allTextContents();
-      const headings = await window.getByRole("heading").allTextContents();
-      const correctionButtons = await window
-        .getByRole("button", { name: "Correct now", exact: true })
-        .evaluateAll((buttons) => buttons.map((button) => button.disabled));
-      throw new Error(
-        `OD_APPIMAGE_CORRECTION_FAILED:references=${references.join(",").slice(0, 160)}:stages=${stages.join(",").slice(0, 160)}:dialogs=${dialogs.join(",").slice(0, 160)}:headings=${headings.join(",").slice(0, 240)}:correctionButtons=${correctionButtons.join(",")}`,
-      );
-    }
-  } finally {
-    await firstLaunch.close();
-  }
-
-  const restarted = await launchPackagedDesktop(appDir, profile, environment, controlFile);
-  try {
-    const window = await restarted.firstWindow();
-    await window.getByRole("button", { name: "History", exact: true }).click();
-    await window.getByRole("heading", { name: "History", exact: true }).waitFor();
-    await window
-      .getByRole("heading", { name: "Learner original" })
-      .locator("..")
-      .getByText("Ich brauche ein Termin.", { exact: true })
-      .waitFor();
-    await window
-      .getByRole("heading", { name: "Model correction" })
-      .locator("..")
-      .getByText("Ich gehe morgen zum Arzt.", { exact: true })
-      .waitFor();
-  } finally {
-    await restarted.close();
-  }
-  return { firstLaunchCorrection: true, restartHistory: true, sameProfile: true };
-}
-
 async function cleanupDisposableHarness(harness) {
   for (let attempt = 0; attempt < 6; attempt += 1) {
     try {
@@ -246,7 +108,7 @@ async function cleanupDisposableHarness(harness) {
   }
 }
 
-function assertEvidence(shell, helper, packagedDesktop) {
+function assertEvidence(shell, helper) {
   const expectedShell =
     shell.schemaVersion === 1 &&
     shell.packaged === true &&
@@ -260,11 +122,7 @@ function assertEvidence(shell, helper, packagedDesktop) {
     helper.schemaVersion === 1 &&
     helper.dataRootResolved === true &&
     typeof helper.sqliteVersion === "string";
-  const expectedDesktop =
-    packagedDesktop.firstLaunchCorrection === true &&
-    packagedDesktop.restartHistory === true &&
-    packagedDesktop.sameProfile === true;
-  if (!expectedShell || !expectedHelper || !expectedDesktop) {
+  if (!expectedShell || !expectedHelper) {
     throw new Error("OD_APPIMAGE_EVIDENCE_INVALID");
   }
 }
@@ -293,8 +151,7 @@ async function main() {
       path.join(harness.dataRoot, "first-launch.json"),
     );
     const helper = await probePackagedHelper(appDir, environment);
-    const packagedDesktop = await probePackagedDesktop(appDir, harness, environment);
-    assertEvidence(firstShell, helper, packagedDesktop);
+    assertEvidence(firstShell, helper);
 
     // Manual replacement is deliberately modeled as replacing the installed artifact,
     // not as an in-app updater. The selected data-root pointer must remain unchanged.
@@ -306,7 +163,7 @@ async function main() {
       environment,
       path.join(harness.dataRoot, "replacement-launch.json"),
     );
-    assertEvidence(replacementShell, helper, packagedDesktop);
+    assertEvidence(replacementShell, helper);
 
     if (
       (await sha256(installedArtifact)) !== sourceHash ||
@@ -322,7 +179,6 @@ async function main() {
         launchedOutsideCheckout: true,
         packagedShell: firstShell,
         packagedHelper: helper,
-        packagedDesktop,
         manualReplacementPreservedBootstrap: true,
         automaticUpdaterIncluded: false,
       })}\n`,

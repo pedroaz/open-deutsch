@@ -599,8 +599,7 @@
 }
 
 .startupCard h1,
-.page h1,
-.gallery h1 {
+.page h1 {
   font-size: var(--od-font-size-xl);
   line-height: var(--od-line-tight);
   margin: 0 0 var(--od-space-3);
@@ -792,7 +791,6 @@
 }
 
 .card,
-.gallerySection,
 .diffPane {
   background: var(--od-color-surface);
   border: var(--od-border-thin) solid var(--od-color-border);
@@ -807,8 +805,7 @@
   padding: var(--od-space-8) var(--od-space-5);
 }
 
-.helper h2,
-.gallerySection h2 {
+.helper h2 {
   font-size: var(--od-font-size-lg);
   margin-top: 0;
 }
@@ -890,7 +887,6 @@
 }
 
 .privacyGrid,
-.galleryGrid,
 .diffGrid {
   display: grid;
   gap: var(--od-space-4);
@@ -917,8 +913,7 @@
   padding-left: var(--od-space-5);
 }
 
-.page,
-.gallery {
+.page {
   max-width: var(--od-content-max);
 }
 
@@ -941,23 +936,6 @@
   border: var(--od-border-thin) solid var(--od-color-border);
   border-radius: var(--od-radius-md);
   padding: var(--od-space-4);
-}
-
-.gallery {
-  margin: 0 auto;
-  padding: var(--od-space-5) var(--od-space-8) var(--od-space-12);
-}
-
-.galleryHeader {
-  align-items: center;
-  display: flex;
-  gap: var(--od-space-5);
-  justify-content: space-between;
-  margin-bottom: var(--od-space-6);
-}
-
-.gallerySection {
-  margin-bottom: var(--od-space-5);
 }
 
 .field {
@@ -1122,7 +1100,6 @@ summary {
   .dashboardGrid,
   .writingLayout,
   .modelRow,
-  .galleryGrid,
   .diffGrid,
   .correctionGrid,
   .correctionMistakes,

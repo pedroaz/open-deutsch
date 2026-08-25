@@ -13,6 +13,13 @@ export type ModelCatalog = z.output<typeof modelCatalogSchema>;
 type ProjectedModel = ModelCatalog["models"][number];
 type PendingUpgrade = Readonly<{ targetModelId: string; description: string | null }> | null;
 
+const openDeutschModels = [
+  { id: "gpt-5.6-sol", displayName: "GPT-5.6 Sol" },
+  { id: "gpt-5.6-terra", displayName: "GPT-5.6 Terra" },
+  { id: "gpt-5.6-luna", displayName: "GPT-5.6 Luna" },
+] as const;
+const openDeutschReasoningEfforts = ["low", "medium", "high", "xhigh"] as const;
+
 function projectEfforts(value: unknown): string[] {
   if (value === undefined) return [];
   if (!Array.isArray(value) || value.length > 20) {
@@ -107,20 +114,48 @@ export function projectModelCatalog(value: unknown): ModelCatalog {
   }
   const defaults = pending.filter(({ model }) => model.isDefault);
   if (defaults.length > 1) throw new AppServerProjectionError("APP_SERVER_MODEL_CATALOG_INVALID");
-  const displayNames = new Map(pending.map(({ model }) => [model.id, model.displayName]));
+  const pendingById = new Map(pending.map((entry) => [entry.model.id, entry]));
+  const selectable = openDeutschModels.flatMap(({ id, displayName }) => {
+    const entry = pendingById.get(id);
+    if (!entry) return [];
+    const supportedReasoningEfforts = openDeutschReasoningEfforts.filter((effort) =>
+      entry.model.supportedReasoningEfforts.includes(effort),
+    );
+    const defaultReasoningEffort =
+      entry.model.defaultReasoningEffort !== null &&
+      supportedReasoningEfforts.includes(
+        entry.model.defaultReasoningEffort as (typeof openDeutschReasoningEfforts)[number],
+      )
+        ? entry.model.defaultReasoningEffort
+        : null;
+    return [
+      {
+        ...entry,
+        model: {
+          ...entry.model,
+          displayName,
+          defaultReasoningEffort,
+          supportedReasoningEfforts,
+        },
+      },
+    ];
+  });
+  const selectableIds = new Set(selectable.map(({ model }) => model.id));
+  const displayNames = new Map(selectable.map(({ model }) => [model.id, model.displayName]));
   return modelCatalogSchema.parse({
-    models: pending.map(({ model, upgrade }) => ({
+    models: selectable.map(({ model, upgrade }) => ({
       ...model,
       upgrade:
-        upgrade === null
+        upgrade === null || !selectableIds.has(upgrade.targetModelId)
           ? null
           : {
               ...upgrade,
               displayName: displayNames.get(upgrade.targetModelId) ?? null,
             },
     })),
-    runtimeDefaultModelId: defaults[0]?.model.id ?? null,
-    missingReasoningMetadata: pending
+    runtimeDefaultModelId:
+      defaults[0] && selectableIds.has(defaults[0].model.id) ? defaults[0].model.id : null,
+    missingReasoningMetadata: selectable
       .filter(
         ({ model }) =>
           model.defaultReasoningEffort === null || model.supportedReasoningEfforts.length === 0,

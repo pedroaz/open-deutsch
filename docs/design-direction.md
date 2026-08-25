@@ -65,8 +65,6 @@ Use progressive disclosure: corrected text and important changes appear first; d
 
 Optimize for desktop windows rather than mobile pages. At standard width use navigation, main workspace, and optional helper. At moderately narrow width collapse the helper into a drawer or tab without hiding the primary action or creating horizontal document scrolling.
 
-## Component gallery and validation
+## Visual review
 
-Provide a development-only component gallery containing every shared component and meaningful state. Exercise it in English and German at standard and narrow window sizes.
-
-Visual gates should include representative screenshots rather than pixel-perfect coverage of the entire app. Tests fail for missing translations, obvious overflow, inaccessible names/roles, console errors, broken focus behavior, and inconsistent token usage.
+When the user explicitly requests visual verification, inspect the affected production screen in English and German at standard and narrow window sizes. Review translations, overflow, accessible names and roles, focus behavior, console errors, and design-token consistency directly. Do not maintain a component-test gallery or screenshot regression suite.

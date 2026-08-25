@@ -9,7 +9,7 @@ import {
   readProjectedModelCatalog,
   readSupportedCodexVersion,
 } from "./lib/app-server-probe.mjs";
-import { createDisposableDataHarness } from "../tests/support/disposable-data.mjs";
+import { createDisposableDataHarness } from "./lib/disposable-data.mjs";
 
 const codexExecutable = process.env.CODEX_EXECUTABLE ?? "codex";
 const harness = await createDisposableDataHarness();

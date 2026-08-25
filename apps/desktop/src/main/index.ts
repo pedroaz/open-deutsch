@@ -17,18 +17,9 @@ import { appendDesktopLog } from "./logging.js";
 import { publishRendererReadiness } from "./readiness.js";
 import { attachNavigationPolicy, configureSessionSecurity } from "./security.js";
 
-const rendererUrl = (() => {
-  const url = new URL(
-    process.env["OPEN_DEUTSCH_RENDERER_URL"] ?? new URL("../renderer/index.html", import.meta.url),
-  );
-  if (
-    process.env["OPEN_DEUTSCH_TEST_MODE"] === "1" &&
-    process.env["OPEN_DEUTSCH_DESKTOP_GALLERY"] === "1"
-  ) {
-    url.searchParams.set("gallery", "1");
-  }
-  return url.href;
-})();
+const rendererUrl = new URL(
+  process.env["OPEN_DEUTSCH_RENDERER_URL"] ?? new URL("../renderer/index.html", import.meta.url),
+).href;
 const preload = fileURLToPath(new URL("../preload/index.cjs", import.meta.url));
 let backend: DesktopBackend | undefined;
 let mainWindow: BrowserWindow | undefined;
@@ -251,10 +242,6 @@ if (!app.requestSingleInstanceLock()) {
         });
       },
       processOptions: {
-        ...(process.env["OPEN_DEUTSCH_TEST_MODE"] === "1" &&
-        process.env["OPEN_DEUTSCH_TEST_CODEX_EXECUTABLE"]
-          ? { executable: process.env["OPEN_DEUTSCH_TEST_CODEX_EXECUTABLE"] }
-          : {}),
         log,
       },
     });

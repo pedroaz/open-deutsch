@@ -24,13 +24,9 @@ Use `make help` for the complete public command surface. Production-like local s
 
 ```text
 make check
-make test-fast
-make test-e2e
-make test-plugin
-make test-all
 ```
 
-Automated commands use disposable data roots and never invoke the account-consuming `make verify-live` or `make verify-plugin` workflows. Those commands require separate explicit confirmation immediately before execution.
+`make check` runs Prettier, ESLint, and strict TypeScript checks only. `make test` is an explicitly requested Playwright journey against the production Electron app, connected Codex account, and selected learner data. It warns that it may consume usage or change learner records, then starts without an interactive confirmation prompt.
 
 ## Documentation
 

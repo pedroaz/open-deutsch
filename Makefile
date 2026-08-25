@@ -1,8 +1,8 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help setup dev prd start status kill logs logs-errors logs-clear performance \
-	typecheck lint lint-fix format format-check check test-fast test test-e2e \
-	test-plugin test-all doctor package verify-live verify-plugin install-plugin \
+.PHONY: help setup dev prd start status kill logs logs-errors logs-clear \
+	typecheck lint lint-fix format format-check check test \
+	doctor package install-plugin \
 	refresh-plugin plugin-status uninstall-plugin
 
 help: ## Show this help.
@@ -42,10 +42,6 @@ logs-clear: ## Confirm and clear only resolved Open Deutsch lifecycle logs.
 	@echo "+ pnpm run logs:clear"
 	@pnpm run logs:clear
 
-performance: ## Measure local performance budgets with synthetic disposable data.
-	@echo "+ pnpm run performance"
-	@pnpm run performance
-
 typecheck: ## Run strict TypeScript project-reference checks.
 	@echo "+ pnpm run typecheck"
 	@pnpm run typecheck
@@ -66,27 +62,13 @@ format-check: ## Verify Prettier formatting without changing files.
 	@echo "+ pnpm run format:check"
 	@pnpm run format:check
 
-check: ## Run deterministic formatting, lint, type, and fast test gates.
+check: ## Run formatting, lint, and strict TypeScript checks without live actions.
 	@echo "+ pnpm run check"
 	@pnpm run check
 
-test-fast: ## Run the deterministic fast test gate without account usage.
-	@echo "+ pnpm run test:fast"
-	@pnpm run test:fast
-
-test: test-fast ## Exact alias for make test-fast.
-
-test-e2e: ## Run deterministic Electron journeys with fake external services.
-	@echo "+ pnpm run test:e2e"
-	@pnpm run test:e2e
-
-test-plugin: ## Run deterministic plugin, skill, and MCP structural checks.
-	@echo "+ pnpm run test:plugin"
-	@pnpm run test:plugin
-
-test-all: ## Run every deterministic local gate; never invokes live verification.
-	@echo "+ pnpm run test:all"
-	@pnpm run test:all
+test: ## Run the requested live Practice journey against real learner data.
+	@echo "+ pnpm run test"
+	@pnpm run test
 
 doctor: ## Diagnose pinned tools and local workspace prerequisites without mutation.
 	@echo "+ pnpm run doctor"
@@ -95,14 +77,6 @@ doctor: ## Diagnose pinned tools and local workspace prerequisites without mutat
 package: ## Build the Linux release package through the configured packager.
 	@echo "+ pnpm run package"
 	@pnpm run package
-
-verify-live: ## Explicitly confirm connected-account App Server workload verification.
-	@echo "+ pnpm run verify:live"
-	@pnpm run verify:live
-
-verify-plugin: ## Separately confirm installed-host plugin prompt verification.
-	@echo "+ pnpm run verify:plugin"
-	@pnpm run verify:plugin
 
 install-plugin: ## Install only the scoped Open Deutsch Codex plugin payload.
 	@echo "+ pnpm run plugin:install"

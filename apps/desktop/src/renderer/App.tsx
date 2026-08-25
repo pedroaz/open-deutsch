@@ -35,18 +35,7 @@ import { Button, Dialog, Heading, Modal, ModalOverlay } from "react-aria-compone
 import { useTranslation } from "react-i18next";
 
 import styles from "./App.module.css";
-import {
-  AppButton,
-  DestructiveDialog,
-  Disclosure,
-  FormField,
-  InlineDiff,
-  ItemList,
-  LoadingState,
-  SideBySideDiff,
-  StatusMessage,
-  SurfaceCard,
-} from "./components/Foundation.js";
+import { DestructiveDialog, StatusMessage, SurfaceCard } from "./components/Foundation.js";
 import i18n from "./i18n.js";
 import { Dashboard } from "./Dashboard.js";
 import { ExerciseEngine } from "./ExerciseEngine.js";
@@ -901,10 +890,12 @@ function PracticePage({
   activityId,
   requestAiAccess,
   onGenerated,
+  onDeleted,
 }: {
   activityId?: PreparedActivityId;
   requestAiAccess: () => Promise<boolean>;
   onGenerated: () => void;
+  onDeleted: () => void;
 }) {
   const { t } = useTranslation();
   const [generated, setGenerated] =
@@ -922,6 +913,7 @@ function PracticePage({
   const [customRequest, setCustomRequest] = useState("");
   const [generating, setGenerating] = useState(false);
   const [generationFailed, setGenerationFailed] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   useEffect(() => {
     if (!activityId) return;
     void invokeDesktop("prepared-activity/read", { activityId })
@@ -956,6 +948,18 @@ function PracticePage({
     [generated],
   );
   if (activityId) {
+    const deleteGeneratedLesson = async () => {
+      setDeleting(true);
+      setError(undefined);
+      try {
+        await invokeDesktop("prepared-activity/delete", { activityId });
+        onDeleted();
+      } catch (cause: unknown) {
+        setError(normalizeDesktopError(cause).detail);
+      } finally {
+        setDeleting(false);
+      }
+    };
     return (
       <section className={styles.page}>
         <h1>{generated?.title ?? t("exercises.loading")}</h1>
@@ -1006,6 +1010,16 @@ function PracticePage({
               {t("exercises.abandonInterrupted")}
             </Button>
           </SurfaceCard>
+        )}
+        {generated && !generated.activeSet && !startedAttemptIds && (
+          <DestructiveDialog
+            body={t("exercises.delete.body")}
+            cancel={t("actions.cancel")}
+            confirm={t("exercises.delete.confirm")}
+            onConfirm={() => void deleteGeneratedLesson()}
+            title={t("exercises.delete.title")}
+            trigger={deleting ? t("exercises.delete.deleting") : t("exercises.delete.trigger")}
+          />
         )}
         {generated && !generated.activeSet && (
           <ExerciseEngine
@@ -1372,6 +1386,10 @@ function AppShell({ readiness, reload }: { readiness: Readiness; reload: () => P
                 setPreparedActivityId(undefined);
                 setPage("dashboard");
               }}
+              onDeleted={() => {
+                setPreparedActivityId(undefined);
+                setPage("dashboard");
+              }}
             />
           ) : null}
           {page === "writing" ? (
@@ -1495,98 +1513,12 @@ function AppShell({ readiness, reload }: { readiness: Readiness; reload: () => P
   );
 }
 
-function ComponentGallery() {
-  const { t } = useTranslation();
-  return (
-    <main className={styles.gallery}>
-      <header className={styles.galleryHeader}>
-        <div>
-          <p className={styles.eyebrow}>{t("app.name")}</p>
-          <h1>{t("gallery.title")}</h1>
-          <p className={styles.muted}>{t("gallery.intro")}</p>
-        </div>
-        <LanguageButton />
-      </header>
-      <section className={styles.gallerySection}>
-        <h2>{t("gallery.forms")}</h2>
-        <FormField
-          defaultValue={t("gallery.fieldValue")}
-          hint={t("gallery.fieldHint")}
-          key={t("gallery.fieldValue")}
-          label={t("gallery.label")}
-        />
-        <FormField
-          error={t("gallery.fieldError")}
-          hint={t("gallery.fieldHint")}
-          label={t("gallery.errorLabel")}
-        />
-        <div className={styles.buttonRow}>
-          <AppButton variant="primary">{t("actions.continue")}</AppButton>
-          <AppButton>{t("actions.cancel")}</AppButton>
-          <AppButton isDisabled>{t("actions.continue")}</AppButton>
-        </div>
-      </section>
-      <section className={styles.gallerySection}>
-        <h2>{t("gallery.states")}</h2>
-        <div className={styles.galleryGrid}>
-          <StatusMessage tone="success">{t("gallery.success")}</StatusMessage>
-          <StatusMessage tone="warning">
-            <TriangleAlert aria-hidden="true" /> {t("gallery.warning")}
-          </StatusMessage>
-          <StatusMessage tone="error">
-            <AlertCircle aria-hidden="true" /> {t("gallery.error")}
-          </StatusMessage>
-          <LoadingState>{t("gallery.loading")}</LoadingState>
-          <StatusMessage tone="success">{t("gallery.toast")}</StatusMessage>
-          <StatusMessage>{t("gallery.empty")}</StatusMessage>
-        </div>
-        <SurfaceCard>
-          <h3>{t("gallery.listTitle")}</h3>
-          <ItemList items={[t("gallery.listOne"), t("gallery.listTwo")]} />
-        </SurfaceCard>
-      </section>
-      <section className={styles.gallerySection}>
-        <h2>{t("gallery.diffs")}</h2>
-        <InlineDiff
-          corrected={t("gallery.corrected")}
-          description={t("gallery.change")}
-          original={t("gallery.original")}
-        />
-        <SideBySideDiff
-          corrected={t("gallery.corrected")}
-          correctedLabel={t("gallery.correctedLabel")}
-          original={t("gallery.original")}
-          originalLabel={t("gallery.originalLabel")}
-        />
-        <Disclosure label={t("gallery.disclosure")}>
-          <p>{t("gallery.disclosureBody")}</p>
-        </Disclosure>
-      </section>
-      <section className={styles.gallerySection}>
-        <h2>{t("gallery.dialog")}</h2>
-        <DestructiveDialog
-          body={t("gallery.dangerBody")}
-          cancel={t("actions.cancel")}
-          confirm={t("actions.delete")}
-          title={t("gallery.dangerTitle")}
-          trigger={t("actions.delete")}
-        />
-      </section>
-    </main>
-  );
-}
-
 export default function App() {
   const { t } = useTranslation();
   const [readiness, setReadiness] = useState<Readiness>();
   const [fatal, setFatal] = useState<OpenDeutschError>();
   const [recoveringRoot, setRecoveringRoot] = useState(false);
   const [profileOnboarding, setProfileOnboarding] = useState(false);
-  const gallery = useMemo(() => {
-    const requested = new URLSearchParams(window.location.search).get("gallery") === "1";
-    return requested && (import.meta.env.DEV || navigator.webdriver);
-  }, []);
-
   const load = useCallback(async () => {
     setFatal(undefined);
     try {
@@ -1603,16 +1535,12 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const initialLoad = window.setTimeout(() => {
-      if (!gallery) void load();
-    }, 0);
+    const initialLoad = window.setTimeout(() => void load(), 0);
     window.openDeutsch.ready();
     return () => {
       window.clearTimeout(initialLoad);
     };
-  }, [gallery, load]);
-
-  if (gallery) return <ComponentGallery />;
+  }, [load]);
   if (fatal) {
     return (
       <StartupFrame>

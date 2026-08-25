@@ -16,7 +16,7 @@ import { useTranslation } from "react-i18next";
 
 import styles from "./App.module.css";
 import { SurfaceCard } from "./components/Foundation.js";
-import { invokeDesktop, normalizeDesktopError } from "./ipc.js";
+import { invokeDesktop, normalizeDesktopError, subscribeDesktop } from "./ipc.js";
 
 type Snapshot = Extract<DesktopIpcResponse, { status: "ok"; channel: "dashboard/read" }>["result"];
 type Destination = "writing" | "practice" | "vocabulary" | "weeklyPlan" | "history";
@@ -54,10 +54,14 @@ export function Dashboard({
   useEffect(() => {
     const initial = window.setTimeout(() => void refresh(), 0);
     const onFocus = () => void refresh();
+    const unsubscribe = subscribeDesktop((event) => {
+      if (event.event === "state-invalidated" && event.scope === "dashboard") void refresh();
+    });
     window.addEventListener("focus", onFocus);
     return () => {
       window.clearTimeout(initial);
       window.removeEventListener("focus", onFocus);
+      unsubscribe();
     };
   }, [refresh]);
 

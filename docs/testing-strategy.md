@@ -1,165 +1,31 @@
-# Agent-oriented testing strategy
+# Live user-journey verification
 
 Status: current engineering guidance
-Last updated: 2026-08-22
+Last updated: 2026-08-25
 
-## Objectives
+Open Deutsch uses tests only when the maintainer explicitly requests a concrete live user journey. Tests are agent-operated functional checks, not an automated regression suite or a completion gate.
 
-The test system should let Codex or another coding agent verify most changes quickly from the terminal, interact with the real Electron renderer when needed, and reserve model/account-dependent checks for explicit smoke runs.
+## Static quality checks
 
-The default loop must be:
+`make check` runs only Prettier formatting checks, ESLint, and strict TypeScript project-reference checks. It performs no model calls, UI automation, synthetic workflow, fixture validation, or learner-data mutation.
 
-- deterministic;
-- safe for the learner's real data;
-- independent of a live OpenAI account;
-- fast enough to run repeatedly;
-- inspectable through concise failures plus traces/screenshots when UI automation fails.
+## Live journeys
 
-## Testing layers
+`make test` currently runs the requested custom-Practice journey. It:
 
-| Layer | Main tool | Expected speed | What it proves |
-| --- | --- | --- | --- |
-| Static validation | TypeScript, linting, schema/manifest checks | Seconds | Packages, contracts, plugin files, and curriculum metadata are structurally valid. |
-| Unit tests | Vitest | Seconds | Domain rules, feedback modes, scheduling, selectors, and pure transformations. |
-| Persistence integration | Vitest + real temporary SQLite | Seconds | Migrations, repositories, transactions, and recurring-mistake/SRS queries. |
-| IPC and AI contracts | Vitest + fake process fixtures | Seconds | Renderer/main boundaries and App Server JSON-RPC handling without a live account. |
-| MCP protocol tests | MCP SDK client spawning the STDIO server | Seconds | Tool discovery, schemas, reads/writes, errors, and persistence against a temporary dataset. |
-| Renderer/component tests | Testing Library + Vitest where useful | Seconds | Focused interaction and accessibility without launching Electron. |
-| Electron journeys | Playwright Test using Electron automation | Tens of seconds | Onboarding, writing, correction display, history, vocabulary, and restart behavior. |
-| Deterministic plugin checks | Manifest/schema validators + mocked tool/skill fixtures | Seconds | Packaging, instructions, workflow contracts, and prompt-corpus expectations without a live account. |
-| Live plugin verification | Installed local plugin + fixed prompt corpus, manually invoked | Minutes/variable | Supported installation, skill activation, tool choice, follow-ups, and one complete real Codex workflow. |
-| Live functional verification | Real App Server and the learner's Codex account, manually invoked | Slow/variable | Authentication, model discovery, and one real structured correction. This is not an automated test gate. |
+- builds and launches the production Electron application;
+- uses the selected real learner dataset and connected Codex account;
+- drives only learner-visible UI with Playwright;
+- uses the real App Server and model response without mocks, fake executables, seeded output, or direct database setup;
+- warns that it may consume account usage and mutate learner data, then starts without an interactive prompt;
+- creates, opens, verifies, and deletes one generated lesson through the application UI.
 
-## Fast default commands
+The journey temporarily selects Luna with exact medium reasoning through the production Settings UI, records the prior generation preference, and restores it before exit. It records prepared-activity and candidate-vocabulary counts before generation begins. A successful run restores both counts through the user-facing prepared-lesson deletion action. A failed run may retain the generated lesson rather than risk deleting an unrelated learner record.
 
-Expose stable Make targets so a learner or agent does not need to discover package commands. Each Make target delegates to an exact pnpm workspace script:
+The live runner requires Open Deutsch to be closed. It never kills a process automatically. Screenshots, traces, video, page dumps, learner content, prompts, and model output are excluded from test artifacts and diagnostics. Failures use bounded diagnostic codes.
 
-- `make test-fast` — artifact validation, unit tests, SQLite integration, contracts, and MCP protocol tests.
-- `make check` — formatting, linting, strict type checks, and the complete fast gate.
-- `make test-e2e` — deterministic Electron Playwright journeys with fake AI/auth.
-- `make test-plugin` — deterministic plugin manifest, schema, fixture, and prompt-corpus contract checks; no host account and no model usage.
-- `make verify-plugin` — manually verify the installed plugin and one fixed live Codex workflow; warn and require confirmation because it consumes account usage.
-- `make verify-live` — manually invoke all six real App Server learning workloads; warn and require confirmation because it consumes account usage.
-- `make test` — exact convenience alias for `make test-fast`.
-- `make doctor` — verify required binaries, pinned Codex/App Server readiness, Playwright/Electron launch support, the packaged eight-tool MCP helper, scoped plugin status, and writable disposable paths without changing user state.
-- `make check` — formatting, linting, strict type checking, deterministic tests, plugin/curriculum validation, and other completion gates.
-- `make test-all` — `test-fast`, deterministic Electron journeys, and deterministic plugin/MCP checks; it never invokes live verification.
+## Adding tests
 
-Target `make test-fast` at well under one minute, preferably under 20 seconds once the project is warm. Keep slow tests separately tagged and runnable by name or affected package.
+Do not add or run a journey merely because code changed, a pull request is being prepared, or broader coverage would be useful. Add a Playwright journey only when the user explicitly asks for that user-visible behavior to be tested. Each journey uses production boundaries, real services, visible UI actions, and an explicit cleanup path when it writes temporary learner records.
 
-## Safe test data
-
-- Every test run creates a unique temporary data root and bootstrap pointer.
-- Plugin installation tests also use a disposable isolated Codex configuration/home. If the supported CLI cannot isolate configuration, unattended tests remain read-only and real-host mutation moves behind confirmed `make verify-plugin`.
-- Never infer or reuse the learner's configured data root in automated tests.
-- Seed named scenarios such as `new-learner`, `writing-with-errors`, `recurring-dative`, and `vocabulary-due`.
-- Use real SQLite for persistence tests rather than mocking repository behavior.
-- Keep small, reviewed German correction fixtures for deterministic UI tests.
-- Clean temporary data after success and preserve the failing fixture path when it helps diagnosis.
-
-Repository artifacts are checked before the test suites by `pnpm run test:artifacts`; the enforced formats, fixture inventory, UI catalog/token rules, and privacy boundaries are documented in `docs/artifact-validation.md`.
-
-## Testing desktop-native AI without spending usage
-
-Put a narrow App Server adapter behind a process interface. Most tests should launch a fake JSON-RPC process that can replay:
-
-- account signed in/signed out events;
-- model catalogs and supported efforts;
-- streaming progress;
-- valid structured corrections;
-- malformed outputs, cancellation, rate limits, and process crashes.
-
-Contract fixtures should be schema-checked so they cannot silently drift from the adapter's expected protocol.
-
-Keep one separate live verification that:
-
-1. Is started manually through `make verify-live` and never discovered by Vitest or Playwright test patterns.
-2. Displays a clear usage warning before the real model turn.
-3. Uses the existing Codex-managed personal account.
-4. Reads the current model catalog, performs one short fixed request for each supported learning workload with an explicitly selected model/reasoning setting, validates every structured result, and runs harmless controlled canary attempts that prove the real runtime denies out-of-sandbox filesystem, disabled-tool, and network access.
-5. Uses a disposable data root rather than the learner's normal dataset.
-6. Prints a concise pass/fail report for correction and enforced isolation and does not become a CI or `test:all` dependency.
-
-The purpose is to verify real integration functionality occasionally, not to measure every code change or model response.
-
-## Electron interaction
-
-Use Playwright Test's Electron automation for committed end-to-end journeys. It launches Electron, accesses the main process, controls renderer windows, and stubs native dialogs. A dedicated compatibility journey protects the pinned Electron/Playwright pair.
-
-Test seams should include:
-
-- an explicit test-mode data-root override;
-- deterministic native folder-dialog stubbing;
-- fake App Server and plugin-status adapters;
-- stable roles/labels, using test IDs only when semantic locators are insufficient;
-- trace, screenshot, console, and main-process log capture on failure;
-- an Xvfb-compatible command for headless Linux environments.
-
-Playwright MCP may be added as an exploratory tool so an agent can inspect and manipulate a running app through CDP when useful. It should not replace committed Playwright tests: scripted assertions, fixtures, and artifacts are the reproducible acceptance gate.
-
-### Optional Playwright MCP exploration
-
-For exploratory inspection only, start a disposable development instance with `make dev`, attach the agent's Playwright MCP tooling to that instance, and inspect the first Electron window at the standard and narrow sizes. Use only a disposable data root and fake App Server fixture; do not paste learner text, credentials, or raw protocol output into the exploration transcript. Close the owned instance with `make kill` when finished. MCP exploration may guide a fix or screenshot review, but only the committed `make test-e2e` journeys and their retained redacted artifacts determine pass/fail.
-
-## MCP server testing
-
-Test the local server at three levels:
-
-1. **Tool handler tests:** call domain handlers directly with temporary SQLite.
-2. **STDIO protocol tests:** spawn the same built command used by the plugin, connect with an MCP SDK client, list tools, call them, and validate results/errors.
-3. **Manual diagnostics:** use MCP Inspector when schemas, transport, or model-readable results need visual inspection.
-
-Representative cases must include valid reads/writes, empty results, missing identifiers, invalid inputs, unavailable data roots, concurrent desktop access, and attempts to write unsupported fields.
-They must also prove coordinated data-root generation changes: a running MCP process must never continue serving a stale dataset after the desktop switches roots.
-
-## Plugin and skill evaluations
-
-OpenAI's plugin testing guidance recommends testing each capability first, then the installed complete plugin. Maintain a versioned evaluation corpus containing:
-
-- direct prompts that should activate each skill/tool;
-- indirect paraphrases;
-- follow-ups using earlier identifiers;
-- write requests and confirmation-sensitive behavior;
-- negative prompts that must not activate the plugin;
-- unsupported/boundary requests;
-- expected skill, tool, essential arguments, and required workflow steps.
-
-Run MCP protocol tests on every relevant change. Run deterministic prompt-contract fixtures after changes to skill descriptions, tool names/descriptions/schemas, plugin manifests, or workflow instructions. Record results so regressions can be compared across versions. Run the real installed-host corpus only through `make verify-plugin`; it is functional verification, never an automated unit, end-to-end, CI, or `make test` dependency.
-
-## Agent workflow
-
-Repository instructions require an agent to:
-
-1. Run the smallest targeted Make test while editing.
-2. Run `make test-fast` before considering a change complete; `make test` is the exact alias.
-3. Run the affected Playwright journey for renderer/main-process changes.
-4. Run MCP protocol tests and relevant prompt evaluations for plugin/tool changes.
-5. Run `make verify-live` or `make verify-plugin` only after explicit confirmation when real integration functionality needs verification; these consume account usage and are not automated tests.
-6. Inspect Playwright traces, screenshots, and process logs before retrying a failure.
-7. Never point automation at the learner's real data root.
-8. Update the closest living document when supported behavior or an operating constraint changes.
-
-## Required breadth and quality cases
-
-- Cover Dashboard, Practice, Writing, Vocabulary, History, Weekly plan, and Settings/Account in both English and German, with English verified as the default. Include grammar, reading, Codex listening/speaking, and optional diagnostics within Practice.
-- Exercise all four learning areas. Speaking and listening journeys assert structured preparation/result handling, the exact unsupported-handoff blocker, and the absence of local audio; they never emulate Voice or offer clipboard/manual fallbacks.
-- Cover conversational-partner and strict-corrector behavior, optional placement tests, weekly planning, writing correction/comparison, the selection-aware explanation helper, grammar/vocabulary/custom lessons, simple spaced repetition, and model/reasoning preferences.
-- Add accessibility checks for keyboard operation, focus restoration, labels, reduced motion, and contrast, plus visual acceptance screenshots for the component gallery and principal light-mode screens.
-- Exercise cancellation, retry, incompatible/missing Codex, model unavailability, rate limits, denied approvals, App Server crashes, schema failures, corrupted local records, unsafe data roots, and stale MCP generations.
-- Verify logs are human-readable, correlated across processes, redacted, and bounded under repeated failures.
-- Treat curriculum and researched source text as adversarial test inputs to prove they cannot widen sandbox, tool, approval, or output boundaries.
-
-## Excluded test scope
-
-- Playwright MCP as a CI dependency.
-- Live model calls from automated unit, integration, end-to-end, or CI test suites.
-- Automated Voice UI testing or account-consuming Voice automation. Exact desktop-originated Voice opening is unsupported by the current host and is represented as an explicit product limitation.
-- Public HTTPS/tunnel testing for a personal local STDIO plugin.
-- Pixel-perfect screenshot testing for every state; representative visual acceptance coverage is required.
-- A cloud CI service; local deterministic commands are the repository's acceptance authority.
-
-## Official references
-
-- [Connect and test your plugin](https://developers.openai.com/plugins/deploy/connect-chatgpt)
-- [Build an MCP server](https://developers.openai.com/plugins/build/mcp-server)
-- [Playwright Electron automation](https://playwright.dev/docs/api/class-electron)
+Unit tests, component tests, mocked integration tests, deterministic end-to-end suites, coverage thresholds, prompt corpora, artifact validators, and CI test matrices are intentionally outside the repository strategy.

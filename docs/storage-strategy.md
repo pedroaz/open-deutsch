@@ -89,20 +89,21 @@ Generated staging remains ignored by Git until the maintainer deliberately copie
 ## Privacy baseline
 
 - Rely on operating-system file permissions and the learner's disk encryption.
-- Create and maintain Open Deutsch-owned files with restrictive Linux permissions where possible, and test permission/symlink boundary behavior.
+- Create and maintain Open Deutsch-owned files with restrictive Linux permissions where possible, and reject permission or symlink boundary violations at runtime.
 - Clearly disclose that the selected folder contains readable local learning data.
 - Clearly disclose that model requests send the selected exercise or research context to OpenAI through the installed Codex client even though the resulting learning record remains local.
 - Defer application-level SQLite encryption until there is a concrete requirement.
 
-## Validation coverage
+## Runtime integrity
 
-Automated coverage verifies:
+Persistence preserves these invariants directly through runtime validation, transactions, migrations, and bounded operational diagnostics:
 
-- saving one generated exercise and multiple attempts;
-- reconstructing the correction and mistake-history views;
-- updating vocabulary review schedules transactionally;
-- reopening an existing data root without Codex thread data;
-- migrating a database created by an earlier app version.
-- switching roots while desktop and MCP processes are active without reading or writing the stale dataset;
-- log redaction, bounded retention, and safe diagnostics export;
-- restrictive permissions and rejection of malicious or accidental symlink escape paths.
+- generated exercises, attempts, corrections, and mistake-history views remain reconstructable;
+- vocabulary review schedules update transactionally;
+- an existing data root reopens without Codex task data;
+- older supported databases migrate atomically;
+- switching roots cannot read or write the stale dataset;
+- logs remain redacted and bounded, and diagnostics exports remain explicit;
+- owned files retain restrictive permissions and symlink escapes fail closed.
+
+Deleting an unstarted generated prepared activity is one atomic repository operation. It refuses deletion when exercises have started, retained MCP feedback exists, or sourced vocabulary has been confirmed. Otherwise it records the required opaque vocabulary-deletion tombstones, removes only unconfirmed vocabulary candidates sourced exclusively from that activity, then removes the activity and its cascading generated payload/context records. Tombstones retain no candidate content.

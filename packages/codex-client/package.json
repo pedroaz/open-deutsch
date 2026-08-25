@@ -13,10 +13,8 @@
   },
   "scripts": {
     "build": "tsc -b --force",
-    "test": "pnpm --workspace-root exec vitest run --config vitest.config.mjs --project codex-client",
     "probe:app-server:authenticated:run": "node ../../scripts/probe-app-server-authenticated.mjs",
-    "probe:app-server:capabilities:authenticated:run": "node ../../scripts/probe-app-server-capabilities-authenticated.mjs",
-    "verify:live:run": "pnpm run build && node ../../scripts/verify-open-deutsch-live.mjs"
+    "probe:app-server:capabilities:authenticated:run": "node ../../scripts/probe-app-server-capabilities-authenticated.mjs"
   },
   "dependencies": {
     "@open-deutsch/contracts": "workspace:*",

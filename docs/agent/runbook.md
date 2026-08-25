@@ -16,10 +16,9 @@ Codex discovers root and nested `AGENTS.md` files from the repository root towar
 
 ## Everyday loop
 
-- Use a focused package command or named Node test while editing.
-- Run `make test-fast` after code or configuration changes.
-- Run `make check` before completing a broad deterministic slice.
-- Use `make test-e2e` for Electron journeys and `make test-plugin` for plugin/MCP structure.
+- Inspect code and redacted logs while editing.
+- Run `make check` only when the user asks for static verification or a pull request is being prepared.
+- Add or run a live Playwright journey only when the user explicitly requests that user-visible workflow.
 
 ## Lifecycle and logs
 
@@ -37,21 +36,21 @@ Lifecycle state and startup logs live below the ignored `.runtime/` directory. D
 - Toolchain: `pnpm run toolchain:check`; add `:integration` only to check the installed Codex/App Server capability without performing a model turn.
 - TypeScript: run the affected project with `pnpm exec tsc -b <config> --force`, then restore the broad `make typecheck` gate.
 - Lint/format: use `pnpm run lint` or `pnpm run format:check`; use fix commands only for intended files.
-- Electron: inspect the first Playwright trace, screenshot, renderer console, and main-process log before rerunning.
-- MCP: spawn the same built STDIO entrypoint used by the plugin; keep STDOUT clean and inspect redacted STDERR.
-- App Server: verify the pinned CLI and documented capability first, then use fake JSON-RPC fixtures for routine tests.
+- Electron: inspect bounded live-journey failure codes and redacted main-process logs; live runs do not retain traces, screenshots, video, or DOM dumps.
+- MCP: inspect the built STDIO entrypoint directly when diagnosing it; keep STDOUT clean and inspect redacted STDERR.
+- App Server: verify the pinned CLI and documented capability directly without fake processes.
 - Packaging: use `make package` and inspect generated metadata and launch behavior in a disposable environment.
 
 ## Live-account boundary
 
-`make verify-live` and `make verify-plugin` are manual functional verification. Never invoke either from tests, CI, `make check`, `make test-all`, an unattended loop, or as a speculative diagnostic. Immediately before either command, explain that it may consume the managed personal Codex account, obtain explicit user confirmation, and use disposable Open Deutsch data. Confirmation for one command does not authorize the other.
+`make test` is user-requested functional verification. Never invoke it from CI, `make check`, scheduled automation, or as a speculative diagnostic. The runner explains that it uses the managed personal Codex account and selected learner data and may consume usage or change records, then proceeds without a confirmation prompt.
 
 ## Disposable-state recovery
 
 - Resolve and print a disposable target before deleting or clearing anything.
-- Use only test-created roots, never the learner's selected root or real bootstrap pointer.
+- Operational diagnostics use only disposable roots. An explicitly requested live journey may use the selected learner root after warning without pausing.
 - Prefer the owning Make command for lifecycle/log cleanup.
-- Preserve a failed test root when it contains useful redacted evidence; otherwise remove only that exact generated root.
+- Preserve a failed live record when UI cleanup cannot identify it safely; never perform hidden database cleanup.
 - Never use broad process matching, broad globs, or recursive deletion aimed at a workspace, home, Codex home, or unresolved environment variable.
 
 ## Completion evidence

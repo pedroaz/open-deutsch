@@ -23,7 +23,7 @@ Make is the documented human-facing command surface. Make targets delegate to co
 
 Development and production-like runs record exact PIDs and mode-specific state in an ignored runtime directory. Never kill by broad process-name matching. Detect stale PIDs and refuse to target processes whose identity no longer matches.
 
-## Required quality and test targets
+## Quality and live-journey targets
 
 - `make typecheck`
 - `make lint`
@@ -31,22 +31,15 @@ Development and production-like runs record exact PIDs and mode-specific state i
 - `make format`
 - `make format-check`
 - `make check`
-- `make test-fast`
 - `make test`
-- `make test-e2e`
-- `make test-plugin`
-- `make test-all`
 - `make doctor`
 - `make package`
 
-`make test-fast` is the everyday sub-20-second target where practical. `make test` is an exact convenience alias for `make test-fast`. `make check` is deterministic and combines formatting, linting, strict types, and the complete fast gate. `make test-all` includes every deterministic local gate, including Electron journeys and plugin/MCP checks, and never invokes a real OpenAI account. Development startup reuses valid TypeScript build information instead of forcing a clean compile on every launch. Lifecycle readiness uses a bounded 60-second startup window so a necessary clean Electron watch build can initialize on the supported development machine without weakening failure cleanup.
+`make check` combines formatting, linting, and strict TypeScript checks without running a user journey. `make test` is not a completion gate: it warns, then launches the production Electron application without a confirmation prompt and runs only explicitly requested live Playwright journeys against the connected account and selected learner data. It is never part of CI or scheduled automation. Development startup reuses valid TypeScript build information instead of forcing a clean compile on every launch. Lifecycle readiness uses a bounded 60-second startup window so a necessary clean Electron watch build can initialize without weakening failure cleanup.
 
-## Explicit live verification targets
+## Live verification boundary
 
-- `make verify-live` — warn, require explicit confirmation, then exercise every supported App Server learning workload against the connected account and disposable data.
-- `make verify-plugin` — warn, require explicit confirmation, then run the installed-host skill/tool prompt evaluation inventory.
-
-Neither target is called by normal tests, CI, `make check`, `make test-all`, or unattended automation.
+The repository has no automated regression suite, unit/component suite, fake-service journey, prompt corpus, or coverage gate. A new Playwright journey is added only when the user asks for that user-visible workflow. Every live run warns about account usage and learner-data mutation without pausing, avoids private artifacts, and uses visible product cleanup rather than direct database cleanup.
 
 ## Plugin targets
 
@@ -61,7 +54,7 @@ The repository-scoped source is `.agents/plugins/marketplace.json` with the `ope
 
 ## Code quality baseline
 
-- Strict TypeScript across Node, Electron, renderer, contracts, and tests.
+- Strict TypeScript across Node, Electron, renderer, and contracts.
 - ESLint flat configuration with TypeScript, React, hooks, imports, accessibility, Electron security, unsafe `any`, and package-boundary enforcement.
 - Prettier owns formatting.
 - Runtime schemas validate IPC, MCP, AI results, curriculum metadata, and persisted JSON boundaries.

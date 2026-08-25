@@ -7,5 +7,4 @@ The root instructions still apply. These rules protect the local STDIO server an
 - Validate tool inputs and outputs at runtime and keep tool names, descriptions, schemas, and error contracts synchronized with the plugin and shared contracts.
 - Resolve the selected data root through the supported bootstrap/generation contract. A process must fail closed when the root is unsafe, missing, or changes generation; it must never continue serving stale data.
 - Restrict writes to explicitly supported domain operations and preserve SQLite transaction and concurrency rules. Treat all model-provided arguments as untrusted.
-- Run handler tests and spawn the built server through an MCP SDK client for protocol tests. Cover discovery, valid and invalid calls, empty data, unavailable roots, concurrency, generation changes, and clean shutdown.
-- Run `make test-plugin` once the deterministic MCP/plugin suite exists; never substitute `make verify-plugin` without explicit user confirmation.
+- Keep production runtime schemas and error handling authoritative. Do not add synthetic MCP tests unless the user explicitly requests a live user journey that requires them.

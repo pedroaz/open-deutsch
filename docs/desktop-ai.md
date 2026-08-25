@@ -69,7 +69,7 @@ The Codex SDK can be evaluated as a convenience layer for thread execution. App 
 
 ## Model and reasoning direction
 
-The backend should query App Server for the current visible model catalog and supported reasoning efforts. The app should offer semantic Automatic/Fast/Balanced/Deep defaults plus advanced exact choices, with separate preferences for correction, generation, the contextual helper, and curriculum research.
+The backend queries App Server for the current visible model catalog and exposes GPT-5.6 Sol, Terra, and Luna when available. The app offers semantic Automatic/Fast/Balanced/Deep defaults plus exact Light (`low`), Medium (`medium`), High (`high`), and Extra High (`xhigh`) choices, with separate preferences for correction, generation, the contextual helper, and curriculum research. Maximum and Ultra modes are not exposed or sent.
 
 Do not hardcode which model belongs to a subscription tier. Use the runtime catalog for availability and account/rate-limit endpoints for status. If a saved choice disappears, require a supported available choice or explicit Automatic behavior; do not silently substitute an unrelated provider or API-key path.
 
@@ -122,9 +122,9 @@ All candidate fields are in scope. The UI should prioritize corrected text, inli
 - Store vocabulary as candidates until the learner explicitly adds items to the active review deck.
 - Do not require raw Codex thread history to reconstruct the learning record.
 
-## Verification boundary
+## Runtime and live-journey boundary
 
-Deterministic and explicitly confirmed live verification cover:
+Production runtime validation and explicitly requested live journeys address:
 
 - Codex-managed browser or device-code login when the existing installation is signed out;
 - account restoration after restart and logout;

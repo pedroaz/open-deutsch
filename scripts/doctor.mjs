@@ -10,7 +10,7 @@ import { promisify } from "node:util";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 
-import { createDisposableDataHarness } from "../tests/support/disposable-data.mjs";
+import { createDisposableDataHarness } from "./lib/disposable-data.mjs";
 
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
 const execFile = promisify(execFileCallback);

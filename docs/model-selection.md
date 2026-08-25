@@ -1,23 +1,24 @@
 # Model selection and reasoning policy
 
 Status: current product policy
-Last updated: 2026-08-15
+Last updated: 2026-08-25
 
 ## Goal
 
-Open Deutsch should work across different personal Codex subscriptions without hardcoding a subscription-to-model matrix. It provides useful defaults while letting each learner choose which available model and reasoning effort handles different AI workloads. A compatible Codex installation and its managed account are required; there is no API-key or alternate-provider path.
+Open Deutsch provides useful defaults while letting each learner choose which supported GPT-5.6 model and reasoning effort handles different AI workloads. A compatible Codex installation and its managed account are required; there is no API-key or alternate-provider path.
 
 ## Runtime discovery
 
 For desktop-native AI actions, use Codex App Server as the source of truth:
 
 - Read the signed-in account and `planType` when available.
-- Call `model/list` to populate the model picker from models currently available to that runtime/account.
+- Call `model/list` and expose the returned `gpt-5.6-sol`, `gpt-5.6-terra`, and `gpt-5.6-luna` entries. Models outside this product set remain unavailable in Open Deutsch.
 - Use each model's `supportedReasoningEfforts`, `defaultReasoningEffort`, and `isDefault` metadata.
+- Offer exact `low`, `medium`, `high`, and `xhigh` effort choices when the selected model advertises them. Do not expose or send `max`, `ultra`, or other unusually expensive modes.
 - Read current rate-limit state for useful status and error messages.
 - Revalidate saved selections after sign-in, app updates, and model-catalog changes.
 
-Do not infer entitlement from the displayed subscription name. Availability and limits can change independently; the runtime model list is authoritative.
+Do not infer entitlement from the displayed subscription name. Availability and limits can change independently; the runtime model list remains authoritative for whether each supported product model is available.
 
 ## Settings model
 
@@ -35,7 +36,7 @@ The semantic effort presets resolve against the selected model's supported effor
 - **Fast:** prefer `low`; otherwise use the model default.
 - **Balanced:** use the model's advertised default reasoning effort.
 - **Deep:** prefer `high`; otherwise use the closest supported ordinary effort, falling back to the model default. Do not automatically select unusually expensive maximum/pro modes.
-- **Exact:** advanced users may select any reasoning effort explicitly advertised for that model.
+- **Exact:** learners may select Light (`low`), Medium (`medium`), High (`high`), or Extra High (`xhigh`) when explicitly advertised for that model.
 
 Committed defaults should remain semantic rather than naming a model that may later disappear. A learner override stores the selected model identifier and effort locally.
 
@@ -44,7 +45,7 @@ Committed defaults should remain semantic rather than naming a model that may la
 The Settings/Account screen should:
 
 - show account and plan information when App Server provides it;
-- show only picker-visible models returned by the runtime;
+- show only picker-visible Sol, Terra, and Luna models returned by the runtime;
 - group overrides by workload instead of exposing one misleading global model setting;
 - explain the speed/quality tradeoff in plain language;
 - offer **Restore automatic defaults**;
@@ -73,4 +74,4 @@ The current Codex App Server documentation exposes runtime model discovery with 
 
 - [Codex App Server](https://developers.openai.com/codex/app-server)
 
-Exact model names, subscription availability, and limits are intentionally not frozen in this plan.
+The supported product model IDs follow the documented GPT-5.6 Sol, Terra, and Luna family. Subscription availability and limits remain runtime-discovered.

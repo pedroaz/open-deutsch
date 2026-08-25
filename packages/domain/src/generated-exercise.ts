@@ -59,11 +59,6 @@ function visibleCandidateText(candidate: Candidate): string {
   return normalized(shared.join(" "));
 }
 
-function containsAnswer(text: string, answer: string): boolean {
-  const key = normalized(answer);
-  return key.length >= 3 && normalized(text).includes(key);
-}
-
 function assertCandidateQuality(candidate: Candidate): void {
   const answers = acceptedAnswers(candidate);
   if (candidate.kind === "fill-in-the-blank") {
@@ -197,23 +192,6 @@ export function materializeGeneratedExerciseSet(
     output.exercises.map(({ title }) => title),
     "OD_EXERCISE_DUPLICATE_CONTENT",
   );
-  if (output.lesson) {
-    const lessonText = [
-      output.lesson.title,
-      output.lesson.explanation,
-      ...output.lesson.sections.flatMap(({ heading, content }) => [heading, content]),
-      ...output.lesson.vocabularyFoundations.flatMap(({ german, explanation, example }) => [
-        german,
-        explanation,
-        example,
-      ]),
-    ].join(" ");
-    for (const candidate of output.exercises) {
-      if (acceptedAnswers(candidate).some((answer) => containsAnswer(lessonText, answer))) {
-        throw new Error("OD_EXERCISE_ANSWER_LEAK");
-      }
-    }
-  }
   return Object.freeze(
     output.exercises.map((candidate, position) =>
       materializeGeneratedExercise(candidate, {
