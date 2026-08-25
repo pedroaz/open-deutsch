@@ -193,12 +193,32 @@ describe("safe Linux data-root selection", () => {
       ["group-writable", 0o770],
       ["world-writable", 0o777],
     ] as const) {
-      const unsafe = path.join(disposableData.sandboxRoot, name);
-      await mkdir(unsafe, { mode: 0o700 });
-      await chmod(unsafe, mode);
-      await expect(inspectDataRootChoice(unsafe)).rejects.toThrow(
-        "OD_DATA_ROOT_PERMISSIONS_UNSAFE",
-      );
+      const sharedParent = path.join(disposableData.sandboxRoot, name);
+      await mkdir(sharedParent, { mode: 0o700 });
+      await chmod(sharedParent, mode);
+      const plan = await inspectDataRootChoice(sharedParent);
+      expect(plan).toMatchObject({
+        action: "create-dedicated-subdirectory",
+        dataRoot: path.join(sharedParent, "open-deutsch-data"),
+        warnings: ["broad-permissions"],
+      });
+      const selected = await materializeDataRootSelection(plan, {
+        generation: dataRootGenerationSchema.parse(1),
+        createdAt: factory.nextInstant(),
+      });
+      expect((await stat(selected.dataRoot)).mode & 0o777).toBe(0o700);
     }
+
+    const unsafeActiveRoot = path.join(disposableData.sandboxRoot, "unsafe-active-root");
+    await mkdir(unsafeActiveRoot, { mode: 0o700 });
+    const initialPlan = await inspectDataRootChoice(unsafeActiveRoot);
+    await materializeDataRootSelection(initialPlan, {
+      generation: dataRootGenerationSchema.parse(1),
+      createdAt: factory.nextInstant(),
+    });
+    await chmod(unsafeActiveRoot, 0o770);
+    await expect(inspectDataRootChoice(unsafeActiveRoot)).rejects.toThrow(
+      "OD_DATA_ROOT_PERMISSIONS_UNSAFE",
+    );
   });
 });

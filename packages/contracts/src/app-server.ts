@@ -15,7 +15,12 @@ import {
   modelCatalogSchema,
   rateLimitStateSchema,
 } from "./app-server-state.js";
-import { boundaryUnion, strictBoundaryObject, toBoundaryJsonSchema, z } from "./schema-system.js";
+import {
+  boundaryUnion,
+  strictBoundaryObject,
+  toStructuredOutputJsonSchema,
+  z,
+} from "./schema-system.js";
 
 const text = (maximum: number) => z.string().min(1).max(maximum).regex(/\S/u);
 const runtimeId = (maximum = 200) => text(maximum).regex(/^[A-Za-z0-9][A-Za-z0-9._:/-]*$/u);
@@ -358,12 +363,12 @@ export const appServerCandidateOutputSchemas = Object.freeze({
 });
 
 export const appServerCandidateOutputJsonSchemas = Object.freeze({
-  "writing-prompt": toBoundaryJsonSchema(writingPromptCandidateSchema),
-  "writing-correction": toBoundaryJsonSchema(writingCorrectionCandidateSchema),
-  "contextual-help": toBoundaryJsonSchema(contextualHelpCandidateSchema),
-  "exercise-generation": toBoundaryJsonSchema(exerciseGenerationCandidateSchema),
-  "exercise-feedback": toBoundaryJsonSchema(exerciseFeedbackCandidateSchema),
-  "weekly-plan-generation": toBoundaryJsonSchema(weeklyPlanCandidateSchema),
+  "writing-prompt": toStructuredOutputJsonSchema(writingPromptCandidateSchema),
+  "writing-correction": toStructuredOutputJsonSchema(writingCorrectionCandidateSchema),
+  "contextual-help": toStructuredOutputJsonSchema(contextualHelpCandidateSchema),
+  "exercise-generation": toStructuredOutputJsonSchema(exerciseGenerationCandidateSchema),
+  "exercise-feedback": toStructuredOutputJsonSchema(exerciseFeedbackCandidateSchema),
+  "weekly-plan-generation": toStructuredOutputJsonSchema(weeklyPlanCandidateSchema),
 });
 
 export const appServerWorkloadPolicySchema = strictBoundaryObject({
@@ -372,9 +377,7 @@ export const appServerWorkloadPolicySchema = strictBoundaryObject({
   thread: z.literal("ephemeral"),
   sandbox: z.strictObject({
     mode: z.literal("workspace-write"),
-    explicitReadableRoots: z.literal("workspace-only"),
     writableRoots: z.literal("workspace-only"),
-    includePlatformDefaults: z.literal(true),
     networkAccess: z.literal(false),
   }),
   tools: z.strictObject({
@@ -391,9 +394,7 @@ export const appServerWorkloadPolicySchema = strictBoundaryObject({
 
 const sandboxPolicy = Object.freeze({
   mode: "workspace-write",
-  explicitReadableRoots: "workspace-only",
   writableRoots: "workspace-only",
-  includePlatformDefaults: true,
   networkAccess: false,
 } as const);
 const toolPolicy = Object.freeze({

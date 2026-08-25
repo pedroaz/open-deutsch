@@ -39,7 +39,7 @@ Expose stable Make targets so a learner or agent does not need to discover packa
 - `make test-e2e` — deterministic Electron Playwright journeys with fake AI/auth.
 - `make test-plugin` — deterministic plugin manifest, schema, fixture, and prompt-corpus contract checks; no host account and no model usage.
 - `make verify-plugin` — manually verify the installed plugin and one fixed live Codex workflow; warn and require confirmation because it consumes account usage.
-- `make verify-live` — manually invoke one real App Server correction verification; warn and require confirmation because it consumes account usage.
+- `make verify-live` — manually invoke all six real App Server learning workloads; warn and require confirmation because it consumes account usage.
 - `make test` — exact convenience alias for `make test-fast`.
 - `make doctor` — verify required binaries, pinned Codex/App Server readiness, Playwright/Electron launch support, the packaged eight-tool MCP helper, scoped plugin status, and writable disposable paths without changing user state.
 - `make check` — formatting, linting, strict type checking, deterministic tests, plugin/curriculum validation, and other completion gates.
@@ -76,7 +76,7 @@ Keep one separate live verification that:
 1. Is started manually through `make verify-live` and never discovered by Vitest or Playwright test patterns.
 2. Displays a clear usage warning before the real model turn.
 3. Uses the existing Codex-managed personal account.
-4. Reads the current model catalog, performs one short fixed German correction with an explicitly selected model/reasoning setting, validates the structured result, and runs harmless controlled canary attempts that prove the real runtime denies out-of-sandbox filesystem, disabled-tool, and network access.
+4. Reads the current model catalog, performs one short fixed request for each supported learning workload with an explicitly selected model/reasoning setting, validates every structured result, and runs harmless controlled canary attempts that prove the real runtime denies out-of-sandbox filesystem, disabled-tool, and network access.
 5. Uses a disposable data root rather than the learner's normal dataset.
 6. Prints a concise pass/fail report for correction and enforced isolation and does not become a CI or `test:all` dependency.
 

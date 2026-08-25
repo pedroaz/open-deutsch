@@ -232,6 +232,9 @@ if (!app.requestSingleInstanceLock()) {
     const userData = app.getPath("userData");
     const bootstrapFile = path.join(userData, "bootstrap.json");
     const knownInstallRoots = [app.getAppPath(), process.resourcesPath];
+    const log = (record: Parameters<typeof appendDesktopLog>[1]) => {
+      void appendDesktopLog(bootstrapFile, record).catch(() => undefined);
+    };
     const appServer = new OpenDeutschAppServerClient({
       forbiddenRoots: [userData, ...knownInstallRoots, process.cwd()],
       openExternal: (url) => shell.openExternal(url),
@@ -252,15 +255,14 @@ if (!app.requestSingleInstanceLock()) {
         process.env["OPEN_DEUTSCH_TEST_CODEX_EXECUTABLE"]
           ? { executable: process.env["OPEN_DEUTSCH_TEST_CODEX_EXECUTABLE"] }
           : {}),
-        log: (record) => {
-          void appendDesktopLog(bootstrapFile, record).catch(() => undefined);
-        },
+        log,
       },
     });
     backend = new DesktopBackend({
       bootstrapFile,
       knownInstallRoots,
       appServer,
+      log,
       emitEvent: (event) => {
         const safeEvent = desktopIpcEventSchema.parse(event);
         mainWindow?.webContents.send("open-deutsch:event", safeEvent);

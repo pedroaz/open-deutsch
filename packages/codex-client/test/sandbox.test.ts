@@ -27,11 +27,6 @@ describe("owned App Server turn sandbox", () => {
       type: "workspaceWrite",
       networkAccess: false,
       writableRoots: [policy.workspaceRoot],
-      readOnlyAccess: {
-        type: "restricted",
-        includePlatformDefaults: true,
-        readableRoots: [policy.workspaceRoot],
-      },
     });
     await sandbox.cleanup();
     await expect(access(policy.sandboxRoot)).rejects.toMatchObject({ code: "ENOENT" });
@@ -47,11 +42,6 @@ describe("owned App Server turn sandbox", () => {
       sandboxPolicy: {
         type: "workspaceWrite",
         writableRoots: [root],
-        readOnlyAccess: {
-          type: "restricted",
-          includePlatformDefaults: true,
-          readableRoots: [root],
-        },
         networkAccess: false,
       },
     };

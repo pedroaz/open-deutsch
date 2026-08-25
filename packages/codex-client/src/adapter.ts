@@ -29,7 +29,11 @@ import {
   type ExecuteContext,
   type OperationOutcome,
 } from "./operation-controller.js";
-import { AppServerProcessManager, type AppServerProcessManagerOptions } from "./process-manager.js";
+import {
+  AppServerProcessManager,
+  type AppServerLogRecord,
+  type AppServerProcessManagerOptions,
+} from "./process-manager.js";
 import { RateLimitClient, type RateLimitState } from "./rate-limits.js";
 import { runBoundedWorkload, type BoundedWorkloadResult } from "./workload.js";
 
@@ -127,6 +131,7 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
   readonly #listeners = new Set<(event: AppServerEvent) => void>();
   readonly #operations = new OperationController<AppServerOperationStart, AnyResult>();
   readonly #operationInputs = new Map<string, AppServerOperationStart>();
+  readonly #log: AppServerProcessManagerOptions["log"];
   #account: AccountState = { status: "signed-out" };
   #models: ModelCatalog = emptyCatalog;
   #rateLimits: RateLimitState = unavailableLimits;
@@ -139,6 +144,7 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
 
   constructor(options: OpenDeutschAppServerClientOptions) {
     this.#process = options.process ?? new AppServerProcessManager(options.processOptions);
+    this.#log = options.processOptions?.log;
     this.#codexSource =
       options.processOptions?.executable === undefined ? "path" : "configured-absolute-path";
     this.#forbiddenRoots = Object.freeze([...options.forbiddenRoots]);
@@ -240,6 +246,7 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
     });
     if (accepted.accepted === "started") {
       this.#operationInputs.set(validated.operationId, validated);
+      this.#operationLog("info", "APP_SERVER_OPERATION_STARTED", validated, "Operation started.");
       this.#state(validated, "accepted");
       this.#progress(validated, "queued");
     }
@@ -283,6 +290,7 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
         : operation;
     if (accepted.accepted === "started") {
       this.#operationInputs.set(operation.operationId, operation);
+      this.#operationLog("info", "APP_SERVER_OPERATION_STARTED", operation, "Retry started.");
       this.#state(operation, "accepted");
       this.#progress(operation, "queued");
     }
@@ -422,6 +430,12 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
     outcome: OperationOutcome<AnyResult>,
   ): AppServerValidatedOperationResult<AppServerWorkloadKind, AppServerOutputMap> {
     if (outcome.status === "succeeded") {
+      this.#operationLog(
+        "info",
+        "APP_SERVER_OPERATION_VALIDATED",
+        operation,
+        "Operation output validated.",
+      );
       const result = {
         operationId: operation.operationId,
         submissionId: operation.submissionId,
@@ -456,6 +470,25 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
             ? "model-output"
             : "app-server";
     const error = safeError(operation.operationId, kind);
+    this.#operationLog(
+      outcome.status === "cancelled"
+        ? "info"
+        : outcome.status === "rate-limited"
+          ? "warn"
+          : "error",
+      outcome.status === "cancelled"
+        ? "APP_SERVER_OPERATION_CANCELLED"
+        : outcome.status === "rate-limited"
+          ? "APP_SERVER_OPERATION_RATE_LIMITED"
+          : "APP_SERVER_OPERATION_FAILED",
+      operation,
+      outcome.status === "cancelled"
+        ? "Operation cancelled."
+        : outcome.status === "rate-limited"
+          ? "Operation rate limited."
+          : "Operation failed.",
+      outcome.status === "failed" ? outcome.errorCode : undefined,
+    );
     const rateLimit = projectedRateLimitFailure(this.#rateLimits);
     this.#emit({
       event: "operation-state-changed",
@@ -500,6 +533,31 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
             : { status: "failed", error },
     });
     throw new Error(error.code);
+  }
+
+  #operationLog(
+    severity: AppServerLogRecord["severity"],
+    code: string,
+    operation: AppServerOperationStart,
+    message: string,
+    errorCode?: string,
+  ): void {
+    try {
+      this.#log?.({
+        timestamp: new Date().toISOString(),
+        severity,
+        component: "app-server",
+        code,
+        correlationId: operation.operationId,
+        message,
+        metadata: {
+          reason: operation.input.kind,
+          ...(errorCode === undefined ? {} : { code: errorCode }),
+        },
+      });
+    } catch {
+      // Diagnostic sinks cannot change operation settlement.
+    }
   }
 
   #emit(event: AppServerEvent): void {

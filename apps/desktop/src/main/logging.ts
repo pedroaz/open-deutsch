@@ -23,12 +23,18 @@ async function rotateIfNeeded(logFile: string): Promise<void> {
 
 function safeMetadata(metadata: AppServerLogRecord["metadata"]): string {
   if (!metadata) return "";
-  const allowed = Object.entries(metadata).filter(
-    ([key, value]) =>
-      /^(?:code|reason|version|exitCode|signal|stderrBytes|stderrTruncated)$/u.test(key) &&
-      (typeof value === "string" || typeof value === "number" || typeof value === "boolean"),
-  );
+  const allowed = Object.entries(metadata)
+    .filter(
+      ([key, value]) =>
+        /^(?:code|reason|version|exitCode|signal|stderrBytes|stderrTruncated)$/u.test(key) &&
+        (typeof value === "string" || typeof value === "number" || typeof value === "boolean"),
+    )
+    .map(([key, value]) => [key, typeof value === "string" ? value.slice(0, 200) : value]);
   return allowed.length > 0 ? ` metadata=${JSON.stringify(Object.fromEntries(allowed))}` : "";
+}
+
+function safeCorrelationId(value: string | undefined): string {
+  return value && /^[A-Za-z0-9][A-Za-z0-9_-]{7,199}$/u.test(value) ? value : "-";
 }
 
 export async function appendDesktopLog(
@@ -42,6 +48,6 @@ export async function appendDesktopLog(
   if ((await realpath(logs)) !== logs) throw new Error("OD_LOG_DIRECTORY_INVALID");
   const logFile = path.join(logs, "desktop-app-server.log");
   await rotateIfNeeded(logFile);
-  const line = `${record.timestamp} ${record.severity.toUpperCase()} ${record.component} ${record.code} correlation=-${safeMetadata(record.metadata)} ${record.message}\n`;
+  const line = `${record.timestamp} ${record.severity.toUpperCase()} ${record.component} ${record.code} correlation=${safeCorrelationId(record.correlationId)}${safeMetadata(record.metadata)} ${record.message}\n`;
   await appendFile(logFile, line, { encoding: "utf8", mode: 0o600 });
 }

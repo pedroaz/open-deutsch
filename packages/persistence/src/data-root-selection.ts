@@ -71,13 +71,18 @@ async function assertNoSymlinkTraversal(candidate: string): Promise<void> {
   }
 }
 
-async function assertOwnedDirectory(directory: string): Promise<void> {
+async function assertOwnedDirectory(
+  directory: string,
+  options: { allowGroupOrWorldWritable?: boolean } = {},
+): Promise<void> {
   const metadata = await lstat(directory);
   if (metadata.isSymbolicLink() || !metadata.isDirectory()) {
     throw new Error("OD_DATA_ROOT_NOT_DIRECTORY");
   }
   if (metadata.uid !== currentUid()) throw new Error("OD_DATA_ROOT_NOT_OWNED");
-  if ((metadata.mode & 0o022) !== 0) throw new Error("OD_DATA_ROOT_PERMISSIONS_UNSAFE");
+  if (!options.allowGroupOrWorldWritable && (metadata.mode & 0o022) !== 0) {
+    throw new Error("OD_DATA_ROOT_PERMISSIONS_UNSAFE");
+  }
 }
 
 async function assertWritable(directory: string): Promise<void> {
@@ -152,6 +157,10 @@ async function hasBroadPermissions(candidate: string): Promise<boolean> {
   return ((await stat(candidate)).mode & 0o077) !== 0;
 }
 
+async function hasGroupOrWorldWritePermissions(candidate: string): Promise<boolean> {
+  return ((await stat(candidate)).mode & 0o022) !== 0;
+}
+
 async function inspectSelection(
   choice: string,
   options: { knownInstallRoots?: readonly string[] },
@@ -160,11 +169,14 @@ async function inspectSelection(
   const canonicalChoice = await realpath(path.normalize(choice));
   if (canonicalChoice !== path.normalize(choice))
     throw new Error("OD_DATA_ROOT_PATH_NON_CANONICAL");
-  await assertOwnedDirectory(canonicalChoice);
+  await assertOwnedDirectory(canonicalChoice, { allowGroupOrWorldWritable: true });
   await assertWritable(canonicalChoice);
 
   const warnings = new Set<DataRootSelectionWarning>();
-  if (await hasBroadPermissions(canonicalChoice)) warnings.add("broad-permissions");
+  const choiceHasBroadPermissions = await hasBroadPermissions(canonicalChoice);
+  const choiceHasGroupOrWorldWritePermissions =
+    await hasGroupOrWorldWritePermissions(canonicalChoice);
+  if (choiceHasBroadPermissions) warnings.add("broad-permissions");
   if (await isInsideGitWorktree(canonicalChoice)) warnings.add("git-worktree");
   const installRoots = await canonicalKnownRoots(options.knownInstallRoots ?? []);
   if (installRoots.some((root) => pathContainedBy(root, canonicalChoice))) {
@@ -174,9 +186,10 @@ async function inspectSelection(
   let action: DataRootSelectionAction;
   let dataRoot: string;
   if ((await readExistingManifest(canonicalChoice)) !== null) {
+    await assertOwnedDirectory(canonicalChoice);
     action = "open-existing-root";
     dataRoot = canonicalChoice;
-  } else if (await directoryIsEmpty(canonicalChoice)) {
+  } else if ((await directoryIsEmpty(canonicalChoice)) && !choiceHasGroupOrWorldWritePermissions) {
     action = "initialize-empty-directory";
     dataRoot = canonicalChoice;
   } else {

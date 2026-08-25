@@ -78,7 +78,6 @@ try {
       "exec",
       "tsc",
       "-b",
-      "--force",
       "apps/desktop/tsconfig.main.json",
       "apps/desktop/tsconfig.preload.json",
     ]);

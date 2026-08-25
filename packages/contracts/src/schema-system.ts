@@ -73,3 +73,33 @@ export function toBoundaryJsonSchema(schema: RuntimeSchema) {
     unrepresentable: "throw",
   });
 }
+
+const unsupportedStructuredOutputKeywords = new Set(["$schema", "default"]);
+
+function structuredOutputSubset(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(structuredOutputSubset);
+  if (typeof value !== "object" || value === null) return value;
+  const source = value as Record<string, unknown>;
+  const output: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(source)) {
+    if (unsupportedStructuredOutputKeywords.has(key) || key === "prefixItems") continue;
+    if (key === "const") {
+      output["enum"] = [structuredOutputSubset(child)];
+      continue;
+    }
+    output[key === "oneOf" ? "anyOf" : key] = structuredOutputSubset(child);
+  }
+  if (Array.isArray(source["prefixItems"]) && source["prefixItems"].length > 0) {
+    const items = source["prefixItems"].map(structuredOutputSubset);
+    output["items"] = items.every((item) => JSON.stringify(item) === JSON.stringify(items[0]))
+      ? items[0]
+      : { anyOf: items };
+    output["minItems"] = items.length;
+    output["maxItems"] = items.length;
+  }
+  return output;
+}
+
+export function toStructuredOutputJsonSchema(schema: RuntimeSchema) {
+  return structuredOutputSubset(toBoundaryJsonSchema(schema));
+}

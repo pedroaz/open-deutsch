@@ -115,7 +115,7 @@ describe("bounded App Server workloads", () => {
     expect(thread).toMatchObject({
       model: "gpt-test",
       approvalPolicy: "never",
-      sandbox: "workspaceWrite",
+      sandbox: "workspace-write",
       ephemeral: true,
       config: { web_search: "disabled", features: { shell_tool: false }, mcp_servers: {} },
     });
@@ -125,7 +125,16 @@ describe("bounded App Server workloads", () => {
       string,
       unknown
     >;
-    expect(turn).toMatchObject({ model: "gpt-test", effort: "medium", approvalPolicy: "never" });
+    expect(turn).toMatchObject({
+      model: "gpt-test",
+      effort: "medium",
+      approvalPolicy: "never",
+      sandboxPolicy: {
+        type: "workspaceWrite",
+        writableRoots: [thread["cwd"]],
+        networkAccess: false,
+      },
+    });
     expect(turn["outputSchema"]).toBeTypeOf("object");
     const turnInput = turn["input"] as { text: string }[];
     expect(JSON.parse(turnInput[0]?.text ?? "{}")).toMatchObject({ request: input });

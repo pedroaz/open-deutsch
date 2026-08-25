@@ -115,11 +115,9 @@ describe("rate-limit projection", () => {
       status: "unavailable",
       reason: "read-failed",
     });
-    expect(request).toHaveBeenCalledWith(
-      "account/rateLimits/read",
-      {},
-      { timeoutMilliseconds: 10_000 },
-    );
+    expect(request).toHaveBeenCalledWith("account/rateLimits/read", undefined, {
+      timeoutMilliseconds: 10_000,
+    });
     expect(changed).toHaveBeenCalledWith({ status: "unavailable", reason: "read-failed" });
   });
 });

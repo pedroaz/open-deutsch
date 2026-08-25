@@ -150,11 +150,9 @@ export class RateLimitClient {
     let state: RateLimitState;
     try {
       state = projectRateLimits(
-        await this.#options.requester.request(
-          "account/rateLimits/read",
-          {},
-          { timeoutMilliseconds: this.#options.requestTimeoutMilliseconds ?? 10_000 },
-        ),
+        await this.#options.requester.request("account/rateLimits/read", undefined, {
+          timeoutMilliseconds: this.#options.requestTimeoutMilliseconds ?? 10_000,
+        }),
       );
     } catch {
       state = { status: "unavailable", reason: "read-failed" };

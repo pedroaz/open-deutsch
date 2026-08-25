@@ -16,7 +16,7 @@ The OS configuration directory contains one strict private JSON pointer with the
 
 ## Linux root selection
 
-`inspectDataRootChoice` canonicalizes an absolute learner-owned writable directory, rejects symlinks in every existing path component, recognizes a valid existing manifest, and chooses the exact empty directory or a private `open-deutsch-data/` child for unrelated non-empty choices. It rejects group/world-writable active roots, reports broadly readable, Git-worktree, and known-install-root warnings, and never chmods existing directories.
+`inspectDataRootChoice` canonicalizes an absolute learner-owned writable directory, rejects symlinks in every existing path component, recognizes a valid existing manifest, and chooses the exact private empty directory or a private `open-deutsch-data/` child for unrelated non-empty or group/world-writable choices. The learner-selected parent may be group/world writable, as is common for folders created under a cooperative Linux umask, but the active data root may not be. It reports broadly permissioned, Git-worktree, and known-install-root warnings and never chmods existing directories.
 
 The returned plan is a process-owned capability. `materializeDataRootSelection` consumes it once, rechecks the filesystem to close ordinary picker-to-write races, creates only the selected dedicated root and stable internal directories with mode 0700, writes the manifest atomically with mode 0600, validates ownership/types, and leaves unrelated files untouched. Test-only storage is created only with an explicit test-mode option.
 

@@ -303,3 +303,19 @@ test("keeps authenticated probing explicit, isolated, and outside deterministic 
     assert.doesNotMatch(script, /accessToken|apiKey/);
   }
 });
+
+test("keeps connected-account workload verification explicit, disposable, and fake-free", async () => {
+  const clientManifest = JSON.parse(await readFile("packages/codex-client/package.json", "utf8"));
+  assert.match(clientManifest.scripts["verify:live:run"], /verify-open-deutsch-live\.mjs/);
+  const script = await readFile("scripts/verify-open-deutsch-live.mjs", "utf8");
+  assert.match(script, /OPEN_DEUTSCH_INTERACTIVE_CONFIRMATION/);
+  assert.match(script, /createDisposableDataHarness/);
+  assert.match(script, /OpenDeutschAppServerClient/);
+  assert.match(script, /writing-prompt/);
+  assert.match(script, /writing-correction/);
+  assert.match(script, /contextual-help/);
+  assert.match(script, /exercise-generation/);
+  assert.match(script, /exercise-feedback/);
+  assert.match(script, /weekly-plan-generation/);
+  assert.doesNotMatch(script, /fake-(?:app-server|codex)|OPEN_DEUTSCH_FAKE/u);
+});

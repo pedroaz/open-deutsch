@@ -7,6 +7,7 @@ import {
   safeParseBoundary,
   strictBoundaryObject,
   toBoundaryJsonSchema,
+  toStructuredOutputJsonSchema,
   validationIssues,
   z,
   type BoundarySurface,
@@ -47,6 +48,46 @@ describe("shared runtime schema system", () => {
       additionalProperties: false,
       required: ["schemaVersion", "surface", "value"],
     });
+  });
+
+  it("projects the provider-supported structured-output subset without weakening runtime validation", () => {
+    const schema = strictBoundaryObject({
+      kind: z.literal("probe"),
+      selection: z.union([z.literal("first"), z.literal("second")]),
+      pair: z.tuple([z.string(), z.string()]),
+      optionalAtRuntime: z.string().nullable().default(null),
+    });
+
+    const projected = toStructuredOutputJsonSchema(schema);
+    const serialized = JSON.stringify(projected);
+    expect(serialized).not.toContain('"$schema"');
+    expect(serialized).not.toContain('"default"');
+    expect(serialized).not.toContain('"const"');
+    expect(serialized).not.toContain('"oneOf"');
+    expect(serialized).not.toContain('"prefixItems"');
+    expect(projected).toMatchObject({
+      type: "object",
+      required: ["kind", "selection", "pair", "optionalAtRuntime"],
+      additionalProperties: false,
+      properties: {
+        kind: { type: "string", enum: ["probe"] },
+        selection: {
+          anyOf: [
+            { type: "string", enum: ["first"] },
+            { type: "string", enum: ["second"] },
+          ],
+        },
+        pair: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 2 },
+      },
+    });
+    expect(
+      schema.safeParse({
+        kind: "probe",
+        selection: "first",
+        pair: ["only-one"],
+        optionalAtRuntime: null,
+      }).success,
+    ).toBe(false);
   });
 
   it("fails closed when a runtime transform cannot be represented as JSON Schema", () => {

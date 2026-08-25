@@ -96,7 +96,7 @@ package: ## Build the Linux release package through the configured packager.
 	@echo "+ pnpm run package"
 	@pnpm run package
 
-verify-live: ## Explicitly confirm one real-account App Server verification.
+verify-live: ## Explicitly confirm connected-account App Server workload verification.
 	@echo "+ pnpm run verify:live"
 	@pnpm run verify:live
 

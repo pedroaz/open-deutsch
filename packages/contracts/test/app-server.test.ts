@@ -118,9 +118,7 @@ describe("narrow App Server adapter contract", () => {
       expect(policy.cwd).toBe("owned-disposable-workspace");
       expect(policy.sandbox).toEqual({
         mode: "workspace-write",
-        explicitReadableRoots: "workspace-only",
         writableRoots: "workspace-only",
-        includePlatformDefaults: true,
         networkAccess: false,
       });
       expect(policy.tools).toEqual({
@@ -469,9 +467,12 @@ describe("narrow App Server adapter contract", () => {
     } as const;
     for (const kind of appServerWorkloadKinds) {
       expect(appServerCandidateOutputSchemas[kind].safeParse(outputs[kind]).success).toBe(true);
-      expect(appServerCandidateOutputJsonSchemas[kind]["$schema"]).toBe(
-        "https://json-schema.org/draft/2020-12/schema",
-      );
+      const structuredOutputSchema = JSON.stringify(appServerCandidateOutputJsonSchemas[kind]);
+      expect(structuredOutputSchema).not.toContain('"$schema"');
+      expect(structuredOutputSchema).not.toContain('"default"');
+      expect(structuredOutputSchema).not.toContain('"const"');
+      expect(structuredOutputSchema).not.toContain('"oneOf"');
+      expect(structuredOutputSchema).not.toContain('"prefixItems"');
       for (const forbidden of [
         { persistenceId: "internal-1" },
         { createdAt: factory.nextInstant() },

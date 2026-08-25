@@ -135,6 +135,43 @@ function nonblank(value: unknown): string | undefined {
   return typeof value === "string" && value.trim().length > 0 ? value : undefined;
 }
 
+function turnFailureCode(turn: Record<string, unknown>): string {
+  const status = turn["status"];
+  if (status === "interrupted") return "OD_APP_SERVER_TURN_INTERRUPTED";
+  if (status !== "failed") return "OD_APP_SERVER_TURN_FAILED";
+  const turnError = object(turn["error"]);
+  const errorInfo = turnError?.["codexErrorInfo"];
+  const category =
+    typeof errorInfo === "string" ? errorInfo : Object.keys(object(errorInfo) ?? {})[0];
+  const safeCategory = category
+    ?.replace(/([a-z0-9])([A-Z])/gu, "$1_$2")
+    .replace(/[^A-Za-z0-9_]/gu, "_")
+    .toUpperCase();
+  const diagnosticText = [turnError?.["message"], turnError?.["additionalDetails"]]
+    .filter((value): value is string => typeof value === "string")
+    .join(" ")
+    .toLowerCase();
+  const diagnosticLabels = [
+    ["MODEL", /\bmodel\b/u],
+    ["OUTPUT_SCHEMA", /output.?schema|response.?format|structured.?output/u],
+    ["JSON_SCHEMA", /json.?schema/u],
+    ["EFFORT", /\beffort\b|reasoning/u],
+    ["INSTRUCTIONS", /instruction/u],
+    ["AUTH", /unauthori[sz]ed|authentication|credential/u],
+    ["NETWORK", /network|connect|stream|timeout/u],
+    ["RATE_LIMIT", /rate.?limit|usage.?limit|quota/u],
+    ["SERVICE_TIER", /service.?tier/u],
+    ["SANDBOX", /sandbox/u],
+    ["TOOL", /\btool/u],
+  ] as const;
+  const details = diagnosticLabels
+    .filter(([, pattern]) => pattern.test(diagnosticText))
+    .map(([label]) => label)
+    .join("_");
+  const suffix = [safeCategory, details].filter(Boolean).join("_");
+  return suffix ? `OD_APP_SERVER_TURN_FAILED_${suffix}` : "OD_APP_SERVER_TURN_FAILED_UNKNOWN";
+}
+
 function isRateLimitError(error: unknown): boolean {
   return (
     typeof error === "object" &&
@@ -230,7 +267,7 @@ async function runAttempt<Kind extends AppServerWorkloadKind>(options: {
         cwd: policy.workspaceRoot,
         model: options.model,
         approvalPolicy: "never",
-        sandbox: "workspaceWrite",
+        sandbox: "workspace-write",
         ephemeral: true,
         serviceName: "open_deutsch",
         baseInstructions,
@@ -300,9 +337,8 @@ async function runAttempt<Kind extends AppServerWorkloadKind>(options: {
         const turn = object(params["turn"]);
         if (turn?.["id"] !== activeTurn) continue;
         activeTurn = undefined;
-        if (turn["status"] !== "completed" || completedItems.length !== 1) {
-          throw new Error("OD_APP_SERVER_TURN_FAILED");
-        }
+        if (turn["status"] !== "completed") throw new Error(turnFailureCode(turn));
+        if (completedItems.length !== 1) throw new Error("OD_APP_SERVER_FINAL_OUTPUT_MISSING");
         options.onProgress?.("validating");
         return parseAppServerCandidateOutput(options.input.kind, completedItems[0], options.input);
       }
@@ -370,6 +406,15 @@ export async function runBoundedWorkload<Kind extends AppServerWorkloadKind>(
       return Object.freeze({ modelRequestId, output, repaired: true });
     } catch (repairError) {
       if (isRateLimitError(repairError)) throw new OperationRateLimitedError();
+      if (repairError instanceof AppServerOutputValidationError) {
+        const issueCodes = [...new Set(repairError.issues.map(({ code }) => code))]
+          .map((code) => code.replace(/[^A-Za-z0-9_]/gu, "_").toUpperCase())
+          .slice(0, 4)
+          .join("_");
+        throw new Error(
+          issueCodes.length > 0 ? `${repairError.message}_${issueCodes}` : repairError.message,
+        );
+      }
       throw repairError;
     }
   }

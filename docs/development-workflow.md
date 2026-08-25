@@ -1,7 +1,7 @@
 # Development workflow
 
 Status: current engineering guidance
-Last updated: 2026-08-22
+Last updated: 2026-08-24
 
 ## Command boundary
 
@@ -39,11 +39,11 @@ Development and production-like runs record exact PIDs and mode-specific state i
 - `make doctor`
 - `make package`
 
-`make test-fast` is the everyday sub-20-second target where practical. `make test` is an exact convenience alias for `make test-fast`. `make check` is deterministic and combines formatting, linting, strict types, and the complete fast gate. `make test-all` includes every deterministic local gate, including Electron journeys and plugin/MCP checks, and never invokes a real OpenAI account. Lifecycle readiness uses a bounded 30-second startup window so the Electron watch build can initialize without weakening failure cleanup.
+`make test-fast` is the everyday sub-20-second target where practical. `make test` is an exact convenience alias for `make test-fast`. `make check` is deterministic and combines formatting, linting, strict types, and the complete fast gate. `make test-all` includes every deterministic local gate, including Electron journeys and plugin/MCP checks, and never invokes a real OpenAI account. Development startup reuses valid TypeScript build information instead of forcing a clean compile on every launch. Lifecycle readiness uses a bounded 60-second startup window so a necessary clean Electron watch build can initialize on the supported development machine without weakening failure cleanup.
 
 ## Explicit live verification targets
 
-- `make verify-live` — warn, require explicit confirmation, then perform the one fixed real-account App Server correction verification against disposable data.
+- `make verify-live` — warn, require explicit confirmation, then exercise every supported App Server learning workload against the connected account and disposable data.
 - `make verify-plugin` — warn, require explicit confirmation, then run the installed-host skill/tool prompt evaluation inventory.
 
 Neither target is called by normal tests, CI, `make check`, `make test-all`, or unattended automation.

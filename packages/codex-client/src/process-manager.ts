@@ -14,9 +14,10 @@ export type AppServerLifecycleState =
 export type AppServerLogRecord = Readonly<{
   timestamp: string;
   severity: "info" | "warn" | "error";
-  component: "app-server";
+  component: "app-server" | "desktop";
   code: string;
   message: string;
+  correlationId?: string;
   metadata?: Readonly<Record<string, string | number | boolean | null>>;
 }>;
 
@@ -106,7 +107,7 @@ export class AppServerProcessManager {
 
   async request(
     method: string,
-    params: unknown = {},
+    params?: unknown,
     options?: Readonly<{ timeoutMilliseconds?: number; signal?: AbortSignal }>,
   ): Promise<unknown> {
     if (this.#state !== "ready" || !this.#transport) {
@@ -229,7 +230,7 @@ export class AppServerProcessManager {
       ) {
         throw new AppServerUnavailableError("initialize-invalid");
       }
-      transport.notify("initialized", {});
+      transport.notify("initialized");
       this.#setState("ready");
       this.#log("info", "APP_SERVER_READY", "Codex App Server initialized.", {
         version: discovery.version,

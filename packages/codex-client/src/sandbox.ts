@@ -14,11 +14,6 @@ export type OwnedSandboxPolicy = Readonly<{
   sandboxPolicy: Readonly<{
     type: "workspaceWrite";
     writableRoots: readonly [string];
-    readOnlyAccess: Readonly<{
-      type: "restricted";
-      includePlatformDefaults: true;
-      readableRoots: readonly [string];
-    }>;
     networkAccess: false;
   }>;
 }>;
@@ -75,7 +70,6 @@ async function mintPolicy(sandboxRoot: string, workspaceRoot: string): Promise<O
   ) {
     throw new Error("OD_APP_SERVER_SANDBOX_INVALID");
   }
-  const readableRoots = Object.freeze([canonicalWorkspace] as const);
   const writableRoots = Object.freeze([canonicalWorkspace] as const);
   const policy = Object.freeze({
     sandboxRoot: canonicalSandbox,
@@ -84,11 +78,6 @@ async function mintPolicy(sandboxRoot: string, workspaceRoot: string): Promise<O
     sandboxPolicy: Object.freeze({
       type: "workspaceWrite" as const,
       writableRoots,
-      readOnlyAccess: Object.freeze({
-        type: "restricted" as const,
-        includePlatformDefaults: true as const,
-        readableRoots,
-      }),
       networkAccess: false as const,
     }),
   });
@@ -156,14 +145,8 @@ export function assertOwnedSandboxPolicy(policy: unknown): OwnedSandboxPolicy {
     throw new Error("OD_APP_SERVER_SANDBOX_POLICY_INVALID");
   }
   const sandboxRecord = sandboxPolicy as Record<string, unknown>;
-  const readOnlyAccess = sandboxRecord["readOnlyAccess"];
-  if (typeof readOnlyAccess !== "object" || readOnlyAccess === null) {
-    throw new Error("OD_APP_SERVER_SANDBOX_POLICY_INVALID");
-  }
-  const readRecord = readOnlyAccess as Record<string, unknown>;
   const workspaceRoot = candidate["workspaceRoot"];
   const writableRoots = sandboxRecord["writableRoots"];
-  const readableRoots = readRecord["readableRoots"];
   if (
     typeof workspaceRoot !== "string" ||
     !Object.isFrozen(candidate) ||
@@ -173,11 +156,9 @@ export function assertOwnedSandboxPolicy(policy: unknown): OwnedSandboxPolicy {
     !Array.isArray(writableRoots) ||
     writableRoots.length !== 1 ||
     writableRoots[0] !== workspaceRoot ||
-    readRecord["type"] !== "restricted" ||
-    readRecord["includePlatformDefaults"] !== true ||
-    !Array.isArray(readableRoots) ||
-    readableRoots.length !== 1 ||
-    readableRoots[0] !== workspaceRoot
+    Object.keys(sandboxRecord).some(
+      (key) => !["type", "writableRoots", "networkAccess"].includes(key),
+    )
   ) {
     throw new Error("OD_APP_SERVER_SANDBOX_POLICY_INVALID");
   }

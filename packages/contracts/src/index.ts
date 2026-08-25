@@ -6,6 +6,7 @@ export {
   safeParseBoundary,
   strictBoundaryObject,
   toBoundaryJsonSchema,
+  toStructuredOutputJsonSchema,
   validationIssues,
   z,
   type BoundarySurface,

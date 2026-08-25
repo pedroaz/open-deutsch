@@ -3,14 +3,14 @@ import { describe, expect, it, vi } from "vitest";
 import { ManagedAuthenticationClient, projectAccountState } from "../src/index.js";
 
 describe("managed authentication", () => {
-  it("projects signed-out, signed-in, expired, and unsupported account states safely", () => {
+  it("projects signed-out, signed-in, and unsupported account states safely", () => {
     expect(projectAccountState({ account: null, requiresOpenaiAuth: true })).toEqual({
       status: "signed-out",
     });
     expect(
       projectAccountState({
         account: { type: "chatgpt", email: "private@example.invalid", planType: "plus" },
-        requiresOpenaiAuth: false,
+        requiresOpenaiAuth: true,
       }),
     ).toEqual({ status: "signed-in", planType: "plus" });
     expect(
@@ -18,7 +18,7 @@ describe("managed authentication", () => {
         account: { type: "chatgpt", planType: null },
         requiresOpenaiAuth: true,
       }),
-    ).toEqual({ status: "expired", planType: null });
+    ).toEqual({ status: "signed-in", planType: null });
     expect(projectAccountState({ account: { type: "apiKey" }, requiresOpenaiAuth: false })).toEqual(
       { status: "unsupported", reason: "authentication-method" },
     );
@@ -87,7 +87,7 @@ describe("managed authentication", () => {
   it("exposes a validated device code and settles successful completion after the read race", async () => {
     const states = [
       { account: null, requiresOpenaiAuth: true },
-      { account: { type: "chatgpt", planType: "pro" }, requiresOpenaiAuth: false },
+      { account: { type: "chatgpt", planType: "pro" }, requiresOpenaiAuth: true },
     ];
     const request = vi.fn((method: string) => {
       if (method === "account/login/start") {

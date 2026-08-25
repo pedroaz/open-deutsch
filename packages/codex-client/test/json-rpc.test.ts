@@ -42,6 +42,7 @@ describe("bounded App Server JSONL transport", () => {
   it("decodes partial, multiple, and CRLF-framed JSON messages", async () => {
     const { notifications, output, sent, transport } = harness();
     const request = transport.request("partial");
+    expect(sent[0]).not.toHaveProperty("params");
     const response = JSON.stringify({ id: sent[0]?.["id"], result: { ok: true } });
     output.write(response.slice(0, 5));
     output.write(

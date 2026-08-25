@@ -46,7 +46,11 @@ import {
   type ModelWorkload,
   type WeeklyPlan,
 } from "@open-deutsch/domain";
-import { discoverCodex, type CodexDiscovery } from "@open-deutsch/codex-client";
+import {
+  discoverCodex,
+  type AppServerLogRecord,
+  type CodexDiscovery,
+} from "@open-deutsch/codex-client";
 import { readPluginIntegrationState, runPluginIntegrationAction } from "./plugin-integration.js";
 import {
   initializeOpenDeutschDataRoot,
@@ -88,6 +92,12 @@ type ValidatedWritingState = Readonly<{
 
 const maximumRetainedSubmissions = 256;
 const activeLearnerId = learnerIdSchema.parse("learner_0123456789abcdefgh");
+
+function diagnosticErrorCode(error: unknown): string {
+  return error instanceof Error && /^(?:OD|APP_SERVER)_[A-Z0-9_]{3,100}$/u.test(error.message)
+    ? error.message
+    : "OD_UNEXPECTED_FAILURE";
+}
 
 function safeError(kind: ErrorKind, correlationId: string) {
   const definition = errorDefinitions[kind];
@@ -257,6 +267,7 @@ export class DesktopBackend {
   readonly #chooseDirectory: () => Promise<string | undefined>;
   readonly #knownInstallRoots: readonly string[];
   readonly #appServer: OpenDeutschAppServerAdapter | undefined;
+  readonly #log: ((record: AppServerLogRecord) => void) | undefined;
   readonly #emitEvent: ((event: DesktopIpcEvent) => void) | undefined;
   readonly #exportDiagnostics:
     | ((
@@ -295,6 +306,7 @@ export class DesktopBackend {
     chooseDirectory: () => Promise<string | undefined>;
     knownInstallRoots: readonly string[];
     appServer?: OpenDeutschAppServerAdapter;
+    log?: (record: AppServerLogRecord) => void;
     emitEvent?: (event: DesktopIpcEvent) => void;
     exportDiagnostics?: (
       content: string,
@@ -304,6 +316,7 @@ export class DesktopBackend {
     this.#chooseDirectory = options.chooseDirectory;
     this.#knownInstallRoots = options.knownInstallRoots;
     this.#appServer = options.appServer;
+    this.#log = options.log;
     this.#emitEvent = options.emitEvent;
     this.#exportDiagnostics = options.exportDiagnostics;
     this.#appServer?.subscribe((event) => {
@@ -397,7 +410,15 @@ export class DesktopBackend {
               modelRequestId: state.modelRequestId,
               output: exerciseGenerationCandidateSchema.parse(state.output),
             });
-          } catch {
+          } catch (error) {
+            this.#operationLog(
+              "error",
+              "DESKTOP_OPERATION_PERSIST_FAILED",
+              state.operationId,
+              state.kind,
+              diagnosticErrorCode(error),
+              "Validated operation output could not be saved.",
+            );
             this.#activeOperations.delete(state.operationId);
             this.#emitEvent?.({
               event: "learning-operation-finished",
@@ -1242,6 +1263,46 @@ export class DesktopBackend {
       requestId: request.requestId,
       error: safeError(kind, request.requestId),
     });
+  }
+
+  #operationLog(
+    severity: AppServerLogRecord["severity"],
+    code: string,
+    correlationId: string,
+    reason: string,
+    errorCode: string | undefined,
+    message: string,
+  ): void {
+    try {
+      this.#log?.({
+        timestamp: new Date().toISOString(),
+        severity,
+        component: "desktop",
+        code,
+        correlationId,
+        message,
+        metadata: { reason, ...(errorCode === undefined ? {} : { code: errorCode }) },
+      });
+    } catch {
+      // Diagnostic sinks cannot change request handling.
+    }
+  }
+
+  #operationRequestFailure(
+    request: DesktopIpcRequest,
+    kind: ErrorKind,
+    errorCode: string,
+    reason: string,
+  ): DesktopIpcResponse {
+    this.#operationLog(
+      "warn",
+      "DESKTOP_OPERATION_REQUEST_REJECTED",
+      request.requestId,
+      reason,
+      errorCode,
+      "Learning operation request was rejected before dispatch.",
+    );
+    return this.#failure(request, kind);
   }
 
   async handle(request: DesktopIpcRequest): Promise<DesktopIpcResponse> {
@@ -2165,15 +2226,39 @@ export class DesktopBackend {
       }
       if (request.channel === "learning-operation/start") {
         if (!(await this.#hasAcknowledgedAiDisclosure())) {
-          return this.#failure(request, "validation");
+          return this.#operationRequestFailure(
+            request,
+            "validation",
+            "OD_AI_DISCLOSURE_REQUIRED",
+            "ai-disclosure",
+          );
         }
         const appServer = await this.#ensureAppServer();
-        if (!appServer) return this.#failure(request, "app-server");
+        if (!appServer) {
+          return this.#operationRequestFailure(
+            request,
+            "app-server",
+            "OD_APP_SERVER_UNAVAILABLE",
+            "app-server-unavailable",
+          );
+        }
         if ((await appServer.snapshot()).account.status !== "signed-in") {
-          return this.#failure(request, "app-server");
+          return this.#operationRequestFailure(
+            request,
+            "app-server",
+            "OD_APP_SERVER_ACCOUNT_NOT_SIGNED_IN",
+            "account-not-signed-in",
+          );
         }
         const dataRoot = await this.#dataRootState(request.requestId);
-        if (dataRoot.status !== "ready") return this.#failure(request, "stale-data-root");
+        if (dataRoot.status !== "ready") {
+          return this.#operationRequestFailure(
+            request,
+            "stale-data-root",
+            "OD_DATA_ROOT_STALE",
+            "data-root-not-ready",
+          );
+        }
         const inputFingerprint = operationInputFingerprint(request.payload.input);
         const previous = this.#operationsBySubmission.get(request.payload.submissionId);
         if (previous) {
@@ -2191,7 +2276,14 @@ export class DesktopBackend {
           return this.#failure(request, "conflict");
         }
         const learnerSettings = await this.#readActiveLearnerSettings();
-        if (!learnerSettings) return this.#failure(request, "not-found");
+        if (!learnerSettings) {
+          return this.#operationRequestFailure(
+            request,
+            "not-found",
+            "OD_LEARNER_SETTINGS_NOT_FOUND",
+            "learner-settings-missing",
+          );
+        }
         const workload = operationModelWorkload[request.payload.input.kind];
         const modelResolution = resolveModelPreference(
           workload,
@@ -2199,7 +2291,12 @@ export class DesktopBackend {
           await appServer.refreshModels(),
         ).resolution;
         if (modelResolution.status === "unavailable") {
-          return this.#failure(request, "app-server");
+          return this.#operationRequestFailure(
+            request,
+            "app-server",
+            "OD_APP_SERVER_MODEL_UNAVAILABLE",
+            "model-unavailable",
+          );
         }
         const operationId = selectionId();
         const operation = appServerOperationStartSchema.parse({
@@ -2318,7 +2415,20 @@ export class DesktopBackend {
       }
       const status = active ? "cancelling" : "already-finished";
       return this.#success(request, { operationId: request.payload.operationId, status });
-    } catch {
+    } catch (error) {
+      if (
+        request.channel === "learning-operation/start" ||
+        request.channel === "learning-operation/retry"
+      ) {
+        this.#operationLog(
+          "error",
+          "DESKTOP_OPERATION_REQUEST_FAILED",
+          request.requestId,
+          request.channel,
+          diagnosticErrorCode(error),
+          "Learning operation request failed before completion.",
+        );
+      }
       return this.#failure(request, "validation");
     }
   }

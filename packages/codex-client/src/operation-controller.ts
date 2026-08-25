@@ -59,7 +59,7 @@ function inputHash(value: unknown): string {
 }
 
 function safeFailureCode(error: unknown): string {
-  if (error instanceof Error && /^OD_[A-Z0-9_]{3,100}$/u.test(error.message)) {
+  if (error instanceof Error && /^(?:OD|APP_SERVER)_[A-Z0-9_]{3,100}$/u.test(error.message)) {
     return error.message;
   }
   return "OD_APP_SERVER_OPERATION_FAILED";

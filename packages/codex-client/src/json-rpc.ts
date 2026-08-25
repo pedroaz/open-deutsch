@@ -139,7 +139,7 @@ export class JsonRpcTransport {
 
   request(
     method: string,
-    params: unknown = {},
+    params?: unknown,
     options: Readonly<{ timeoutMilliseconds?: number; signal?: AbortSignal }> = {},
   ): Promise<unknown> {
     if (!method) return Promise.reject(new AppServerTransportError("APP_SERVER_METHOD_INVALID"));
@@ -193,15 +193,15 @@ export class JsonRpcTransport {
       this.#pending.set(id, pending);
     });
     this.#record({ direction: "out", kind: "request", requestId: id, method });
-    this.#write({ id, method, params });
+    this.#write({ id, method, ...(params === undefined ? {} : { params }) });
     return result;
   }
 
-  notify(method: string, params: unknown = {}): void {
+  notify(method: string, params?: unknown): void {
     if (!method) throw new AppServerTransportError("APP_SERVER_METHOD_INVALID");
     if (this.#closedError) throw this.#closedError;
     this.#record({ direction: "out", kind: "notification", method });
-    const error = this.#write({ method, params });
+    const error = this.#write({ method, ...(params === undefined ? {} : { params }) });
     if (error) throw error;
   }
 

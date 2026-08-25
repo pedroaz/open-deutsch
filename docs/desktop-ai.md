@@ -1,7 +1,7 @@
 # Desktop-native AI
 
 Status: current product architecture
-Last updated: 2026-08-15
+Last updated: 2026-08-24
 
 ## Purpose
 
@@ -61,6 +61,7 @@ Require an installed, compatible, authenticated Codex client rather than impleme
 - The desktop backend starts or connects to Codex App Server locally.
 - Codex owns login, token persistence, and refresh.
 - The renderer receives only account/readiness state and supported recovery guidance.
+- A non-null `chatgpt` account from `account/read` is signed in. `requiresOpenaiAuth` describes whether the active provider requires OpenAI authentication; it is not an account-expiry flag.
 - Raw credentials must not be stored in the learner database or passed through ordinary renderer state.
 - Open Deutsch has no API-key input, fallback provider, or separately implemented OAuth client.
 
@@ -89,6 +90,10 @@ Electron main/backend
 ```
 
 Do not expose App Server directly to the renderer or bind an unauthenticated network listener. STDIO keeps the integration local and gives the Electron backend ownership of process lifecycle. Each action supplies an explicit working directory, bounded filesystem sandbox, approval policy, tool allowlist, timeout/cancellation policy, and minimum learner context. Treat curriculum/source text and stored learner content as untrusted data rather than executable instructions.
+
+For the supported Codex App Server protocol, `thread/start.sandbox` uses the `workspace-write` sandbox-mode value. The structured `turn/start.sandboxPolicy` remains a separate object whose workspace policy type is `workspaceWrite` and whose supported fields are the isolated writable root and disabled network access. Both requests use the disposable workspace as their working directory. Open Deutsch supplies no dynamic tools and disables shell, web search, and MCP servers through the supported thread configuration.
+
+AI output schemas are projected to OpenAI's supported Structured Outputs JSON Schema subset before `turn/start`. Unsupported draft metadata and defaults are removed, `oneOf` is expressed as supported `anyOf`, and fixed tuples become length-constrained arrays. Runtime validation remains authoritative and may make one bounded repair attempt when generated output violates the full contract.
 
 Before the first AI request, the UI explains that learning data is stored locally but selected content is sent to OpenAI through Codex for processing. The same distinction remains visible from Settings and at sensitive action boundaries.
 

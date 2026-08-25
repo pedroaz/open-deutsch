@@ -193,7 +193,7 @@ export async function startMode({
   runtimeRoot,
   command,
   cwd,
-  timeoutMs = 30_000,
+  timeoutMs = 60_000,
   environment = process.env,
   detached = true,
 }) {

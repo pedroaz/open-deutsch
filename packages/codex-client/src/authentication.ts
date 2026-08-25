@@ -60,7 +60,7 @@ export function projectAccountState(value: unknown): AccountState {
     return { status: "unsupported", reason: "account-shape" };
   }
   return accountStateSchema.parse({
-    status: value["requiresOpenaiAuth"] ? "expired" : "signed-in",
+    status: "signed-in",
     planType: typeof planType === "string" ? planType.trim() : null,
   });
 }
@@ -201,11 +201,9 @@ export class ManagedAuthenticationClient {
 
   async logout(): Promise<AccountState> {
     if (this.#pending) await this.cancelManagedLogin(this.#pending.publicId);
-    await this.#options.requester.request(
-      "account/logout",
-      {},
-      { timeoutMilliseconds: this.#options.requestTimeoutMilliseconds ?? 10_000 },
-    );
+    await this.#options.requester.request("account/logout", undefined, {
+      timeoutMilliseconds: this.#options.requestTimeoutMilliseconds ?? 10_000,
+    });
     return this.readAccount();
   }
 
