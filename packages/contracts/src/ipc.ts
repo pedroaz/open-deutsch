@@ -431,6 +431,7 @@ export const learningOperationInputSchema = z.discriminatedUnion("kind", [
   z.strictObject({
     kind: z.literal("contextual-help"),
     sessionId: correlationIdSchema,
+    intent: z.enum(["chat", "translate"]),
     selectedText: text(4_000),
     containingSentence: text(4_000),
     question: text(1_000),

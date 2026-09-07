@@ -464,19 +464,23 @@
     "noPatterns": "No grammar or vocabulary pattern has enough saved evidence yet."
   },
   "helper": {
-    "selectText": "Select text in the active writing attempt to ask for a contextual explanation.",
-    "selectedContext": "Selected text and its containing sentence will be sent with minimized learning context.",
-    "question": "What would you like explained?",
-    "ask": "Ask helper",
-    "youAsked": "You asked",
-    "answer": "Explanation",
+    "selectText": "Highlight text in your writing to add it as context.",
+    "selectedContext": "Current context",
+    "messageLabel": "Message the context helper",
+    "messagePlaceholder": "Ask about meaning, grammar, conjugation, or word choice…",
+    "send": "Send",
+    "sendHint": "Enter to send · Shift+Enter for a new line",
+    "translate": "Translate",
+    "translateRequest": "Translate this",
+    "youAsked": "You",
+    "answer": "Tutor",
     "alternatives": "Alternatives",
     "translations": "Translations",
     "miniExercises": "Mini-exercises",
     "followUps": "Follow-up ideas",
     "stages": {
       "queued": "Queued…",
-      "running": "Explaining…",
+      "running": "Responding…",
       "validating": "Checking response…"
     }
   },
@@ -486,8 +490,8 @@
     "intro": "Keep the situation and your own text together. Nothing is sent until you explicitly start an AI action.",
     "promptTitle": "Choose how to start",
     "promptBody": "Ask Codex for one short everyday-life writing task based on your level, goal, interests, and preferred topics—or begin with a blank page.",
-    "generatePrompt": "Generate a writing prompt",
-    "freeWriting": "Write without a generated prompt",
+    "generatePrompt": "Generate prompt",
+    "freeWriting": "Start blank",
     "generatedPrompt": "Generated writing prompt",
     "suggestedWords": "Suggested length: {{count}} words",
     "promptStages": {
@@ -500,7 +504,8 @@
       "email": "Email",
       "note": "Note",
       "short-response": "Short response",
-      "practical-description": "Practical description"
+      "practical-description": "Practical description",
+      "essay": "Essay"
     },
     "contextLabel": "Situation or prompt",
     "contextPlaceholder": "For example: ask a Hausverwaltung about a repair appointment",

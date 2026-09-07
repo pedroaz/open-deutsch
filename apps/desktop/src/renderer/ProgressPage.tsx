@@ -1,11 +1,11 @@
 import type { DesktopIpcResponse, OpenDeutschError } from "@open-deutsch/contracts";
 import { Ear, FilePenLine, MessageCircle, RefreshCw, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button } from "react-aria-components";
 import { useTranslation } from "react-i18next";
+import { DiagnosticCode, Button, Feedback, Card, FieldGroup, ItemList, Muted } from "./components/ui/index.js";
+import { SectionHeader, Page, ContentGrid } from "./components/layout/index.js";
 
-import styles from "./App.module.css";
-import { StatusMessage, SurfaceCard } from "./components/Foundation.js";
+import styles from "./ProgressPage.module.css";
 import { invokeDesktop, normalizeDesktopError } from "./ipc.js";
 
 type Snapshot = Extract<DesktopIpcResponse, { status: "ok"; channel: "history/read" }>["result"];
@@ -122,66 +122,68 @@ export function ProgressPage({ onOpenHistory }: { onOpenHistory: () => void }) {
   };
 
   return (
-    <section className={styles.page} data-testid="progress-view" aria-busy={busy}>
-      <div className={styles.dashboardHeading}>
-        <div>
-          <p className={styles.eyebrow}>{t("progress.eyebrow")}</p>
-          <h1>{t("progress.title")}</h1>
-          <p className={styles.lead}>{t("progress.intro")}</p>
-        </div>
-        <Button className={styles.secondary} isDisabled={busy} onPress={() => void refresh()}>
+    <Page
+      actions={
+        <Button isPending={busy} pendingLabel={t("progress.refreshing")} onPress={() => void refresh()}>
           <RefreshCw aria-hidden="true" />
-          {busy ? t("progress.refreshing") : t("progress.refresh")}
+          {t("progress.refresh")}
         </Button>
-      </div>
+      }
+      className={styles.page}
+      data-testid="progress-view"
+      description={t("progress.intro")}
+      eyebrow={t("progress.eyebrow")}
+      title={t("progress.title")}
+      aria-busy={busy}
+    >
       {error ? (
-        <StatusMessage tone="error">
+        <Feedback live="assertive" tone="error">
           <span>{t(error.messageKey)}</span>
-          <code className={styles.diagnostic}>
+          <DiagnosticCode>
             {error.reference.code} · {error.reference.correlationId}
-          </code>
-        </StatusMessage>
+          </DiagnosticCode>
+        </Feedback>
       ) : null}
-      <StatusMessage>{t("progress.noScore")}</StatusMessage>
+      <Feedback live="off">{t("progress.noScore")}</Feedback>
 
-      <div className={styles.dashboardGrid}>
+      <ContentGrid fillLast>
         {skillDefinitions.map(({ skill, icon: Icon }) => {
           const entries = entriesBySkill[skill];
           return (
-            <SurfaceCard key={skill}>
+            <Card as="article" key={skill}>
               <Icon aria-hidden="true" />
               <h2>{t(`history.skills.${skill}`)}</h2>
               <p>{t("progress.activityCount", { count: entries.length })}</p>
               {entries.length > 0 ? (
-                <ul className={styles.compactList}>
+                <ItemList>
                   {entries.slice(0, 3).map((entry) => (
                     <li key={entry.historyEntryId}>
                       <strong>{entry.title}</strong>
-                      <span className={styles.muted}>{entryEvidence(entry)}</span>
+                      <Muted as="span">{entryEvidence(entry)}</Muted>
                     </li>
                   ))}
-                </ul>
+                </ItemList>
               ) : (
-                <p className={styles.muted}>{t("progress.noEvidence")}</p>
+                <Muted as="p">{t("progress.noEvidence")}</Muted>
               )}
-              <Button className={styles.secondary} onPress={onOpenHistory}>
+              <Button onPress={onOpenHistory}>
                 {t("progress.openHistory")}
               </Button>
-            </SurfaceCard>
+            </Card>
           );
         })}
-      </div>
+      </ContentGrid>
 
       <section aria-labelledby="progress-patterns-heading">
-        <div className={styles.dashboardHeading}>
+        <SectionHeader>
           <div>
             <p className={styles.eyebrow}>{t("progress.patternEyebrow")}</p>
             <h2 id="progress-patterns-heading">{t("progress.patternTitle")}</h2>
           </div>
-          <Button className={styles.secondary} onPress={onOpenHistory}>
+          <Button onPress={onOpenHistory}>
             {t("progress.openHistory")}
           </Button>
-        </div>
+        </SectionHeader>
         {snapshot?.mistakePatterns.length ? (
           <div className={styles.historyMistakeGrid}>
             {snapshot.mistakePatterns.map((pattern) => {
@@ -192,19 +194,19 @@ export function ProgressPage({ onOpenHistory }: { onOpenHistory: () => void }) {
                   ? pattern.category.categoryKey
                   : `${pattern.category.lemma} · ${pattern.category.categoryKey}`;
               return (
-                <SurfaceCard key={mistakeId ?? label}>
+                <Card as="article" key={mistakeId ?? label}>
                   <p className={styles.eyebrow}>
                     {t(`history.patterns.category.${pattern.category.kind}`)}
                   </p>
                   <h3>{label}</h3>
                   <p>{t("progress.patternEvidence", { count: pattern.occurrenceCount })}</p>
-                  <p className={styles.muted}>
+                  <Muted as="p">
                     {pattern.classificationSource === "inferred"
                       ? t("progress.inferred")
                       : t("progress.amended")}
-                  </p>
+                  </Muted>
                   <Button
-                    className={styles.secondary}
+
                     onPress={() => {
                       if (editing) setEditingMistakeId(undefined);
                       else beginEdit(pattern);
@@ -214,7 +216,7 @@ export function ProgressPage({ onOpenHistory }: { onOpenHistory: () => void }) {
                   </Button>
                   {editing ? (
                     <div className={styles.historyDetail}>
-                      <label className={styles.controlLabel}>
+                      <FieldGroup>
                         {t("progress.categoryKey")}
                         <input
                           value={categoryKey}
@@ -222,9 +224,9 @@ export function ProgressPage({ onOpenHistory }: { onOpenHistory: () => void }) {
                             setCategoryKey(event.target.value);
                           }}
                         />
-                      </label>
+                      </FieldGroup>
                       {pattern.category.kind === "vocabulary" ? (
-                        <label className={styles.controlLabel}>
+                        <FieldGroup>
                           {t("progress.lemma")}
                           <input
                             value={lemma}
@@ -232,9 +234,9 @@ export function ProgressPage({ onOpenHistory }: { onOpenHistory: () => void }) {
                               setLemma(event.target.value);
                             }}
                           />
-                        </label>
+                        </FieldGroup>
                       ) : null}
-                      <label className={styles.controlLabel}>
+                      <FieldGroup>
                         {t("progress.note")}
                         <textarea
                           value={note}
@@ -242,9 +244,9 @@ export function ProgressPage({ onOpenHistory }: { onOpenHistory: () => void }) {
                             setNote(event.target.value);
                           }}
                         />
-                      </label>
+                      </FieldGroup>
                       <Button
-                        className={styles.primary}
+                        variant="primary"
                         isDisabled={busy}
                         onPress={() => void amend(pattern)}
                       >
@@ -252,14 +254,14 @@ export function ProgressPage({ onOpenHistory }: { onOpenHistory: () => void }) {
                       </Button>
                     </div>
                   ) : null}
-                </SurfaceCard>
+                </Card>
               );
             })}
           </div>
         ) : (
-          <StatusMessage>{t("progress.noPatterns")}</StatusMessage>
+          <Feedback live="off">{t("progress.noPatterns")}</Feedback>
         )}
       </section>
-    </section>
+    </Page>
   );
 }

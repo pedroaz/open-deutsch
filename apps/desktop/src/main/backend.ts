@@ -236,6 +236,10 @@ const operationModelWorkload = {
   "exercise-feedback": "correction",
   "weekly-plan-generation": "generation",
 } as const satisfies Record<string, ModelWorkload>;
+const translationModelPreference = {
+  model: { mode: "exact", modelId: "gpt-5.6-luna" },
+  effort: { mode: "exact", effortId: "low" },
+} as const;
 const appServerLevel = { a1: "A1", a2: "A2", b1: "B1", b2: "B2" } as const;
 
 function exerciseHistoryPrompt(
@@ -393,7 +397,15 @@ export class DesktopBackend {
               modelRequestId: state.modelRequestId,
               output: writingCorrectionCandidateSchema.parse(state.output),
             });
-          } catch {
+          } catch (error) {
+            this.#operationLog(
+              "error",
+              "DESKTOP_OPERATION_PERSIST_FAILED",
+              state.operationId,
+              state.kind,
+              diagnosticErrorCode(error),
+              "Validated operation output could not be saved.",
+            );
             this.#activeOperations.delete(state.operationId);
             this.#emitEvent?.({
               event: "learning-operation-finished",
@@ -991,6 +1003,7 @@ export class DesktopBackend {
       return {
         kind: input.kind,
         activityId: session.activityId,
+        intent: input.intent,
         selectedText: input.selectedText,
         containingSentence: input.containingSentence,
         question: input.question,
@@ -2309,9 +2322,14 @@ export class DesktopBackend {
           );
         }
         const workload = operationModelWorkload[request.payload.input.kind];
+        const modelPreference =
+          request.payload.input.kind === "contextual-help" &&
+          request.payload.input.intent === "translate"
+            ? translationModelPreference
+            : learnerSettings.modelPreferences[workload];
         const modelResolution = resolveModelPreference(
           workload,
-          learnerSettings.modelPreferences[workload],
+          modelPreference,
           await appServer.refreshModels(),
         ).resolution;
         if (modelResolution.status === "unavailable") {

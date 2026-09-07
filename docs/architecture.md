@@ -1,7 +1,7 @@
 # Architecture
 
 Status: current architecture
-Last updated: 2026-08-22
+Last updated: 2026-08-25
 
 ## Technology baseline
 
@@ -15,7 +15,7 @@ Last updated: 2026-08-22
 - **Renderer system:** accessible React primitives, CSS Modules, shared design tokens, Lucide icons, and i18next-compatible EN/DE catalogs
 - **Packaging:** Linux x86_64 AppImage only, with manual replacement and no updater
 - **Supported platform:** Linux x86_64
-- **Product identity:** Open Deutsch; technical package, application, protocol, and plugin identifiers use `open-deutsch`
+- **Product identity:** Open Deutsch; technical package, application, protocol, and plugin identifiers use `open-deutsch`. Development and packaged Linux windows use the same `dev.opendeutsch.app` desktop identity and OD application icon.
 
 Next.js is not part of the baseline. The app does not need a web server, server-side rendering, or web deployment, and Electron already provides the local backend boundary.
 

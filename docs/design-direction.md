@@ -30,6 +30,17 @@ The initial release is light mode only. Use warm off-white surfaces, restrained 
 
 Do not mix component systems or bypass tokens with arbitrary values unless the design direction is updated intentionally.
 
+Renderer features import canonical controls from `components/ui` and shared page or application
+structure from `components/layout`. Low-level React Aria control imports belong in the UI layer;
+feature-only interaction primitives are the exception. Each feature owns a colocated CSS Module,
+while tokens, global normalization, UI primitives, and application layouts own cross-feature rules.
+
+Canonical vertical rhythm uses a `1.5rem` page stack, a `1rem` card, section, and content-grid gap,
+and a `0.75rem` compact control/action gap. Cards and pages provide spacing between their direct
+children so headings, feedback, controls, and adjacent surfaces never depend on incidental margins.
+The canonical responsive thresholds are `68rem` for the helper drawer, `52rem` for single-column
+content and compact navigation, and `48rem` viewport height for shortened navigation controls.
+
 ## Information architecture
 
 Use persistent left navigation for:
@@ -69,4 +80,4 @@ An opened exercise session fits within the desktop viewport and keeps the outer 
 
 ## Visual review
 
-When the user explicitly requests visual verification, inspect the affected production screen in English and German at standard and narrow window sizes. Review translations, overflow, accessible names and roles, focus behavior, console errors, and design-token consistency directly. Do not maintain a component-test gallery or screenshot regression suite.
+When the user explicitly requests visual verification, inspect the affected production screen in English and German at standard and narrow window sizes. Review translations, spacing and vertical rhythm, overflow, accessible names and roles, focus behavior, console errors, and design-token consistency directly. Do not maintain a component-test gallery or screenshot regression suite.

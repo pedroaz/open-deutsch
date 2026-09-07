@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import type { DesktopIpcResponse, OpenDeutschError } from "@open-deutsch/contracts";
 import { Languages, UserRound } from "lucide-react";
-import { Button } from "react-aria-components";
 import { useTranslation } from "react-i18next";
+import { DiagnosticCode, Button, CheckboxContainer, Feedback, FieldGroup, OptionCard, Muted } from "./components/ui/index.js";
+import { ActionGroup } from "./components/layout/index.js";
 
-import styles from "./App.module.css";
+import styles from "./ProfileOnboarding.module.css";
 import i18n from "./i18n.js";
 import { invokeDesktop, normalizeDesktopError, subscribeDesktop } from "./ipc.js";
 
@@ -21,14 +22,14 @@ type LoginId = Extract<
 function AccountError({ error }: { error: OpenDeutschError }) {
   const { t } = useTranslation();
   return (
-    <div className={`${styles.status} ${styles.error}`} role="alert">
+    <Feedback live="assertive" tone="error">
       <div>
         <p>{t(error.messageKey)}</p>
-        <code className={styles.diagnostic}>
+        <DiagnosticCode>
           {t("startup.diagnostic")}: {error.reference.code} · {error.reference.correlationId}
-        </code>
+        </DiagnosticCode>
       </div>
-    </div>
+    </Feedback>
   );
 }
 
@@ -164,24 +165,24 @@ export function ProfileOnboarding({
         >
           <p className={styles.eyebrow}>{t("onboarding.step")}</p>
           <h1 id="profile-onboarding-title">{t("onboarding.title")}</h1>
-          <p className={styles.muted}>{t("onboarding.intro")}</p>
+          <Muted as="p">{t("onboarding.intro")}</Muted>
 
           <fieldset className={styles.onboardingSection}>
             <legend>{t("onboarding.accountTitle")}</legend>
             <p role="status">{accountSummary}</p>
-            {loginStatus && <p className={styles.muted}>{t(`onboarding.login.${loginStatus}`)}</p>}
+            {loginStatus && <Muted as="p">{t(`onboarding.login.${loginStatus}`)}</Muted>}
             {accountError && <AccountError error={accountError} />}
             {account.status !== "signed-in" && readiness.codex.status === "available" && (
-              <div className={styles.buttonRow}>
+              <ActionGroup>
                 <Button
-                  className={styles.primary}
+                  variant="primary"
                   isDisabled={busy || Boolean(loginId)}
                   onPress={() => void connect("browser")}
                 >
                   <UserRound aria-hidden="true" /> {t("onboarding.connectBrowser")}
                 </Button>
                 <Button
-                  className={styles.secondary}
+
                   isDisabled={busy || Boolean(loginId)}
                   onPress={() => void connect("device-code")}
                 >
@@ -189,21 +190,21 @@ export function ProfileOnboarding({
                 </Button>
                 {loginId && (
                   <Button
-                    className={styles.secondary}
+
                     isDisabled={busy}
                     onPress={() => void cancelLogin()}
                   >
                     {t("onboarding.cancelLogin")}
                   </Button>
                 )}
-              </div>
+              </ActionGroup>
             )}
           </fieldset>
 
           <div className={styles.onboardingGrid}>
             <fieldset className={styles.onboardingSection}>
               <legend>{t("onboarding.startTitle")}</legend>
-              <label className={styles.controlLabel}>
+              <FieldGroup>
                 <span>{t("onboarding.level")}</span>
                 <select
                   value={level}
@@ -217,8 +218,8 @@ export function ProfileOnboarding({
                     </option>
                   ))}
                 </select>
-              </label>
-              <label className={styles.controlLabel}>
+              </FieldGroup>
+              <FieldGroup>
                 <span>{t("onboarding.goal")}</span>
                 <textarea
                   aria-label={t("onboarding.goal")}
@@ -231,8 +232,8 @@ export function ProfileOnboarding({
                   }}
                 />
                 <small>{t("onboarding.goalHint")}</small>
-              </label>
-              <label className={styles.controlLabel}>
+              </FieldGroup>
+              <FieldGroup>
                 <span>{t("onboarding.time")}</span>
                 <select
                   value={minutes}
@@ -246,8 +247,8 @@ export function ProfileOnboarding({
                     </option>
                   ))}
                 </select>
-              </label>
-              <label className={styles.checkboxRow}>
+              </FieldGroup>
+              <CheckboxContainer>
                 <input
                   checked={skipPlacement}
                   onChange={(event) => {
@@ -256,15 +257,15 @@ export function ProfileOnboarding({
                   type="checkbox"
                 />
                 <span>{t("onboarding.skipPlacement")}</span>
-              </label>
-              {!skipPlacement && <p className={styles.muted}>{t("onboarding.placementLater")}</p>}
+              </CheckboxContainer>
+              {!skipPlacement && <Muted as="p">{t("onboarding.placementLater")}</Muted>}
             </fieldset>
 
             <fieldset className={styles.onboardingSection}>
               <legend>{t("onboarding.teachingTitle")}</legend>
               <div className={styles.optionGroup}>
                 {(["conversation-partner", "strict-corrector"] as const).map((profile) => (
-                  <label key={profile} className={styles.optionCard}>
+                  <OptionCard key={profile}>
                     <input
                       aria-label={t(`onboarding.profiles.${profile}.title`)}
                       checked={teachingProfile === profile}
@@ -279,13 +280,13 @@ export function ProfileOnboarding({
                       <strong>{t(`onboarding.profiles.${profile}.title`)}</strong>
                       <small>{t(`onboarding.profiles.${profile}.body`)}</small>
                     </span>
-                  </label>
+                  </OptionCard>
                 ))}
               </div>
               <p className={styles.controlLegend}>{t("onboarding.explanationLanguage")}</p>
               <div className={styles.optionGroup}>
                 {(["en", "de"] as const).map((language) => (
-                  <label key={language} className={styles.optionCard}>
+                  <OptionCard key={language}>
                     <input
                       checked={explanationLanguage === language}
                       name="explanation-language"
@@ -296,23 +297,23 @@ export function ProfileOnboarding({
                       value={language}
                     />
                     <span>{t(`onboarding.languages.${language}`)}</span>
-                  </label>
+                  </OptionCard>
                 ))}
               </div>
-              <p className={styles.muted}>{t("onboarding.localeIndependent")}</p>
+              <Muted as="p">{t("onboarding.localeIndependent")}</Muted>
             </fieldset>
           </div>
 
-          <div className={styles.buttonRow}>
+          <ActionGroup>
             {saveError && <AccountError error={saveError} />}
             <Button
-              className={styles.primary}
+              variant="primary"
               isDisabled={busy || goal.trim().length === 0 || !skipPlacement}
               type="submit"
             >
               {t("onboarding.finish")}
             </Button>
-          </div>
+          </ActionGroup>
         </form>
       </main>
     </div>

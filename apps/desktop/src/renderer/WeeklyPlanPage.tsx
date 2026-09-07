@@ -2,17 +2,17 @@ import { useCallback, useEffect, useState } from "react";
 import type { DesktopIpcResponse, OpenDeutschError } from "@open-deutsch/contracts";
 import { weeklyPlanCandidateSchema } from "@open-deutsch/contracts";
 import { CalendarDays, RefreshCw, Sparkles } from "lucide-react";
-import { Button } from "react-aria-components";
 import { useTranslation } from "react-i18next";
+import { Button, Card, Feedback, FieldGroup, Muted, ItemList } from "./components/ui/index.js";
+import { SectionHeader, Page } from "./components/layout/index.js";
 
-import styles from "./App.module.css";
+import styles from "./WeeklyPlanPage.module.css";
 import {
   invokeDesktop,
   normalizeDesktopError,
   subscribeDesktop,
   createDesktopSubmissionId,
 } from "./ipc.js";
-import { SurfaceCard } from "./components/Foundation.js";
 
 type WeeklyPlanResult = Extract<
   DesktopIpcResponse,
@@ -93,31 +93,26 @@ export function WeeklyPlanPage({ requestAiAccess }: { requestAiAccess: () => Pro
   };
 
   return (
-    <section className={styles.page}>
-      <div className={styles.dashboardHeading}>
-        <div>
-          <p className={styles.eyebrow}>{t("weeklyPlan.eyebrow")}</p>
-          <h1 className={styles.hero}>{t("weeklyPlan.title")}</h1>
-          <p className={styles.lead}>{t("weeklyPlan.body")}</p>
-        </div>
-        <Button className={styles.secondary} isDisabled={busy} onPress={() => void refresh()}>
+    <Page
+      actions={
+        <Button isDisabled={busy} onPress={() => void refresh()}>
           <RefreshCw aria-hidden="true" /> {t("weeklyPlan.refresh")}
         </Button>
-      </div>
-      {error && (
-        <div className={`${styles.status} ${styles.error}`} role="alert">
-          {t(error.messageKey)}
-        </div>
-      )}
-      <SurfaceCard>
-        <div className={styles.dashboardHeading}>
+      }
+      description={t("weeklyPlan.body")}
+      eyebrow={t("weeklyPlan.eyebrow")}
+      title={t("weeklyPlan.title")}
+    >
+      {error && <Feedback live="assertive" tone="error">{t(error.messageKey)}</Feedback>}
+      <Card as="article">
+        <SectionHeader>
           <div>
             <h2>{t("weeklyPlan.generateTitle")}</h2>
             <p>{t("weeklyPlan.generateBody")}</p>
           </div>
           <Sparkles aria-hidden="true" />
-        </div>
-        <label className={styles.controlLabel}>
+        </SectionHeader>
+        <FieldGroup>
           {t("weeklyPlan.request")}
           <textarea
             value={request}
@@ -127,26 +122,25 @@ export function WeeklyPlanPage({ requestAiAccess }: { requestAiAccess: () => Pro
             placeholder={t("weeklyPlan.requestPlaceholder")}
             rows={3}
           />
-        </label>
-        <Button className={styles.primary} isDisabled={busy} onPress={() => void generate()}>
-          {busy ? t("weeklyPlan.generating") : t("weeklyPlan.generate")}
+        </FieldGroup>
+        <Button isPending={busy} pendingLabel={t("weeklyPlan.generating")} variant="primary" onPress={() => void generate()}>
+          {t("weeklyPlan.generate")}
         </Button>
-      </SurfaceCard>
+      </Card>
 
       {plan ? (
-        <SurfaceCard>
-          <div className={styles.historyEntryHeader}>
+        <Card as="article">
+          <SectionHeader>
             <div>
               <h2>{t("weeklyPlan.current")}</h2>
-              <p className={styles.muted}>
+              <Muted as="p">
                 {t("weeklyPlan.week", { date: plan.weekStartsOn })} · {t("weeklyPlan.advisory")}
-              </p>
+              </Muted>
             </div>
             <CalendarDays aria-hidden="true" />
-          </div>
+          </SectionHeader>
           {recommendation && (
-            <section
-              className={styles.settingsSection}
+            <Card as="section"
               aria-labelledby="weekly-plan-recommendation"
             >
               <h3 id="weekly-plan-recommendation">{t("weeklyPlan.recommendedTitle")}</h3>
@@ -155,43 +149,43 @@ export function WeeklyPlanPage({ requestAiAccess }: { requestAiAccess: () => Pro
                 <strong>{recommendation.primary.title}</strong> ·{" "}
                 {recommendation.primary.estimatedMinutes} min
               </p>
-              <p className={styles.muted}>{recommendation.primary.rationale}</p>
+              <Muted as="p">{recommendation.primary.rationale}</Muted>
               {recommendation.alternatives.length > 0 && (
                 <>
                   <h4>{t("weeklyPlan.alternatives")}</h4>
-                  <ul className={styles.compactList}>
+                  <ItemList>
                     {recommendation.alternatives.map((activity) => (
                       <li key={activity.title}>
                         <strong>{activity.title}</strong> · {activity.estimatedMinutes} min
                       </li>
                     ))}
-                  </ul>
+                  </ItemList>
                 </>
               )}
-            </section>
+            </Card>
           )}
           {plan.goals.map((goal) => (
-            <section key={goal.title} className={styles.settingsSection}>
+            <Card as="section" key={goal.title}>
               <h3>{goal.title}</h3>
               <p>{goal.outcome}</p>
-              <ul className={styles.compactList}>
+              <ItemList>
                 {goal.suggestedActivities.map((activity) => (
                   <li key={`${goal.title}:${activity.title}`}>
                     <strong>{activity.title}</strong> · {activity.estimatedMinutes} min
-                    <p className={styles.muted}>{activity.rationale}</p>
+                    <Muted as="p">{activity.rationale}</Muted>
                     <p>{activity.naturalRequest}</p>
                   </li>
                 ))}
-              </ul>
-            </section>
+              </ItemList>
+            </Card>
           ))}
-          <p className={styles.muted}>{t("weeklyPlan.noCompletionLedger")}</p>
-        </SurfaceCard>
+          <Muted as="p">{t("weeklyPlan.noCompletionLedger")}</Muted>
+        </Card>
       ) : (
-        <SurfaceCard>
+        <Card as="article">
           <p>{t("weeklyPlan.empty")}</p>
-        </SurfaceCard>
+        </Card>
       )}
-    </section>
+    </Page>
   );
 }

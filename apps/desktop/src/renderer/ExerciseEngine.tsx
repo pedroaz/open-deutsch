@@ -7,11 +7,11 @@ import {
 } from "@open-deutsch/domain";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
-import { Button } from "react-aria-components";
 import { useTranslation } from "react-i18next";
+import { Button, Card, Feedback, FieldGroup, IconButton, OptionCard, ItemList } from "./components/ui/index.js";
+import { ActionGroup } from "./components/layout/index.js";
 
-import styles from "./App.module.css";
-import { StatusMessage, SurfaceCard } from "./components/Foundation.js";
+import styles from "./ExerciseEngine.module.css";
 
 function answerFor(definition: ExerciseDefinition, values: readonly string[]): ExerciseAnswer {
   if (definition.kind === "free-writing") return { kind: definition.kind, text: values[0] ?? "" };
@@ -56,7 +56,7 @@ function ExerciseContent({
   const { t } = useTranslation();
   if (definition.kind === "free-writing") {
     return (
-      <label className={styles.controlLabel}>
+      <FieldGroup>
         {definition.content.prompt}
         <textarea
           aria-label={t("exercises.answer")}
@@ -67,12 +67,12 @@ function ExerciseContent({
             setValue(0, event.target.value);
           }}
         />
-      </label>
+      </FieldGroup>
     );
   }
   if (definition.kind === "short-answer") {
     return (
-      <label className={styles.controlLabel}>
+      <FieldGroup>
         {definition.content.question}
         <textarea
           aria-label={t("exercises.answer")}
@@ -82,7 +82,7 @@ function ExerciseContent({
             setValue(0, event.target.value);
           }}
         />
-      </label>
+      </FieldGroup>
     );
   }
   if (definition.kind === "fill-in-the-blank") {
@@ -111,7 +111,7 @@ function ExerciseContent({
     return (
       <>
         <blockquote className={styles.exercisePrompt}>{definition.content.sentence}</blockquote>
-        <label className={styles.controlLabel}>
+        <FieldGroup>
           {t("exercises.correctedSentence")}
           <textarea
             aria-label={t("exercises.correctedSentence")}
@@ -121,7 +121,7 @@ function ExerciseContent({
               setValue(0, event.target.value);
             }}
           />
-        </label>
+        </FieldGroup>
       </>
     );
   }
@@ -131,7 +131,7 @@ function ExerciseContent({
         <legend>{definition.content.question}</legend>
         <div className={styles.optionGroup} data-evaluated={evaluated || undefined}>
           {definition.content.options.map((option, position) => (
-            <label className={styles.optionCard} key={`${String(position)}:${option.label}`}>
+            <OptionCard key={`${String(position)}:${option.label}`}>
               <input
                 checked={values[0] === String(position)}
                 disabled={evaluated}
@@ -143,14 +143,14 @@ function ExerciseContent({
                 }}
               />
               <span>{option.label}</span>
-            </label>
+            </OptionCard>
           ))}
         </div>
       </fieldset>
     );
   }
   return (
-    <label className={styles.controlLabel}>
+    <FieldGroup>
       {definition.content.cue}
       <small>{t(`exercises.direction.${definition.content.direction}`)}</small>
       <textarea
@@ -161,7 +161,7 @@ function ExerciseContent({
           setValue(0, event.target.value);
         }}
       />
-    </label>
+    </FieldGroup>
   );
 }
 
@@ -187,19 +187,19 @@ function Evaluation({
     displayedStatus === "correct"
       ? "success"
       : displayedStatus === "almost-correct"
-        ? "neutral"
+        ? "info"
         : displayedStatus === "incorrect"
           ? "warning"
-          : "neutral";
+          : "info";
   return (
-    <StatusMessage tone={tone}>
+    <Feedback live="polite" tone={tone}>
       <strong>{t(`exercises.results.${displayedStatus}`)}</strong>
       {evaluation.acceptedAnswerReveal.length > 0 && (
         <span className={styles.acceptedAnswers}>
           {t("exercises.acceptedAnswers")}: {evaluation.acceptedAnswerReveal.join(" / ")}
         </span>
       )}
-    </StatusMessage>
+    </Feedback>
   );
 }
 
@@ -298,7 +298,7 @@ export function ExerciseEngine({
     return evaluations.length > 0 ? (
       <section aria-labelledby="exercise-complete-heading">
         <h2 id="exercise-complete-heading">{t("exercises.complete")}</h2>
-        <ol className={styles.compactList}>
+        <ItemList>
           {evaluations.map((evaluation, index) => (
             <li key={`${evaluation.exerciseKind}:${String(index)}`}>
               <Evaluation
@@ -308,7 +308,7 @@ export function ExerciseEngine({
               {aiFeedbackByPosition[index] && <AiFeedback feedback={aiFeedbackByPosition[index]} />}
             </li>
           ))}
-        </ol>
+        </ItemList>
       </section>
     ) : null;
   }
@@ -412,21 +412,21 @@ export function ExerciseEngine({
       }
     };
     return (
-      <SurfaceCard>
+      <Card as="article">
         <h2>{t("exercises.ready")}</h2>
         <p>{t("exercises.readyBody", { count: exercises.length })}</p>
-        {startFailed && <StatusMessage tone="error">{t("exercises.startFailed")}</StatusMessage>}
-        <Button className={styles.primary} isDisabled={starting} onPress={() => void start()}>
+        {startFailed && <Feedback live="assertive" tone="error">{t("exercises.startFailed")}</Feedback>}
+        <Button variant="primary" isDisabled={starting} onPress={() => void start()}>
           {starting
             ? t("exercises.starting")
             : t(restart ? "exercises.startAgain" : "exercises.start")}
         </Button>
-      </SurfaceCard>
+      </Card>
     );
   }
 
   return (
-    <SurfaceCard>
+    <Card as="article">
       <div className={styles.exerciseCardHeader}>
         <p className={styles.eyebrow}>
           {t("exercises.progress", { current: position + 1, total: exercises.length })}
@@ -436,24 +436,20 @@ export function ExerciseEngine({
           aria-label={t("exercises.navigationLabel")}
           role="group"
         >
-          <Button
-            aria-label={t("exercises.previous")}
+          <IconButton
             className={styles.exerciseNavButton}
             isDisabled={position === 0 || evaluatingWithAi || completing}
+            label={t("exercises.previous")}
+            leadingIcon={<ChevronLeft aria-hidden="true" />}
             onPress={() => navigateTo(position - 1)}
-            title={t("exercises.previous")}
-          >
-            <ChevronLeft aria-hidden="true" />
-          </Button>
-          <Button
-            aria-label={t("exercises.forward")}
+          />
+          <IconButton
             className={styles.exerciseNavButton}
             isDisabled={position >= furthestPosition || evaluatingWithAi || completing}
+            label={t("exercises.forward")}
+            leadingIcon={<ChevronRight aria-hidden="true" />}
             onPress={() => navigateTo(position + 1)}
-            title={t("exercises.forward")}
-          >
-            <ChevronRight aria-hidden="true" />
-          </Button>
+          />
         </div>
       </div>
       <h2>{definition.instructions}</h2>
@@ -465,24 +461,24 @@ export function ExerciseEngine({
         setValue={setValue}
       />
       {displayedHints.slice(0, hintCount).map((hint, index) => (
-        <StatusMessage key={`${String(index)}:${hint.text}`}>{hint.text}</StatusMessage>
+        <Feedback live="off" key={`${String(index)}:${hint.text}`}>{hint.text}</Feedback>
       ))}
-      {answerInvalid && <StatusMessage tone="error">{t("exercises.answerRequired")}</StatusMessage>}
+      {answerInvalid && <Feedback live="assertive" tone="error">{t("exercises.answerRequired")}</Feedback>}
       {completionFailed && (
-        <StatusMessage tone="error">{t("exercises.completionFailed")}</StatusMessage>
+        <Feedback live="assertive" tone="error">{t("exercises.completionFailed")}</Feedback>
       )}
-      {abandonFailed && <StatusMessage tone="error">{t("exercises.abandonFailed")}</StatusMessage>}
+      {abandonFailed && <Feedback live="assertive" tone="error">{t("exercises.abandonFailed")}</Feedback>}
       {aiEvaluationFailed && (
-        <StatusMessage tone="error">{t("exercises.aiFeedback.failed")}</StatusMessage>
+        <Feedback live="assertive" tone="error">{t("exercises.aiFeedback.failed")}</Feedback>
       )}
       {currentEvaluation && (
         <Evaluation evaluation={currentEvaluation} aiFeedback={currentAiFeedback} />
       )}
       {currentAiFeedback && <AiFeedback feedback={currentAiFeedback} />}
-      <div className={styles.buttonRow}>
+      <ActionGroup>
         {onAbandoned && (
           <Button
-            className={styles.secondary}
+
             isDisabled={abandoning || completing || evaluatingWithAi}
             onPress={() => {
               setAbandoning(true);
@@ -504,7 +500,7 @@ export function ExerciseEngine({
         )}
         {hintCount < displayedHints.length && !currentEvaluation && (
           <Button
-            className={styles.secondary}
+
             onPress={() => {
               const next = hintCount + 1;
               setHintCount(next);
@@ -519,7 +515,7 @@ export function ExerciseEngine({
         )}
         {!currentEvaluation && (
           <Button
-            className={styles.primary}
+            variant="primary"
             isDisabled={evaluatingWithAi}
             onPress={() => void submit()}
           >
@@ -530,7 +526,7 @@ export function ExerciseEngine({
           (currentEvaluation.status !== "requires-ai" || currentAiFeedback) &&
           position === furthestPosition &&
           position + 1 < exercises.length && (
-            <Button className={styles.primary} onPress={() => void advance(evaluations)}>
+            <Button variant="primary" onPress={() => void advance(evaluations)}>
               {t("exercises.next")}
             </Button>
           )}
@@ -539,14 +535,14 @@ export function ExerciseEngine({
           position === furthestPosition &&
           position + 1 === exercises.length && (
             <Button
-              className={styles.primary}
+              variant="primary"
               isDisabled={completing}
               onPress={() => void advance(evaluations)}
             >
               {completing ? t("exercises.completing") : t("exercises.finish")}
             </Button>
           )}
-      </div>
-    </SurfaceCard>
+      </ActionGroup>
+    </Card>
   );
 }

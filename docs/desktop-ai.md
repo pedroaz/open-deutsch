@@ -50,7 +50,7 @@ The helper receives only the context needed for the active learning question:
 - active teaching profile;
 - a small amount of relevant mistake history when useful.
 
-The helper supports multi-turn questions within the attempt. Its thread identifier may be stored as runtime state, but the canonical learning history should store structured questions, answers, or annotations rather than depend on a raw Codex thread forever.
+The helper supports multi-turn questions within the attempt. Highlighted text becomes the active context, and the learner uses a compact chat composer for questions about meaning, grammar, conjugation, word choice, and related learning topics. A dedicated Translate action provides a direct translation without requiring a typed prompt. Its thread identifier may be stored as runtime state, but the canonical learning history should store structured questions, answers, or annotations rather than depend on a raw Codex thread forever.
 
 The helper may suggest improvements, examples, translations, or mini-exercises. It remains explanation-only with respect to the learner's writing: it must not alter text or expose direct-apply editing actions.
 
@@ -73,7 +73,7 @@ The backend queries App Server for the current visible model catalog and exposes
 
 Do not hardcode which model belongs to a subscription tier. Use the runtime catalog for availability and account/rate-limit endpoints for status. If a saved choice disappears, require a supported available choice or explicit Automatic behavior; do not silently substitute an unrelated provider or API-key path.
 
-These controls apply to desktop-originated App Server turns. Voice and tasks initiated inside Codex continue to use the Codex host's own model controls.
+These controls apply to desktop-originated App Server turns. The dedicated Context Helper Translate action prefers the runtime-advertised GPT-5.6 Luna model at `low` effort as a cost-optimized bounded action; contextual chat continues to use the saved helper preference. Voice and tasks initiated inside Codex continue to use the Codex host's own model controls.
 
 See `model-selection.md` for the full product policy.
 

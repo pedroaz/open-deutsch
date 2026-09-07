@@ -2,11 +2,10 @@ import type { AppServerCandidateOutputMap } from "@open-deutsch/contracts";
 import { alignCorrectionTexts } from "@open-deutsch/domain";
 import { useMemo, useState } from "react";
 import { ArrowRight, CircleAlert, Minus, Plus } from "lucide-react";
-import { Button } from "react-aria-components";
 import { useTranslation } from "react-i18next";
+import { Button, DiffView, Disclosure, Muted, ItemList } from "./components/ui/index.js";
 
-import styles from "./App.module.css";
-import { Disclosure } from "./components/Foundation.js";
+import styles from "./CorrectionComparison.module.css";
 
 type CorrectionOutput = AppServerCandidateOutputMap["writing-correction"];
 type ChangedSegment = Exclude<
@@ -117,7 +116,7 @@ export function CorrectionComparison({
       <p className={styles.eyebrow}>{t("writing.correctionReady")}</p>
       <h2>{t("writing.correctedText")}</h2>
       <p className={styles.correctedPriority}>{correction.correctedText}</p>
-      <p className={styles.muted}>{correction.summary}</p>
+      <Muted as="p">{correction.summary}</Muted>
       {changes.length > 0 ? (
         <>
           <h3>{t("writing.inlineCorrection")}</h3>
@@ -195,21 +194,8 @@ export function CorrectionComparison({
           </section>
           <section aria-labelledby="side-by-side-heading">
             <h3 id="side-by-side-heading">{t("writing.sideBySide")}</h3>
-            <div className={styles.correctionGrid}>
-              <article className={styles.correctionPane}>
-                <h4>{t("writing.originalText")}</h4>
-                <AlignedPane
-                  alignment={alignment}
-                  onSelect={(changeId) => {
-                    const segment = changes.find((item) => item.changeId === changeId);
-                    if (segment) selectChange(segment);
-                  }}
-                  selectedId={selected?.changeId}
-                  side="original"
-                />
-              </article>
-              <article className={styles.correctionPane}>
-                <h4>{t("writing.correctedText")}</h4>
+            <DiffView
+              corrected={
                 <AlignedPane
                   alignment={alignment}
                   onSelect={(changeId) => {
@@ -219,8 +205,22 @@ export function CorrectionComparison({
                   selectedId={selected?.changeId}
                   side="corrected"
                 />
-              </article>
-            </div>
+              }
+              correctedLabel={t("writing.correctedText")}
+              mode="side-by-side"
+              original={
+                <AlignedPane
+                  alignment={alignment}
+                  onSelect={(changeId) => {
+                    const segment = changes.find((item) => item.changeId === changeId);
+                    if (segment) selectChange(segment);
+                  }}
+                  selectedId={selected?.changeId}
+                  side="original"
+                />
+              }
+              originalLabel={t("writing.originalText")}
+            />
           </section>
         </>
       ) : (
@@ -240,14 +240,14 @@ export function CorrectionComparison({
             count: correction.vocabularyCandidates.length,
           })}
         >
-          <ul className={styles.compactList}>
+          <ItemList>
             {correction.vocabularyCandidates.map((item) => (
               <li key={`${item.lemma}-${item.sourceExcerpt}`}>
                 <strong>{item.lemma}</strong> — {item.meaning}
-                <p className={styles.muted}>{item.rationale}</p>
+                <Muted as="p">{item.rationale}</Muted>
               </li>
             ))}
-          </ul>
+          </ItemList>
         </Disclosure>
       ) : null}
       {correction.nextPracticeSuggestion ? (
@@ -263,11 +263,11 @@ export function CorrectionComparison({
             </p>
           ) : null}
           {correction.caveats.length > 0 ? (
-            <ul className={styles.compactList}>
+            <ItemList>
               {correction.caveats.map((caveat) => (
                 <li key={caveat}>{caveat}</li>
               ))}
-            </ul>
+            </ItemList>
           ) : null}
         </Disclosure>
       ) : null}

@@ -6,11 +6,11 @@ import type {
 import { calendarDateSchema, curriculumTopicIdSchema } from "@open-deutsch/contracts";
 import { History, RefreshCw, Repeat2, Sparkles, Square } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button } from "react-aria-components";
 import { useTranslation } from "react-i18next";
+import { DiagnosticCode, Button, ConfirmDialog, EmptyState, Feedback, Card, FieldGroup, Muted, ItemList } from "./components/ui/index.js";
+import { ActionGroup, FilterBar, Page } from "./components/layout/index.js";
 
-import styles from "./App.module.css";
-import { DestructiveDialog, StatusMessage, SurfaceCard } from "./components/Foundation.js";
+import styles from "./HistoryPage.module.css";
 import {
   createDesktopSubmissionId,
   invokeDesktop,
@@ -256,27 +256,30 @@ export function HistoryPage({
   };
 
   return (
-    <section className={styles.page} aria-busy={busy}>
-      <div className={styles.dashboardHeading}>
-        <div>
-          <p className={styles.eyebrow}>{t("history.eyebrow")}</p>
-          <h1>{t("history.title")}</h1>
-          <p className={styles.lead}>{t("history.intro")}</p>
-        </div>
-        <Button className={styles.secondary} isDisabled={busy} onPress={() => void refresh()}>
+    <Page
+      actions={
+        <Button isPending={busy} pendingLabel={t("history.refreshing")} onPress={() => void refresh()}>
           <RefreshCw aria-hidden="true" />
-          {busy ? t("history.refreshing") : t("history.refresh")}
+          {t("history.refresh")}
         </Button>
-      </div>
+      }
+      className={styles.page}
+      description={t("history.intro")}
+      eyebrow={t("history.eyebrow")}
+      title={t("history.title")}
+      aria-busy={busy}
+    >
 
-      <form
-        className={styles.historyFilters}
+      <FilterBar
+        as="form"
+        columns={3}
+        label={t("history.title")}
         onSubmit={(event) => {
           event.preventDefault();
           void refresh();
         }}
       >
-        <label className={styles.controlLabel}>
+        <FieldGroup>
           {t("history.filters.skill")}
           <select
             value={skill}
@@ -291,8 +294,8 @@ export function HistoryPage({
               </option>
             ))}
           </select>
-        </label>
-        <label className={styles.controlLabel}>
+        </FieldGroup>
+        <FieldGroup>
           {t("history.filters.activityType")}
           <select
             value={activityType}
@@ -307,8 +310,8 @@ export function HistoryPage({
               </option>
             ))}
           </select>
-        </label>
-        <label className={styles.controlLabel}>
+        </FieldGroup>
+        <FieldGroup>
           {t("history.filters.from")}
           <input
             type="date"
@@ -317,8 +320,8 @@ export function HistoryPage({
               setFromDate(event.target.value);
             }}
           />
-        </label>
-        <label className={styles.controlLabel}>
+        </FieldGroup>
+        <FieldGroup>
           {t("history.filters.to")}
           <input
             type="date"
@@ -327,8 +330,8 @@ export function HistoryPage({
               setToDate(event.target.value);
             }}
           />
-        </label>
-        <label className={styles.controlLabel}>
+        </FieldGroup>
+        <FieldGroup>
           {t("history.filters.topic")}
           <input
             maxLength={96}
@@ -337,8 +340,8 @@ export function HistoryPage({
               setCurriculumTopicId(event.target.value);
             }}
           />
-        </label>
-        <label className={styles.controlLabel}>
+        </FieldGroup>
+        <FieldGroup>
           {t("history.filters.mistake")}
           <input
             maxLength={120}
@@ -347,25 +350,25 @@ export function HistoryPage({
               setMistakeCategory(event.target.value);
             }}
           />
-        </label>
-        <Button className={styles.primary} isDisabled={busy} type="submit">
+        </FieldGroup>
+        <Button variant="primary" isDisabled={busy} type="submit">
           {t("history.filters.apply")}
         </Button>
-      </form>
+      </FilterBar>
 
       {error && (
-        <StatusMessage tone="error">
+        <Feedback live="assertive" tone="error">
           <span>{t(error.messageKey)}</span>
-          <code className={styles.diagnostic}>
+          <DiagnosticCode>
             {error.reference.code} · {error.reference.correlationId}
-          </code>
-        </StatusMessage>
+          </DiagnosticCode>
+        </Feedback>
       )}
 
       {snapshot && snapshot.mistakePatterns.length > 0 ? (
         <section aria-labelledby="mistake-patterns-heading">
           <h2 id="mistake-patterns-heading">{t("history.patterns.title")}</h2>
-          <p className={styles.muted}>{t("history.patterns.intro")}</p>
+          <Muted as="p">{t("history.patterns.intro")}</Muted>
           <div className={styles.historyMistakeGrid}>
             {snapshot.mistakePatterns.map((pattern) => {
               const categoryLabel =
@@ -373,44 +376,44 @@ export function HistoryPage({
                   ? `${pattern.category.lemma} · ${pattern.category.categoryKey}`
                   : pattern.category.categoryKey;
               return (
-                <SurfaceCard key={`${pattern.category.kind}:${pattern.category.categoryKey}`}>
+                <Card as="article" key={`${pattern.category.kind}:${pattern.category.categoryKey}`}>
                   <p className={styles.eyebrow}>
                     {t(`history.patterns.category.${pattern.category.kind}`)}
                   </p>
                   <h3>{categoryLabel}</h3>
-                  <StatusMessage tone={pattern.status === "recurring" ? "warning" : "neutral"}>
+                  <Feedback live="off" tone={pattern.status === "recurring" ? "warning" : "info"}>
                     {pattern.status === "recurring"
                       ? t("history.patterns.recurring", { count: pattern.occurrenceCount })
                       : t("history.patterns.single")}
-                  </StatusMessage>
-                  <p className={styles.muted}>
+                  </Feedback>
+                  <Muted as="p">
                     {t(`history.patterns.source.${pattern.classificationSource}`)}
-                  </p>
+                  </Muted>
                   {pattern.targetedPractice.status === "created" ||
                   (practiceState?.patternKey ===
                     `${pattern.category.kind}:${pattern.category.categoryKey}` &&
                     practiceState.status === "created") ? (
-                    <StatusMessage tone="success">
+                    <Feedback live="off" tone="success">
                       {t("history.patterns.practice.created")}
-                    </StatusMessage>
+                    </Feedback>
                   ) : practiceState?.patternKey ===
                       `${pattern.category.kind}:${pattern.category.categoryKey}` &&
                     (practiceState.status === "queued" || practiceState.status === "running") ? (
-                    <div className={styles.buttonRow}>
-                      <StatusMessage>
+                    <ActionGroup>
+                      <Feedback live="off">
                         {t(`history.patterns.practice.${practiceState.status}`)}
-                      </StatusMessage>
+                      </Feedback>
                       <Button
-                        className={styles.secondary}
+
                         onPress={() => void cancelTargetedPractice()}
                       >
                         <Square aria-hidden="true" /> {t("history.patterns.practice.cancel")}
                       </Button>
-                    </div>
+                    </ActionGroup>
                   ) : (
-                    <div className={styles.buttonRow}>
+                    <ActionGroup>
                       <Button
-                        className={styles.secondary}
+
                         onPress={() => void createTargetedPractice(pattern)}
                       >
                         <Sparkles aria-hidden="true" /> {t("history.patterns.practice.create")}
@@ -419,11 +422,11 @@ export function HistoryPage({
                         `${pattern.category.kind}:${pattern.category.categoryKey}` &&
                       (practiceState.status === "cancelled" ||
                         practiceState.status === "failed") ? (
-                        <span className={styles.muted}>
+                        <Muted as="span">
                           {t(`history.patterns.practice.${practiceState.status}`)}
-                        </span>
+                        </Muted>
                       ) : null}
-                    </div>
+                    </ActionGroup>
                   )}
                   <ol className={styles.historyEvidenceList}>
                     {pattern.occurrences.map((occurrence, position) => (
@@ -438,14 +441,14 @@ export function HistoryPage({
                         </blockquote>
                         <p>{occurrence.explanation}</p>
                         {occurrence.classificationSource === "learner-amended" ? (
-                          <span className={styles.muted}>
+                          <Muted as="span">
                             {t("history.patterns.amendedEvidence")}
-                          </span>
+                          </Muted>
                         ) : null}
                       </li>
                     ))}
                   </ol>
-                </SurfaceCard>
+                </Card>
               );
             })}
           </div>
@@ -453,14 +456,14 @@ export function HistoryPage({
       ) : null}
 
       {snapshot && snapshot.entries.length === 0 ? (
-        <StatusMessage>
+        <EmptyState>
           <History aria-hidden="true" /> {t("history.empty")}
-        </StatusMessage>
+        </EmptyState>
       ) : null}
 
       <div className={styles.historyList}>
         {snapshot?.entries.map((entry) => (
-          <SurfaceCard key={entry.historyEntryId}>
+          <Card as="article" key={entry.historyEntryId}>
             <header className={styles.historyEntryHeader}>
               <div>
                 <p className={styles.eyebrow}>
@@ -474,14 +477,14 @@ export function HistoryPage({
               </time>
             </header>
             {entry.curriculumTopicIds.length > 0 && (
-              <p className={styles.muted}>
+              <Muted as="p">
                 {t("history.topics")}: {entry.curriculumTopicIds.join(", ")}
-              </p>
+              </Muted>
             )}
             {entry.mistakeCategories.length > 0 && (
-              <p className={styles.muted}>
+              <Muted as="p">
                 {t("history.mistakes")}: {entry.mistakeCategories.join(", ")}
-              </p>
+              </Muted>
             )}
             {entry.detail.kind === "writing-correction" ? (
               <div className={styles.historyDetail}>
@@ -499,91 +502,91 @@ export function HistoryPage({
                   <h3>{t("history.feedback")}</h3>
                   <p>{entry.detail.feedback.summary}</p>
                   <h4>{t("history.strengths")}</h4>
-                  <ul className={styles.compactList}>
+                  <ItemList>
                     {entry.detail.feedback.strengths.map((item) => (
                       <li key={item}>{item}</li>
                     ))}
-                  </ul>
+                  </ItemList>
                   <h4>{t("history.improvements")}</h4>
-                  <ul className={styles.compactList}>
+                  <ItemList>
                     {entry.detail.feedback.improvements.map((item) => (
                       <li key={item}>{item}</li>
                     ))}
-                  </ul>
+                  </ItemList>
                 </section>
                 {entry.detail.vocabularyCandidates.length > 0 && (
                   <section>
                     <h3>{t("history.vocabularyCandidates")}</h3>
-                    <ul className={styles.compactList}>
+                    <ItemList>
                       {entry.detail.vocabularyCandidates.map((candidate) => (
                         <li key={`${candidate.lemma}:${candidate.meaning}`}>
                           <strong>{candidate.lemma}</strong> — {candidate.meaning}.{" "}
                           {candidate.rationale}
                         </li>
                       ))}
-                    </ul>
+                    </ItemList>
                   </section>
                 )}
-                <p className={styles.muted}>
+                <Muted as="p">
                   {entry.detail.provenance.availability === "reported"
                     ? t("history.modelProvenance", {
                         model: entry.detail.provenance.modelId,
                         effort: entry.detail.provenance.effortId,
                       })
                     : t("history.modelNotReported")}
-                </p>
-                <div className={styles.buttonRow}>
+                </Muted>
+                <ActionGroup>
                   <Button
-                    className={styles.secondary}
+
                     onPress={() => {
                       onPracticeAgain(practiceSeed(entry));
                     }}
                   >
                     <Repeat2 aria-hidden="true" /> {t("history.practiceAgain")}
                   </Button>
-                  <DestructiveDialog
+                  <ConfirmDialog
                     body={t("history.deleteBody")}
                     cancel={t("actions.cancel")}
                     confirm={t("actions.delete")}
-                    onConfirm={() => void deleteEntry(entry)}
+                    onConfirm={() => deleteEntry(entry)}
                     title={t("history.deleteTitle")}
                     trigger={t("history.delete")}
                   />
-                </div>
+                </ActionGroup>
               </div>
             ) : entry.detail.kind === "reading" ? (
               <div className={styles.historyDetail} data-testid="reading-detail">
                 <section>
                   <h3>{t("history.readingMaterial")}</h3>
                   <p>{entry.detail.passage}</p>
-                  <p className={styles.muted}>
+                  <Muted as="p">
                     {t("history.readingSource", {
                       source: entry.detail.source.label,
                       kind: entry.detail.source.kind,
                     })}
-                  </p>
+                  </Muted>
                 </section>
                 <section>
                   <h3>{t("history.readingEvidence")}</h3>
-                  <ul className={styles.compactList}>
+                  <ItemList>
                     {entry.detail.exerciseResults.map((exercise) => (
                       <li key={exercise.kind}>
                         <strong>{exercise.kind}</strong>: {exercise.evidence}
                       </li>
                     ))}
-                  </ul>
+                  </ItemList>
                   {entry.detail.difficultWords.length > 0 && (
                     <p>
                       {t("history.readingWords", { words: entry.detail.difficultWords.join(", ") })}
                     </p>
                   )}
                 </section>
-                <StatusMessage>{t("history.readingUntrusted")}</StatusMessage>
-                <DestructiveDialog
+                <Feedback live="off">{t("history.readingUntrusted")}</Feedback>
+                <ConfirmDialog
                   body={t("history.deleteBody")}
                   cancel={t("actions.cancel")}
                   confirm={t("actions.delete")}
-                  onConfirm={() => void deleteEntry(entry)}
+                  onConfirm={() => deleteEntry(entry)}
                   title={t("history.deleteTitle")}
                   trigger={t("history.delete")}
                 />
@@ -592,13 +595,13 @@ export function HistoryPage({
               <div className={styles.historyDetail} data-testid="listening-detail">
                 <section>
                   <h3>{t("history.listeningSummary")}</h3>
-                  <ul className={styles.compactList}>
+                  <ItemList>
                     {entry.detail.exerciseResults.map((exercise) => (
                       <li key={exercise.kind}>
                         <strong>{exercise.kind}</strong>: {exercise.outcome} — {exercise.evidence}
                       </li>
                     ))}
-                  </ul>
+                  </ItemList>
                   {entry.detail.difficultVocabulary.length > 0 && (
                     <p>
                       {t("history.listeningWords", {
@@ -609,18 +612,18 @@ export function HistoryPage({
                 </section>
                 <section>
                   <h3>{t("history.listeningNextSteps")}</h3>
-                  <ul className={styles.compactList}>
+                  <ItemList>
                     {entry.detail.nextSteps.map((step) => (
                       <li key={step}>{step}</li>
                     ))}
-                  </ul>
+                  </ItemList>
                 </section>
-                <StatusMessage>{t("history.listeningNoAudio")}</StatusMessage>
-                <DestructiveDialog
+                <Feedback live="off">{t("history.listeningNoAudio")}</Feedback>
+                <ConfirmDialog
                   body={t("history.deleteBody")}
                   cancel={t("actions.cancel")}
                   confirm={t("actions.delete")}
-                  onConfirm={() => void deleteEntry(entry)}
+                  onConfirm={() => deleteEntry(entry)}
                   title={t("history.deleteTitle")}
                   trigger={t("history.delete")}
                 />
@@ -634,31 +637,31 @@ export function HistoryPage({
                       level: entry.detail.estimatedLevel.toUpperCase(),
                     })}
                   </p>
-                  <StatusMessage tone="warning">
+                  <Feedback live="off" tone="warning">
                     {entry.detail.uncertainty.level === "none"
                       ? t("history.placementUncertaintyNone")
                       : entry.detail.uncertainty.explanation}
-                  </StatusMessage>
+                  </Feedback>
                 </section>
                 <section>
                   <h3>{t("history.placementEvidence")}</h3>
-                  <ul className={styles.compactList}>
+                  <ItemList>
                     {entry.detail.sampleResults.map((sample) => (
                       <li key={sample.kind}>
                         <strong>{sample.topic}</strong>:{" "}
                         {t(`history.placementOutcomes.${sample.outcome}`)} — {sample.evidence}
                       </li>
                     ))}
-                  </ul>
+                  </ItemList>
                 </section>
-                <StatusMessage tone="warning">
+                <Feedback live="off" tone="warning">
                   {entry.detail.voiceCalibration.explanation}
-                </StatusMessage>
-                <DestructiveDialog
+                </Feedback>
+                <ConfirmDialog
                   body={t("history.deleteBody")}
                   cancel={t("actions.cancel")}
                   confirm={t("actions.delete")}
-                  onConfirm={() => void deleteEntry(entry)}
+                  onConfirm={() => deleteEntry(entry)}
                   title={t("history.deleteTitle")}
                   trigger={t("history.delete")}
                 />
@@ -670,7 +673,7 @@ export function HistoryPage({
                   <p>
                     <strong>{entry.detail.scenario.title}</strong> — {entry.detail.scenario.topic}
                   </p>
-                  <p className={styles.muted}>
+                  <Muted as="p">
                     {t("history.voiceSummary.level", {
                       level: entry.detail.scenario.targetLevel.toUpperCase(),
                     })}
@@ -683,88 +686,88 @@ export function HistoryPage({
                           ),
                         })
                       : t("history.voiceSummary.durationUnknown")}
-                  </p>
+                  </Muted>
                 </section>
                 <section>
                   <h3>{t("history.feedback")}</h3>
                   <p>{entry.detail.feedback.summary}</p>
                   {entry.detail.feedback.strengths.length > 0 && (
-                    <ul className={styles.compactList}>
+                    <ItemList>
                       {entry.detail.feedback.strengths.map((item) => (
                         <li key={`strength:${item}`}>{item}</li>
                       ))}
-                    </ul>
+                    </ItemList>
                   )}
                   {entry.detail.feedback.priorities.length > 0 && (
-                    <ul className={styles.compactList}>
+                    <ItemList>
                       {entry.detail.feedback.priorities.map((item) => (
                         <li key={`priority:${item}`}>{item}</li>
                       ))}
-                    </ul>
+                    </ItemList>
                   )}
                 </section>
                 {entry.detail.observedIssues.length > 0 && (
                   <section>
                     <h3>{t("history.voiceSummary.issues")}</h3>
-                    <ul className={styles.compactList}>
+                    <ItemList>
                       {entry.detail.observedIssues.map((issue) => (
                         <li key={`${issue.category}:${issue.observation}`}>
                           <strong>{issue.category}</strong>: {issue.observation} — {issue.feedback}
                         </li>
                       ))}
-                    </ul>
+                    </ItemList>
                   </section>
                 )}
                 {entry.detail.vocabulary.length > 0 && (
                   <section>
                     <h3>{t("history.voiceSummary.vocabulary")}</h3>
-                    <ul className={styles.compactList}>
+                    <ItemList>
                       {entry.detail.vocabulary.map((item) => (
                         <li key={`${item.lemma}:${item.meaning}`}>
                           <strong>{item.lemma}</strong> — {item.meaning}. {item.contextSummary}
                         </li>
                       ))}
-                    </ul>
+                    </ItemList>
                   </section>
                 )}
                 <section>
                   <h3>{t("history.voiceSummary.nextSteps")}</h3>
-                  <ul className={styles.compactList}>
+                  <ItemList>
                     {entry.detail.nextSteps.map((step) => (
                       <li key={`${step.title}:${step.naturalRequest}`}>
                         <strong>{step.title}</strong> — {step.rationale}
                       </li>
                     ))}
-                  </ul>
-                  <div className={styles.buttonRow}>
+                  </ItemList>
+                  <ActionGroup>
                     {practiceState?.patternKey === `voice:${entry.historyEntryId}` &&
                     practiceState.status === "created" ? (
-                      <StatusMessage tone="success">
+                      <Feedback live="off" tone="success">
                         {t("history.voiceSummary.practiceCreated")}
-                      </StatusMessage>
+                      </Feedback>
                     ) : practiceState?.patternKey === `voice:${entry.historyEntryId}` &&
                       (practiceState.status === "queued" || practiceState.status === "running") ? (
-                      <StatusMessage>
+                      <Feedback live="off">
                         {practiceState.status === "queued"
                           ? t("history.voiceSummary.practiceQueued")
                           : t("history.voiceSummary.practiceRunning")}
-                      </StatusMessage>
+                      </Feedback>
                     ) : (
                       <Button
-                        className={styles.secondary}
+
                         onPress={() => void createVoiceFollowUp(entry)}
                       >
                         <Sparkles aria-hidden="true" /> {t("history.voiceSummary.practice")}
                       </Button>
                     )}
-                  </div>
+                  </ActionGroup>
                 </section>
-                <p className={styles.muted}>{t("history.voiceSummary.noAudio")}</p>
-                <DestructiveDialog
+                <Muted as="p">{t("history.voiceSummary.noAudio")}</Muted>
+                <ConfirmDialog
                   body={t("history.deleteBody")}
                   cancel={t("actions.cancel")}
                   confirm={t("actions.delete")}
-                  onConfirm={() => void deleteEntry(entry)}
+                  onConfirm={() => deleteEntry(entry)}
                   title={t("history.deleteTitle")}
                   trigger={t("history.delete")}
                 />
@@ -783,14 +786,14 @@ export function HistoryPage({
                 <section>
                   <h3>{t("history.feedback")}</h3>
                   <p>{entry.detail.feedback.summary}</p>
-                  <ul className={styles.compactList}>
+                  <ItemList>
                     {entry.detail.objectiveEvaluations.map((evaluation, position) => (
                       <li key={`${evaluation.outcome}:${String(position)}`}>
                         <strong>{t(`history.objectiveOutcomes.${evaluation.outcome}`)}</strong>{" "}
                         {evaluation.evidence}
                       </li>
                     ))}
-                  </ul>
+                  </ItemList>
                 </section>
                 {(entry.detail.suggestedAnswer || entry.detail.acceptedAnswerReveal.length > 0) && (
                   <section>
@@ -801,9 +804,9 @@ export function HistoryPage({
                     </p>
                   </section>
                 )}
-                <div className={styles.buttonRow}>
+                <ActionGroup>
                   <Button
-                    className={styles.secondary}
+
                     onPress={() => {
                       if (entry.detail.kind === "exercise-attempt") {
                         onPracticeAgain({ kind: "exercise", activityId: entry.detail.activityId });
@@ -812,22 +815,22 @@ export function HistoryPage({
                   >
                     <Repeat2 aria-hidden="true" /> {t("history.practiceAgain")}
                   </Button>
-                  <DestructiveDialog
+                  <ConfirmDialog
                     body={t("history.deleteBody")}
                     cancel={t("actions.cancel")}
                     confirm={t("actions.delete")}
-                    onConfirm={() => void deleteEntry(entry)}
+                    onConfirm={() => deleteEntry(entry)}
                     title={t("history.deleteTitle")}
                     trigger={t("history.delete")}
                   />
-                </div>
+                </ActionGroup>
               </div>
             ) : (
-              <p className={styles.muted}>{t("history.referenceOnly")}</p>
+              <Muted as="p">{t("history.referenceOnly")}</Muted>
             )}
-          </SurfaceCard>
+          </Card>
         ))}
       </div>
-    </section>
+    </Page>
   );
 }

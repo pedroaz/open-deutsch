@@ -3,13 +3,12 @@ import {
   type AppServerCandidateOutputMap,
   type OpenDeutschError,
 } from "@open-deutsch/contracts";
-import { MessageCircleQuestion, Send, Square } from "lucide-react";
+import { Languages, Send, Square } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Button } from "react-aria-components";
 import { useTranslation } from "react-i18next";
+import { DiagnosticCode, Button, Feedback, ItemList } from "./components/ui/index.js";
 
-import styles from "./App.module.css";
-import { StatusMessage } from "./components/Foundation.js";
+import styles from "./ContextualHelper.module.css";
 import {
   createDesktopSubmissionId,
   invokeDesktop,
@@ -19,6 +18,17 @@ import {
 
 type CorrelationId = ReturnType<typeof createDesktopSubmissionId>;
 type HelpOutput = AppServerCandidateOutputMap["contextual-help"];
+type HelperIntent = "chat" | "translate";
+type HelperTurn = Readonly<{
+  prompt: string;
+  intent: HelperIntent;
+  output: HelpOutput;
+}>;
+type SubmittedRequest = Readonly<{
+  prompt: string;
+  intent: HelperIntent;
+  clearComposer: boolean;
+}>;
 
 export type ContextualHelperSelection = Readonly<{
   sessionId: CorrelationId;
@@ -36,14 +46,22 @@ export function ContextualHelper({
 }) {
   const { t } = useTranslation();
   const [question, setQuestion] = useState("");
-  const [turns, setTurns] = useState<readonly Readonly<{ question: string; output: HelpOutput }>[]>(
-    [],
-  );
+  const [turns, setTurns] = useState<readonly HelperTurn[]>([]);
   const [stage, setStage] = useState<"idle" | "queued" | "running" | "validating">("idle");
   const [error, setError] = useState<OpenDeutschError>();
   const submissionId = useRef<CorrelationId | undefined>(undefined);
   const [operationId, setOperationId] = useState<CorrelationId>();
-  const submittedQuestions = useRef(new Map<CorrelationId, string>());
+  const submittedRequests = useRef(new Map<CorrelationId, SubmittedRequest>());
+  const activeSessionId = useRef<CorrelationId | undefined>(undefined);
+
+  useEffect(() => {
+    if (!selection) return;
+    if (activeSessionId.current && activeSessionId.current !== selection.sessionId) {
+      setTurns([]);
+      setQuestion("");
+    }
+    activeSessionId.current = selection.sessionId;
+  }, [selection]);
 
   useEffect(
     () =>
@@ -65,27 +83,35 @@ export function ContextualHelper({
           setStage("idle");
           if (event.outcome.status === "validated") {
             const output = contextualHelpCandidateSchema.parse(event.outcome.output);
-            const submittedQuestion = submittedQuestions.current.get(event.submissionId);
-            if (submittedQuestion) {
+            const submittedRequest = submittedRequests.current.get(event.submissionId);
+            if (submittedRequest) {
               setTurns((current) =>
-                [...current, { question: submittedQuestion, output }].slice(-6),
+                [
+                  ...current,
+                  {
+                    prompt: submittedRequest.prompt,
+                    intent: submittedRequest.intent,
+                    output,
+                  },
+                ].slice(-6),
               );
+              if (submittedRequest.clearComposer) setQuestion("");
             }
-            setQuestion("");
             setError(undefined);
           } else if (event.outcome.status === "failed") {
             setError(event.outcome.error);
           }
+          submittedRequests.current.delete(event.submissionId);
         }
       }),
     [],
   );
 
-  const ask = async () => {
-    if (!selection || !question.trim() || !(await requestAiAccess())) return;
+  const submit = async (request: SubmittedRequest, modelQuestion: string) => {
+    if (!selection || stage !== "idle" || !(await requestAiAccess())) return;
     const nextSubmissionId = createDesktopSubmissionId();
     submissionId.current = nextSubmissionId;
-    submittedQuestions.current.set(nextSubmissionId, question.trim());
+    submittedRequests.current.set(nextSubmissionId, request);
     setStage("queued");
     setError(undefined);
     try {
@@ -94,9 +120,10 @@ export function ContextualHelper({
         input: {
           kind: "contextual-help",
           sessionId: selection.sessionId,
+          intent: request.intent,
           selectedText: selection.selectedText,
           containingSentence: selection.containingSentence,
-          question: question.trim(),
+          question: modelQuestion,
           ...(selection.activeResultSummary
             ? { activeResultSummary: selection.activeResultSummary }
             : {}),
@@ -105,55 +132,73 @@ export function ContextualHelper({
       setOperationId(result.operationId);
     } catch (cause) {
       setStage("idle");
+      submittedRequests.current.delete(nextSubmissionId);
       setError(normalizeDesktopError(cause).detail);
     }
+  };
+
+  const ask = () => {
+    const prompt = question.trim();
+    if (!prompt) return;
+    void submit({ prompt, intent: "chat", clearComposer: true }, prompt);
+  };
+
+  const translate = () => {
+    void submit(
+      {
+        prompt: t("helper.translateRequest"),
+        intent: "translate",
+        clearComposer: false,
+      },
+      "Translate the selected text into my explanation language.",
+    );
   };
 
   return (
     <div className={styles.helperConversation}>
       {!selection ? (
-        <StatusMessage>{t("helper.selectText")}</StatusMessage>
+        <Feedback live="off">{t("helper.selectText")}</Feedback>
       ) : (
-        <>
           <figure className={styles.helperSelection}>
-            <blockquote>{selection.selectedText}</blockquote>
             <figcaption>{t("helper.selectedContext")}</figcaption>
+            <blockquote lang="de">{selection.selectedText}</blockquote>
           </figure>
-          <div className={styles.helperTurns} aria-live="polite">
+      )}
+      <div className={styles.helperTurns} aria-live="polite">
             {turns.map((turn, index) => (
-              <article key={`${turn.question}:${String(index)}`}>
+              <article key={`${turn.prompt}:${String(index)}`}>
                 <p className={styles.eyebrow}>{t("helper.youAsked")}</p>
-                <p>{turn.question}</p>
+                <p>{turn.prompt}</p>
                 <p className={styles.eyebrow}>{t("helper.answer")}</p>
-                <p>{turn.output.answer}</p>
+                <p className={styles.helperAnswer}>{turn.output.answer}</p>
                 {turn.output.examples.length > 0 ? (
-                  <ul className={styles.compactList}>
+                  <ItemList>
                     {turn.output.examples.map((example) => (
                       <li key={example}>{example}</li>
                     ))}
-                  </ul>
+                  </ItemList>
                 ) : null}
                 {turn.output.alternatives.length > 0 ? (
                   <section>
                     <h3>{t("helper.alternatives")}</h3>
-                    <ul className={styles.compactList}>
+                    <ItemList>
                       {turn.output.alternatives.map((alternative) => (
                         <li key={alternative}>{alternative}</li>
                       ))}
-                    </ul>
+                    </ItemList>
                   </section>
                 ) : null}
-                {turn.output.translations.length > 0 ? (
+                {turn.intent !== "translate" && turn.output.translations.length > 0 ? (
                   <section>
                     <h3>{t("helper.translations")}</h3>
-                    <ul className={styles.compactList}>
+                    <ItemList>
                       {turn.output.translations.map((translation) => (
                         <li key={`${translation.sourceText}:${translation.translatedText}`}>
                           <span lang="de">{translation.sourceText}</span> —{" "}
                           {translation.translatedText}
                         </li>
                       ))}
-                    </ul>
+                    </ItemList>
                   </section>
                 ) : null}
                 {turn.output.miniExercises.length > 0 ? (
@@ -170,64 +215,82 @@ export function ContextualHelper({
                 {turn.output.followUpSuggestions.length > 0 ? (
                   <section>
                     <h3>{t("helper.followUps")}</h3>
-                    <ul className={styles.compactList}>
+                    <ItemList>
                       {turn.output.followUpSuggestions.map((suggestion) => (
                         <li key={suggestion}>{suggestion}</li>
                       ))}
-                    </ul>
+                    </ItemList>
                   </section>
                 ) : null}
                 {turn.output.uncertainty.level !== "none" ? (
-                  <StatusMessage tone="warning">
+                  <Feedback live="off" tone="warning">
                     {turn.output.uncertainty.explanation}
-                  </StatusMessage>
+                  </Feedback>
                 ) : null}
               </article>
             ))}
-          </div>
-          <label className={styles.controlLabel}>
-            <span>{t("helper.question")}</span>
+      </div>
+      <div className={styles.helperComposer}>
             <textarea
+              aria-label={t("helper.messageLabel")}
+              disabled={!selection || stage !== "idle"}
               maxLength={1_000}
-              rows={3}
+              placeholder={t("helper.messagePlaceholder")}
+              rows={2}
               value={question}
               onChange={(event) => {
                 setQuestion(event.currentTarget.value);
               }}
+              onKeyDown={(event) => {
+                if (
+                  event.key === "Enter" &&
+                  !event.shiftKey &&
+                  !event.nativeEvent.isComposing
+                ) {
+                  event.preventDefault();
+                  ask();
+                }
+              }}
             />
-          </label>
-          <div className={styles.buttonRow}>
-            <Button
-              className={styles.primary}
-              isDisabled={!question.trim() || stage !== "idle"}
-              onPress={() => void ask()}
-            >
-              <Send aria-hidden="true" />
-              {stage === "idle" ? t("helper.ask") : t(`helper.stages.${stage}`)}
-            </Button>
-            {operationId ? (
+            <div className={styles.helperComposerActions}>
               <Button
-                className={styles.secondary}
-                onPress={() => {
-                  if (operationId) {
-                    void invokeDesktop("learning-operation/cancel", { operationId });
-                  }
-                }}
+                isDisabled={!selection || stage !== "idle"}
+                leadingIcon={<Languages aria-hidden="true" />}
+                onPress={translate}
               >
-                <Square aria-hidden="true" /> {t("actions.cancel")}
+                {t("helper.translate")}
               </Button>
-            ) : null}
-          </div>
-          {error ? (
-            <StatusMessage tone="error">
-              <MessageCircleQuestion aria-hidden="true" /> {t(error.messageKey)}
-              <code className={styles.diagnostic}>
-                {error.reference.code} · {error.reference.correlationId}
-              </code>
-            </StatusMessage>
-          ) : null}
-        </>
-      )}
+              <Button
+                isDisabled={!selection || !question.trim() || stage !== "idle"}
+                leadingIcon={<Send aria-hidden="true" />}
+                onPress={ask}
+                variant="primary"
+              >
+                {stage === "idle" ? t("helper.send") : t(`helper.stages.${stage}`)}
+              </Button>
+              {operationId ? (
+                <Button
+                  leadingIcon={<Square aria-hidden="true" />}
+                  onPress={() => {
+                    if (operationId) {
+                      void invokeDesktop("learning-operation/cancel", { operationId });
+                    }
+                  }}
+                >
+                  {t("actions.cancel")}
+                </Button>
+              ) : null}
+            </div>
+            <p className={styles.helperComposerHint}>{t("helper.sendHint")}</p>
+      </div>
+      {error ? (
+        <Feedback live="assertive" tone="error">
+          {t(error.messageKey)}
+          <DiagnosticCode>
+            {error.reference.code} · {error.reference.correlationId}
+          </DiagnosticCode>
+        </Feedback>
+      ) : null}
     </div>
   );
 }

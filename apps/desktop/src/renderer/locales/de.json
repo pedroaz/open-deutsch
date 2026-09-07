@@ -464,19 +464,23 @@
     "noPatterns": "Noch kein Grammatik- oder Wortschatzmuster hat genügend gespeicherte Belege."
   },
   "helper": {
-    "selectText": "Markiere Text im aktiven Schreibversuch, um eine kontextbezogene Erklärung zu erhalten.",
-    "selectedContext": "Der markierte Text und sein Satz werden mit minimiertem Lernkontext gesendet.",
-    "question": "Was möchtest du erklärt haben?",
-    "ask": "Hilfe fragen",
-    "youAsked": "Deine Frage",
-    "answer": "Erklärung",
+    "selectText": "Markiere Text in deinem Entwurf, um ihn als Kontext hinzuzufügen.",
+    "selectedContext": "Aktueller Kontext",
+    "messageLabel": "Nachricht an die Kontexthilfe",
+    "messagePlaceholder": "Frage nach Bedeutung, Grammatik, Konjugation oder Wortwahl…",
+    "send": "Senden",
+    "sendHint": "Enter zum Senden · Umschalt+Enter für eine neue Zeile",
+    "translate": "Übersetzen",
+    "translateRequest": "Das übersetzen",
+    "youAsked": "Du",
+    "answer": "Tutor",
     "alternatives": "Alternativen",
     "translations": "Übersetzungen",
     "miniExercises": "Mini-Übungen",
     "followUps": "Ideen zum Weiterfragen",
     "stages": {
       "queued": "Eingereiht…",
-      "running": "Erklärung wird erstellt…",
+      "running": "Antwort wird erstellt…",
       "validating": "Antwort wird geprüft…"
     }
   },
@@ -486,8 +490,8 @@
     "intro": "Situation und eigener Text bleiben zusammen. Erst eine ausdrücklich gestartete KI-Aktion sendet Inhalte.",
     "promptTitle": "Wähle deinen Einstieg",
     "promptBody": "Lass Codex eine kurze alltagsnahe Schreibaufgabe aus Niveau, Ziel, Interessen und bevorzugten Themen erstellen – oder beginne mit einer leeren Seite.",
-    "generatePrompt": "Schreibaufgabe erstellen",
-    "freeWriting": "Ohne erstellte Aufgabe schreiben",
+    "generatePrompt": "Aufgabe erstellen",
+    "freeWriting": "Leer beginnen",
     "generatedPrompt": "Erstellte Schreibaufgabe",
     "suggestedWords": "Empfohlene Länge: {{count}} Wörter",
     "promptStages": {
@@ -500,7 +504,8 @@
       "email": "E-Mail",
       "note": "Notiz",
       "short-response": "Kurze Antwort",
-      "practical-description": "Praktische Beschreibung"
+      "practical-description": "Praktische Beschreibung",
+      "essay": "Aufsatz"
     },
     "contextLabel": "Situation oder Aufgabe",
     "contextPlaceholder": "Zum Beispiel: die Hausverwaltung nach einem Reparaturtermin fragen",

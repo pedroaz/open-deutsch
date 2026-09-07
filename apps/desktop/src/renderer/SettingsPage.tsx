@@ -8,10 +8,11 @@ import {
   type ModelWorkload,
 } from "@open-deutsch/domain";
 import { RotateCcw, Save, UserRound } from "lucide-react";
-import { Button } from "react-aria-components";
 import { useTranslation } from "react-i18next";
+import { Card, DiagnosticCode, Button, Feedback, FieldGroup, LoadingState, ItemList, Muted } from "./components/ui/index.js";
+import { ActionGroup, Page, FormGrid } from "./components/layout/index.js";
 
-import styles from "./App.module.css";
+import styles from "./SettingsPage.module.css";
 import i18n from "./i18n.js";
 import { invokeDesktop, normalizeDesktopError, subscribeDesktop } from "./ipc.js";
 import {
@@ -58,14 +59,14 @@ const dataRootWarningKeys = {
 function SettingsError({ error }: { error: OpenDeutschError }) {
   const { t } = useTranslation();
   return (
-    <div className={`${styles.status} ${styles.error}`} role="alert">
+    <Feedback live="assertive" tone="error">
       <div>
         <p>{t(error.messageKey)}</p>
-        <code className={styles.diagnostic}>
+        <DiagnosticCode>
           {t("startup.diagnostic")}: {error.reference.code} · {error.reference.correlationId}
-        </code>
+        </DiagnosticCode>
       </div>
-    </div>
+    </Feedback>
   );
 }
 
@@ -324,20 +325,18 @@ export function SettingsPage({
   };
 
   return (
-    <section className={`${styles.page} ${styles.settingsPage}`}>
-      <p className={styles.eyebrow}>{t("settings.eyebrow")}</p>
-      <h1>{t("settings.title")}</h1>
-      <p className={styles.lead}>{t("settings.intro")}</p>
-      {loading && <p role="status">{t("settings.loading")}</p>}
+    <Page
+      className={styles.settingsPage}
+      description={t("settings.intro")}
+      eyebrow={t("settings.eyebrow")}
+      title={t("settings.title")}
+    >
+      {loading && <LoadingState live>{t("settings.loading")}</LoadingState>}
       {error && <SettingsError error={error} />}
-      {notice && (
-        <p className={`${styles.status} ${styles.success}`} role="status">
-          {notice}
-        </p>
-      )}
+      {notice && <Feedback live="polite" tone="success">{notice}</Feedback>}
 
-      <div className={styles.settingsGrid}>
-        <section className={styles.settingsSection} aria-labelledby="settings-data-title">
+      <FormGrid>
+        <Card as="section" aria-labelledby="settings-data-title">
           <h2 id="settings-data-title">{t("settings.dataTitle")}</h2>
           {readiness.dataRoot.status === "ready" && (
             <dl className={styles.detailList}>
@@ -353,7 +352,7 @@ export function SettingsPage({
           )}
           {!dataRootSelection ? (
             <Button
-              className={styles.secondary}
+
               isDisabled={busy}
               onPress={() => void chooseDataRoot()}
             >
@@ -372,22 +371,22 @@ export function SettingsPage({
                 })}
               </p>
               {dataRootSelection.warnings.length > 0 && (
-                <ul className={styles.compactList}>
+                <ItemList>
                   {dataRootSelection.warnings.map((warning) => (
                     <li key={warning}>{t(dataRootWarningKeys[warning])}</li>
                   ))}
-                </ul>
+                </ItemList>
               )}
-              <div className={styles.buttonRow}>
+              <ActionGroup>
                 <Button
-                  className={styles.primary}
+                  variant="primary"
                   isDisabled={busy}
                   onPress={() => void confirmDataRoot()}
                 >
                   {t("settings.dataSwitchConfirmAction")}
                 </Button>
                 <Button
-                  className={styles.secondary}
+
                   isDisabled={busy}
                   onPress={() => {
                     setDataRootSelection(undefined);
@@ -395,25 +394,25 @@ export function SettingsPage({
                 >
                   {t("actions.cancel")}
                 </Button>
-              </div>
+              </ActionGroup>
             </div>
           )}
-        </section>
+        </Card>
 
-        <section className={styles.settingsSection} aria-labelledby="settings-account-title">
+        <Card as="section" aria-labelledby="settings-account-title">
           <h2 id="settings-account-title">{t("settings.accountTitle")}</h2>
           <p>{account ? t(`settings.account.${account.status}`) : t("settings.notReported")}</p>
           {account?.status === "signed-in" && account.planType && (
             <p>{t("settings.plan", { plan: account.planType })}</p>
           )}
-          <div className={styles.buttonRow}>
+          <ActionGroup>
             {account?.status === "signed-in" ? (
-              <Button className={styles.secondary} isDisabled={busy} onPress={() => void logout()}>
+              <Button isDisabled={busy} onPress={() => void logout()}>
                 {t("settings.logout")}
               </Button>
             ) : (
               <Button
-                className={styles.primary}
+                variant="primary"
                 isDisabled={busy || readiness.codex.status !== "available"}
                 onPress={() => void login()}
               >
@@ -421,7 +420,7 @@ export function SettingsPage({
                 {t("settings.login")}
               </Button>
             )}
-          </div>
+          </ActionGroup>
           <p>
             {integration.status === "available"
               ? t("settings.codexVersion", { version: integration.codexVersion })
@@ -430,10 +429,10 @@ export function SettingsPage({
           {integration.status === "available" && (
             <>
               <p>{t(`settings.plugin.${integration.plugin}`)}</p>
-              <div className={styles.buttonRow}>
+              <ActionGroup>
                 {integration.plugin === "not-installed" && (
                   <Button
-                    className={styles.primary}
+                    variant="primary"
                     isDisabled={busy}
                     onPress={() => void manageIntegration("install")}
                   >
@@ -442,7 +441,7 @@ export function SettingsPage({
                 )}
                 {integration.plugin === "refresh-required" && (
                   <Button
-                    className={styles.primary}
+                    variant="primary"
                     isDisabled={busy}
                     onPress={() => void manageIntegration("refresh")}
                   >
@@ -451,22 +450,22 @@ export function SettingsPage({
                 )}
                 {integration.plugin === "installed" && (
                   <Button
-                    className={styles.secondary}
+
                     isDisabled={busy}
                     onPress={() => void manageIntegration("uninstall")}
                   >
                     {t("settings.plugin.actions.uninstall")}
                   </Button>
                 )}
-              </div>
+              </ActionGroup>
             </>
           )}
-        </section>
+        </Card>
 
-        <section className={styles.settingsSection} aria-labelledby="settings-limits-title">
+        <Card as="section" aria-labelledby="settings-limits-title">
           <h2 id="settings-limits-title">{t("settings.limitsTitle")}</h2>
           {limits && (limits.status === "available" || limits.status === "limited") ? (
-            <ul className={styles.compactList}>
+            <ItemList>
               {limits.buckets.map((bucket) => (
                 <li key={bucket.limitId}>
                   <strong>{bucket.limitId}</strong>
@@ -475,13 +474,13 @@ export function SettingsPage({
                     : ` · ${String(bucket.primary.usedPercent)}%`}
                 </li>
               ))}
-            </ul>
+            </ItemList>
           ) : (
-            <p className={styles.muted}>{t("settings.notReported")}</p>
+            <Muted as="p">{t("settings.notReported")}</Muted>
           )}
-        </section>
+        </Card>
 
-        <section className={styles.settingsSection} aria-labelledby="settings-privacy-title">
+        <Card as="section" aria-labelledby="settings-privacy-title">
           <h2 id="settings-privacy-title">{t("settings.privacyTitle")}</h2>
           <p>
             <strong>{t("folder.privacyTitle")}</strong> — {t("folder.privacyBody")}
@@ -489,16 +488,16 @@ export function SettingsPage({
           <p>
             <strong>{t("folder.cloudTitle")}</strong> — {t("folder.cloudBody")}
           </p>
-        </section>
-      </div>
+        </Card>
+      </FormGrid>
 
-      <section className={styles.settingsSection} aria-labelledby="settings-profile-title">
+      <Card as="section" aria-labelledby="settings-profile-title">
         <h2 id="settings-profile-title">{t("settings.profileTitle")}</h2>
         {!draft ? (
-          <p className={styles.muted}>{t("settings.persistenceUnavailable")}</p>
+          <Muted as="p">{t("settings.persistenceUnavailable")}</Muted>
         ) : (
           <div className={styles.settingsControls}>
-            <label className={styles.controlLabel}>
+            <FieldGroup>
               <span>{t("onboarding.level")}</span>
               <select
                 value={draft.approximateLevel}
@@ -515,8 +514,8 @@ export function SettingsPage({
                   </option>
                 ))}
               </select>
-            </label>
-            <label className={styles.controlLabel}>
+            </FieldGroup>
+            <FieldGroup>
               <span>{t("onboarding.goal")}</span>
               <textarea
                 rows={3}
@@ -526,8 +525,8 @@ export function SettingsPage({
                   setProfile("everydayGermanyGoal", event.currentTarget.value);
                 }}
               />
-            </label>
-            <label className={styles.controlLabel}>
+            </FieldGroup>
+            <FieldGroup>
               <span>{t("onboarding.time")}</span>
               <input
                 type="number"
@@ -538,8 +537,8 @@ export function SettingsPage({
                   setProfile("availableStudyMinutesPerWeek", Number(event.currentTarget.value));
                 }}
               />
-            </label>
-            <label className={styles.controlLabel}>
+            </FieldGroup>
+            <FieldGroup>
               <span>{t("settings.teachingProfile")}</span>
               <select
                 value={draft.defaultTeachingProfileId}
@@ -557,8 +556,8 @@ export function SettingsPage({
                   {t("onboarding.profiles.strict-corrector.title")}
                 </option>
               </select>
-            </label>
-            <label className={styles.controlLabel}>
+            </FieldGroup>
+            <FieldGroup>
               <span>{t("onboarding.explanationLanguage")}</span>
               <select
                 value={draft.explanationLanguage}
@@ -569,8 +568,8 @@ export function SettingsPage({
                 <option value="en">{t("onboarding.languages.en")}</option>
                 <option value="de">{t("onboarding.languages.de")}</option>
               </select>
-            </label>
-            <label className={styles.controlLabel}>
+            </FieldGroup>
+            <FieldGroup>
               <span>{t("settings.uiLocale")}</span>
               <select
                 aria-label={t("settings.uiLocale")}
@@ -583,15 +582,15 @@ export function SettingsPage({
                 <option value="de">Deutsch</option>
               </select>
               <small>{t("settings.localeSeparate")}</small>
-            </label>
+            </FieldGroup>
           </div>
         )}
-      </section>
+      </Card>
 
-      <section className={styles.settingsSection} aria-labelledby="settings-models-title">
+      <Card as="section" aria-labelledby="settings-models-title">
         <h2 id="settings-models-title">{t("settings.modelsTitle")}</h2>
         {!draft ? (
-          <p className={styles.muted}>{t("settings.persistenceUnavailable")}</p>
+          <Muted as="p">{t("settings.persistenceUnavailable")}</Muted>
         ) : (
           modelWorkloads.map((workload) => {
             const preference = draft.modelPreferences[workload];
@@ -625,7 +624,7 @@ export function SettingsPage({
             return (
               <fieldset className={styles.modelRow} key={workload}>
                 <legend>{t(`settings.workloads.${workload}`)}</legend>
-                <label className={styles.controlLabel}>
+                <FieldGroup>
                   <span>{t("settings.model")}</span>
                   <select
                     value={modelValue(preference)}
@@ -645,8 +644,8 @@ export function SettingsPage({
                       </option>
                     ))}
                   </select>
-                </label>
-                <label className={styles.controlLabel}>
+                </FieldGroup>
+                <FieldGroup>
                   <span>{t("settings.effort")}</span>
                   <select
                     value={resolvedEffortId ?? ""}
@@ -661,21 +660,19 @@ export function SettingsPage({
                       </option>
                     ))}
                   </select>
-                </label>
+                </FieldGroup>
                 {unavailableModelId || unavailableEffortId ? (
-                  <p className={`${styles.status} ${styles.warning}`} role="status">
-                    {t("settings.savedModelFallback")}
-                  </p>
+                  <Feedback live="off" tone="warning">{t("settings.savedModelFallback")}</Feedback>
                 ) : null}
               </fieldset>
             );
           })
         )}
-      </section>
+      </Card>
 
-      <section className={styles.settingsSection} aria-labelledby="settings-diagnostics-title">
+      <Card as="section" aria-labelledby="settings-diagnostics-title">
         <h2 id="settings-diagnostics-title">{t("settings.diagnosticsTitle")}</h2>
-        <p className={styles.muted}>{t("settings.diagnosticsPrivacy")}</p>
+        <Muted as="p">{t("settings.diagnosticsPrivacy")}</Muted>
         {diagnostics && (
           <dl className={styles.detailList}>
             <div>
@@ -696,31 +693,31 @@ export function SettingsPage({
             </div>
           </dl>
         )}
-        <div className={styles.buttonRow}>
+        <ActionGroup>
           <Button
-            className={styles.secondary}
+
             isDisabled={busy}
             onPress={() => void readDiagnostics()}
           >
             {t("settings.runDiagnostics")}
           </Button>
           <Button
-            className={styles.secondary}
+
             isDisabled={busy}
             onPress={() => void exportDiagnostics()}
           >
             {t("settings.exportDiagnostics")}
           </Button>
-          <Button className={styles.secondary} isDisabled={busy} onPress={() => void clearLogs()}>
+          <Button isDisabled={busy} onPress={() => void clearLogs()}>
             {t("settings.clearLogs")}
           </Button>
-        </div>
-      </section>
+        </ActionGroup>
+      </Card>
 
       {draft && (
         <div className={styles.settingsActions}>
           <Button
-            className={styles.secondary}
+
             isDisabled={busy}
             onPress={() => {
               setProfile("modelPreferences", defaultModelPreferences);
@@ -730,7 +727,7 @@ export function SettingsPage({
             {t("settings.restoreModels")}
           </Button>
           <Button
-            className={styles.secondary}
+
             isDisabled={busy || !persisted}
             onPress={() => {
               if (persisted) setDraft(persisted.settings);
@@ -739,7 +736,7 @@ export function SettingsPage({
             {t("settings.discard")}
           </Button>
           <Button
-            className={styles.primary}
+            variant="primary"
             isDisabled={busy || !dirty}
             onPress={() => void save()}
           >
@@ -748,6 +745,6 @@ export function SettingsPage({
           </Button>
         </div>
       )}
-    </section>
+    </Page>
   );
 }

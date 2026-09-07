@@ -8,6 +8,7 @@
   --od-color-text-muted: #647083;
   --od-color-border: #d8d1c5;
   --od-color-primary: #295f9e;
+  --od-color-accent: var(--od-color-primary);
   --od-color-primary-hover: #1f4f87;
   --od-color-primary-soft: #e9f1fa;
   --od-color-success: #217148;
@@ -15,6 +16,7 @@
   --od-color-warning: #8a5a13;
   --od-color-warning-soft: #fff3d7;
   --od-color-error: #a33938;
+  --od-color-error-hover: #842f2e;
   --od-color-error-soft: #fdeceb;
   --od-color-focus: #1e6ec8;
   --od-color-overlay: rgb(24 35 52 / 36%);
@@ -56,14 +58,21 @@
   --od-motion-normal: 180ms;
   --od-nav-width: 15rem;
   --od-nav-collapsed-width: 4.75rem;
-  --od-helper-width: 15rem;
+  --od-helper-width: 20rem;
   --od-content-max: 52rem;
+  --od-writing-content-max: 64rem;
   --od-field-max: 32rem;
   --od-icon-sm: 1rem;
   --od-icon-md: 1.25rem;
+  --od-control-compact: 2rem;
+  --od-control-small: 2.25rem;
   --od-control-min: 2.75rem;
+  --od-control-wide: 4rem;
   --od-dialog-max: 34rem;
   --od-onboarding-max: 68rem;
   --od-writing-editor-min: 24rem;
-  --od-breakpoint-narrow: 68rem;
+  --od-writing-option-medium: 12rem;
+  --od-writing-option-large: 24rem;
 }
+
+/* Canonical media thresholds: narrow 68rem, compact 52rem, short 48rem. */

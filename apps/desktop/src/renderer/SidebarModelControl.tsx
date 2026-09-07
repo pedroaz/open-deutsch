@@ -7,10 +7,10 @@ import {
   type WorkloadModelPreference,
 } from "@open-deutsch/domain";
 import { Bot } from "lucide-react";
-import { Button } from "react-aria-components";
 import { useTranslation } from "react-i18next";
+import { Button } from "./components/ui/index.js";
 
-import styles from "./App.module.css";
+import styles from "./SidebarModelControl.module.css";
 import { invokeDesktop, normalizeDesktopError, subscribeDesktop } from "./ipc.js";
 import {
   desktopSettingsAdapter,

@@ -20,13 +20,17 @@ body {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 
 button,
 a,
-input {
+input,
+select,
+textarea {
   transition-duration: var(--od-motion-fast);
   transition-property: background-color, border-color, box-shadow, color, opacity;
 }

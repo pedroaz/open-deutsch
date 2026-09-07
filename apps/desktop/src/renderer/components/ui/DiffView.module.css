@@ -1,0 +1,23 @@
+.inline del {
+  background: var(--od-color-error-soft);
+  color: var(--od-color-error);
+  text-decoration-thickness: var(--od-border-strong);
+}
+
+.inline ins {
+  background: var(--od-color-success-soft);
+  color: var(--od-color-success);
+  text-decoration: none;
+}
+
+.grid {
+  display: grid;
+  gap: var(--od-space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 52rem) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

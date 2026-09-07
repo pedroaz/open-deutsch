@@ -88,6 +88,7 @@ export default tseslint.config(
       ...react.configs.flat["jsx-runtime"].rules,
       ...reactHooks.configs.flat["recommended-latest"].rules,
       ...jsxA11y.flatConfigs.recommended.rules,
+      "open-deutsch/no-direct-react-aria-controls": "error",
     },
   },
   {

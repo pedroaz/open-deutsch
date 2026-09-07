@@ -92,7 +92,14 @@ const outputCaveatsSchema = z.array(text(1_000)).max(12);
 
 export const writingPromptCandidateSchema = strictBoundaryObject({
   title: text(160),
-  format: z.enum(["short-message", "email", "note", "short-response", "practical-description"]),
+  format: z.enum([
+    "short-message",
+    "email",
+    "note",
+    "short-response",
+    "practical-description",
+    "essay",
+  ]),
   situation: text(500),
   task: text(1_000),
   suggestedWordCount: z.int().min(20).max(300),
@@ -491,6 +498,7 @@ export const appServerWorkloadInputSchema = z.discriminatedUnion("kind", [
   z.strictObject({
     kind: z.literal("contextual-help"),
     activityId: activityIdSchema,
+    intent: z.enum(["chat", "translate"]),
     selectedText: text(4_000),
     containingSentence: text(4_000),
     question: text(1_000),

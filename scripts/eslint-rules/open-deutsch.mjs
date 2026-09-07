@@ -335,10 +335,62 @@ const noElectronRemote = {
   },
 };
 
+const canonicalReactAriaControls = new Set([
+  "Button",
+  "Checkbox",
+  "Dialog",
+  "DialogTrigger",
+  "FieldError",
+  "Input",
+  "Label",
+  "Modal",
+  "ModalOverlay",
+  "Radio",
+  "RadioGroup",
+  "Select",
+  "TextArea",
+  "TextField",
+  "Tooltip",
+  "TooltipTrigger",
+]);
+
+const noDirectReactAriaControls = {
+  meta: {
+    type: "problem",
+    docs: { description: "Require renderer features to use repository-owned UI controls." },
+    schema: [],
+    messages: {
+      directControl: "Import {{name}} from the renderer components/ui layer instead.",
+    },
+  },
+  create(context) {
+    const filename = repositoryPath(context.getFilename());
+    if (filename.includes("/components/ui/")) return {};
+    return {
+      ImportDeclaration(node) {
+        if (literalSource(node.source) !== "react-aria-components") return;
+        for (const specifier of node.specifiers) {
+          if (
+            specifier.type === "ImportSpecifier" &&
+            canonicalReactAriaControls.has(specifier.imported.name)
+          ) {
+            context.report({
+              node: specifier,
+              messageId: "directControl",
+              data: { name: specifier.imported.name },
+            });
+          }
+        }
+      },
+    };
+  },
+};
+
 export default {
   rules: {
     "enforce-package-boundaries": enforcePackageBoundaries,
     "secure-electron-preferences": secureElectronPreferences,
     "no-electron-remote": noElectronRemote,
+    "no-direct-react-aria-controls": noDirectReactAriaControls,
   },
 };

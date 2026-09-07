@@ -31,6 +31,11 @@ Expose an **Automatic** option plus optional per-workflow overrides:
 | Contextual helper | Automatic + Fast | Responsive focused explanations. |
 | Curriculum research | Automatic + Deep | More analysis for infrequent, source-heavy work. |
 
+The Context Helper's dedicated **Translate** action is a cost-optimized exception to the saved
+helper preference. It requests GPT-5.6 Luna with `low` effort when that exact runtime combination
+is available. If it is not available, normal runtime fallback resolution applies. Open-ended
+context questions continue to use the learner's saved Contextual helper preference.
+
 The semantic effort presets resolve against the selected model's supported efforts:
 
 - **Fast:** prefer `low`; otherwise use the model default.

@@ -78,7 +78,7 @@ The initial learner is currently around A2 and is working toward B1. Generated c
 - Explain corrections at the learner's level.
 - Compare original and corrected versions.
 - Show corrected text, inline changes, categorized mistakes, concise explanations, a natural alternative, vocabulary candidates, and a suggested follow-up exercise. Use progressive disclosure so the initial result remains readable.
-- Provide a selection-aware helper panel beside the editor. The learner can highlight text or a correction and ask contextual questions such as, "Why is this dative?"
+- Provide a selection-aware helper panel beside the editor. Highlighted text becomes the active context; the learner can translate it directly or use a compact chat composer for questions such as, "Why is this dative?" or "Explain the conjugation."
 - Support multi-turn follow-up questions without losing the selected sentence, exercise, correction, or learner level.
 - Let the helper explain and suggest, but never modify the learner's text or present direct-apply editing actions.
 - Extract recurring mistakes and turn them into future practice.
@@ -205,7 +205,7 @@ The initial learner is currently around A2 and is working toward B1. Generated c
 - Important icon actions include labels; every component defines accessible interaction states and never relies on color alone.
 - Support English and German UI through i18n, with English always the initial default.
 - Keep UI locale separate from the configurable teaching/explanation language.
-- Provide a development component gallery and representative visual checks at standard/narrow widths in both locales.
+- When explicitly requested, review the production UI at standard and narrow widths in both locales; do not maintain a component gallery or screenshot-regression surface.
 
 ### 15. Developer and diagnostic experience
 

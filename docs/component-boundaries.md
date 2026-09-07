@@ -33,7 +33,7 @@ Most learning sessions should begin in Codex or Voice and move into the desktop 
 | Lesson and exercise generation | Codex | Plugin skills and MCP context | Generation benefits from model reasoning and learner history. |
 | Writing correction and explanation | Codex | Desktop comparison/history UI | Codex evaluates; the app preserves and displays the result. |
 | One-click writing correction | Desktop app through local Codex integration | Strict Corrector profile | The operation should finish without switching to the Codex UI. |
-| Contextual writing helper | Desktop side panel through local Codex integration | Current selection and attempt context | Supports focused explanations and follow-up questions without becoming a general chat client. |
+| Contextual writing helper | Desktop side panel through local Codex integration | Current selection and attempt context | Supports bounded contextual chat, one-click translation, and follow-up questions without becoming a general agent client. |
 | Structured exercise interaction | Desktop app | Optional MCP Apps UI | The desktop app is best for longer, stateful workflows. Small in-chat widgets can be added later. |
 | Learner profile | Local learning service | Desktop editor and MCP tools | One source of truth shared by both surfaces. |
 | Attempts, scores, and feedback | Local learning service | Desktop app and MCP tools | Durable, queryable, and locally controlled. |

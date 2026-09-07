@@ -5,12 +5,12 @@ import {
   type OpenDeutschError,
 } from "@open-deutsch/contracts";
 import { LibraryBig, PauseCircle, PlayCircle, RefreshCw, Sparkles } from "lucide-react";
-import { Button } from "react-aria-components";
 import { useTranslation } from "react-i18next";
+import { Button, Card, Feedback, FieldGroup, Muted, ItemList } from "./components/ui/index.js";
+import { SectionHeader, ActionGroup, ContentGrid, FilterBar, FormGrid, Page } from "./components/layout/index.js";
 
-import styles from "./App.module.css";
+import styles from "./VocabularyPage.module.css";
 import { normalizeDesktopError, invokeDesktop } from "./ipc.js";
-import { SurfaceCard } from "./components/Foundation.js";
 
 type VocabularyResult = Extract<
   DesktopIpcResponse,
@@ -99,32 +99,27 @@ export function VocabularyPage({ onNavigate }: VocabularyPageProps) {
   };
 
   return (
-    <section className={styles.page}>
-      <div className={styles.dashboardHeading}>
-        <div>
-          <p className={styles.eyebrow}>{t("vocabulary.eyebrow")}</p>
-          <h1 className={styles.hero}>{t("vocabulary.title")}</h1>
-          <p className={styles.lead}>{t("vocabulary.body")}</p>
-        </div>
-        <Button className={styles.secondary} isDisabled={busy} onPress={() => void refresh()}>
+    <Page
+      actions={
+        <Button isDisabled={busy} onPress={() => void refresh()}>
           <RefreshCw aria-hidden="true" /> {t("vocabulary.refresh")}
         </Button>
-      </div>
-      {error && (
-        <div className={`${styles.status} ${styles.error}`} role="alert">
-          {t(error.messageKey)}
-        </div>
-      )}
+      }
+      description={t("vocabulary.body")}
+      eyebrow={t("vocabulary.eyebrow")}
+      title={t("vocabulary.title")}
+    >
+      {error && <Feedback live="assertive" tone="error">{t(error.messageKey)}</Feedback>}
 
-      <SurfaceCard>
-        <div className={styles.dashboardHeading}>
+      <Card as="article">
+        <SectionHeader>
           <div>
             <h2>{t("vocabulary.createTitle")}</h2>
             <p>{t("vocabulary.createBody")}</p>
           </div>
           <Sparkles aria-hidden="true" />
-        </div>
-        <label className={styles.controlLabel}>
+        </SectionHeader>
+        <FieldGroup>
           {t("vocabulary.request")}
           <input
             value={request}
@@ -132,9 +127,9 @@ export function VocabularyPage({ onNavigate }: VocabularyPageProps) {
               setRequest(event.target.value);
             }}
           />
-        </label>
-        <div className={styles.settingsGrid}>
-          <label className={styles.controlLabel}>
+        </FieldGroup>
+        <FormGrid>
+          <FieldGroup>
             {t("vocabulary.topic")}
             <input
               value={topic}
@@ -142,8 +137,8 @@ export function VocabularyPage({ onNavigate }: VocabularyPageProps) {
                 setTopic(event.target.value);
               }}
             />
-          </label>
-          <label className={styles.controlLabel}>
+          </FieldGroup>
+          <FieldGroup>
             {t("vocabulary.setTitle")}
             <input
               value={setTitle}
@@ -151,10 +146,10 @@ export function VocabularyPage({ onNavigate }: VocabularyPageProps) {
                 setSetTitle(event.target.value);
               }}
             />
-          </label>
-        </div>
+          </FieldGroup>
+        </FormGrid>
         <Button
-          className={styles.primary}
+          variant="primary"
           isDisabled={
             busy ||
             request.trim().length === 0 ||
@@ -173,12 +168,12 @@ export function VocabularyPage({ onNavigate }: VocabularyPageProps) {
         >
           {t("vocabulary.createSet")}
         </Button>
-      </SurfaceCard>
+      </Card>
 
-      <div className={styles.historyFilters} aria-label={t("vocabulary.filtersLabel")}>
+      <FilterBar columns={4} label={t("vocabulary.filtersLabel")}>
         {(["all", "candidate", "due", "active", "suspended"] as const).map((value) => (
           <Button
-            className={filter === value ? styles.primary : styles.secondary}
+            variant={filter === value ? "primary" : "secondary"}
             key={value}
             onPress={() => {
               setFilter(value);
@@ -187,14 +182,14 @@ export function VocabularyPage({ onNavigate }: VocabularyPageProps) {
             {t(`vocabulary.filters.${value}`)}
           </Button>
         ))}
-      </div>
+      </FilterBar>
 
-      <div className={styles.dashboardGrid} aria-busy={busy}>
+      <ContentGrid fillLast aria-busy={busy}>
         {visibleEntries.length === 0 ? (
-          <SurfaceCard>
+          <Card as="article">
             <LibraryBig aria-hidden="true" />
             <p>{t("vocabulary.empty")}</p>
-          </SurfaceCard>
+          </Card>
         ) : (
           visibleEntries.map((entry) => {
             const activeState = entry.state.status === "active" ? entry.state : undefined;
@@ -212,21 +207,21 @@ export function VocabularyPage({ onNavigate }: VocabularyPageProps) {
                     })
                   : t("vocabulary.suspendedState", { reason: suspendedState?.reason });
             return (
-              <SurfaceCard key={entry.vocabularyId}>
-                <div className={styles.historyEntryHeader}>
+              <Card as="article" key={entry.vocabularyId}>
+                <SectionHeader>
                   <div>
                     <h2>{entry.lemma}</h2>
-                    <p className={styles.muted}>{entry.meaning}</p>
+                    <Muted as="p">{entry.meaning}</Muted>
                   </div>
                   {morphology(entry) && <strong>{morphology(entry)}</strong>}
-                </div>
+                </SectionHeader>
                 <p>{entry.examples[0]?.german}</p>
-                <p className={styles.muted}>{entry.examples[0]?.meaning}</p>
-                <p className={styles.muted}>{stateText}</p>
-                <div className={styles.buttonRow}>
+                <Muted as="p">{entry.examples[0]?.meaning}</Muted>
+                <Muted as="p">{stateText}</Muted>
+                <ActionGroup>
                   {candidate && (
                     <Button
-                      className={styles.primary}
+                      variant="primary"
                       onPress={() =>
                         void mutate(() =>
                           invokeDesktop("vocabulary/confirm", {
@@ -243,7 +238,7 @@ export function VocabularyPage({ onNavigate }: VocabularyPageProps) {
                     <>
                       {(["again", "hard", "good", "easy"] as const).map((grade) => (
                         <Button
-                          className={styles.secondary}
+
                           key={grade}
                           onPress={() =>
                             void mutate(() =>
@@ -258,7 +253,7 @@ export function VocabularyPage({ onNavigate }: VocabularyPageProps) {
                         </Button>
                       ))}
                       <Button
-                        className={styles.secondary}
+
                         onPress={() =>
                           void mutate(() =>
                             invokeDesktop("vocabulary/suspend", {
@@ -275,7 +270,7 @@ export function VocabularyPage({ onNavigate }: VocabularyPageProps) {
                   )}
                   {suspended && (
                     <Button
-                      className={styles.secondary}
+
                       onPress={() =>
                         void mutate(() =>
                           invokeDesktop("vocabulary/resume", {
@@ -289,7 +284,7 @@ export function VocabularyPage({ onNavigate }: VocabularyPageProps) {
                     </Button>
                   )}
                   <Button
-                    className={styles.secondary}
+
                     onPress={() => {
                       startEdit(entry);
                     }}
@@ -297,7 +292,7 @@ export function VocabularyPage({ onNavigate }: VocabularyPageProps) {
                     {t("vocabulary.edit")}
                   </Button>
                   <Button
-                    className={styles.secondary}
+
                     onPress={() => {
                       onNavigate(entry.source.kind === "activity" ? "practice" : "history");
                     }}
@@ -305,7 +300,7 @@ export function VocabularyPage({ onNavigate }: VocabularyPageProps) {
                     {t("vocabulary.openSource")}
                   </Button>
                   <Button
-                    className={styles.danger}
+                    variant="danger"
                     onPress={() => {
                       if (window.confirm(t("vocabulary.deleteConfirm"))) {
                         void mutate(() =>
@@ -316,10 +311,10 @@ export function VocabularyPage({ onNavigate }: VocabularyPageProps) {
                   >
                     {t("vocabulary.delete")}
                   </Button>
-                </div>
+                </ActionGroup>
                 {editing === entry.vocabularyId && (
-                  <div className={styles.settingsSection}>
-                    <label className={styles.controlLabel}>
+                  <Card>
+                    <FieldGroup>
                       {t("vocabulary.lemma")}
                       <input
                         value={editLemma}
@@ -327,8 +322,8 @@ export function VocabularyPage({ onNavigate }: VocabularyPageProps) {
                           setEditLemma(event.target.value);
                         }}
                       />
-                    </label>
-                    <label className={styles.controlLabel}>
+                    </FieldGroup>
+                    <FieldGroup>
                       {t("vocabulary.meaning")}
                       <input
                         value={editMeaning}
@@ -336,8 +331,8 @@ export function VocabularyPage({ onNavigate }: VocabularyPageProps) {
                           setEditMeaning(event.target.value);
                         }}
                       />
-                    </label>
-                    <label className={styles.controlLabel}>
+                    </FieldGroup>
+                    <FieldGroup>
                       {t("vocabulary.example")}
                       <input
                         value={editExample}
@@ -345,8 +340,8 @@ export function VocabularyPage({ onNavigate }: VocabularyPageProps) {
                           setEditExample(event.target.value);
                         }}
                       />
-                    </label>
-                    <label className={styles.controlLabel}>
+                    </FieldGroup>
+                    <FieldGroup>
                       {t("vocabulary.exampleMeaning")}
                       <input
                         value={editExampleMeaning}
@@ -354,10 +349,10 @@ export function VocabularyPage({ onNavigate }: VocabularyPageProps) {
                           setEditExampleMeaning(event.target.value);
                         }}
                       />
-                    </label>
-                    <div className={styles.buttonRow}>
+                    </FieldGroup>
+                    <ActionGroup>
                       <Button
-                        className={styles.primary}
+                        variant="primary"
                         onPress={() =>
                           void mutate(async () => {
                             await invokeDesktop("vocabulary/edit", {
@@ -375,35 +370,35 @@ export function VocabularyPage({ onNavigate }: VocabularyPageProps) {
                         {t("vocabulary.save")}
                       </Button>
                       <Button
-                        className={styles.secondary}
+
                         onPress={() => {
                           setEditing(undefined);
                         }}
                       >
                         {t("actions.cancel")}
                       </Button>
-                    </div>
-                  </div>
+                    </ActionGroup>
+                  </Card>
                 )}
-              </SurfaceCard>
+              </Card>
             );
           })
         )}
-      </div>
+      </ContentGrid>
 
       {(result?.lessonSets.length ?? 0) > 0 && (
-        <SurfaceCard>
+        <Card as="article">
           <h2>{t("vocabulary.lessonSets")}</h2>
-          <ul className={styles.compactList}>
+          <ItemList>
             {result?.lessonSets.map((set) => (
               <li key={set.setId}>
                 <strong>{set.title}</strong> —{" "}
                 {t("vocabulary.lessonSetItems", { count: set.vocabularyIds.length })}
               </li>
             ))}
-          </ul>
-        </SurfaceCard>
+          </ItemList>
+        </Card>
       )}
-    </section>
+    </Page>
   );
 }

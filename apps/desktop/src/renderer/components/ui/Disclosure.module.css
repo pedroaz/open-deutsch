@@ -1,0 +1,14 @@
+.disclosure {
+  border-top: var(--od-border-thin) solid var(--od-color-border);
+  margin-top: var(--od-space-4);
+  padding-top: var(--od-space-4);
+}
+
+.disclosure summary {
+  cursor: pointer;
+  font-weight: var(--od-weight-medium);
+}
+
+.content {
+  margin-top: var(--od-space-3);
+}

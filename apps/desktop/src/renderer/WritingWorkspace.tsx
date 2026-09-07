@@ -5,10 +5,11 @@ import {
 } from "@open-deutsch/contracts";
 import { useEffect, useRef, useState } from "react";
 import { FilePenLine, MousePointer2, Sparkles, X } from "lucide-react";
-import { Button } from "react-aria-components";
 import { useTranslation } from "react-i18next";
+import { DiagnosticCode, Button, Feedback, FieldGroup, LoadingState, Muted } from "./components/ui/index.js";
+import { ActionGroup, Page } from "./components/layout/index.js";
 
-import styles from "./App.module.css";
+import styles from "./WritingWorkspace.module.css";
 import { CorrectionComparison } from "./CorrectionComparison.js";
 import type { ContextualHelperSelection } from "./ContextualHelper.js";
 import {
@@ -284,19 +285,20 @@ export function WritingWorkspace({
   };
 
   return (
-    <section className={styles.page}>
-      <p className={styles.eyebrow}>{t("writing.eyebrow")}</p>
-      <h1>{t("writing.title")}</h1>
-      <p className={styles.lead}>{t("writing.intro")}</p>
-
+    <Page
+      description={t("writing.intro")}
+      eyebrow={t("writing.eyebrow")}
+      title={t("writing.title")}
+      width="wide"
+    >
       <section className={styles.promptActions} aria-labelledby="writing-prompt-heading">
         <div>
           <h2 id="writing-prompt-heading">{t("writing.promptTitle")}</h2>
-          <p className={styles.muted}>{t("writing.promptBody")}</p>
+          <Muted as="p">{t("writing.promptBody")}</Muted>
         </div>
-        <div className={styles.buttonRow}>
+        <ActionGroup className={styles.promptActionButtons}>
           <Button
-            className={styles.primary}
+            variant="primary"
             isDisabled={promptStage !== "idle"}
             onPress={() => void generatePrompt()}
           >
@@ -306,21 +308,21 @@ export function WritingWorkspace({
               : t(`writing.promptStages.${promptStage}`)}
           </Button>
           {operationId ? (
-            <Button className={styles.secondary} onPress={() => void cancelPrompt()}>
+            <Button onPress={() => void cancelPrompt()}>
               <X aria-hidden="true" /> {t("actions.cancel")}
             </Button>
           ) : null}
-          <Button className={styles.secondary} onPress={useFreeWriting}>
+          <Button onPress={useFreeWriting}>
             {t("writing.freeWriting")}
           </Button>
-        </div>
+        </ActionGroup>
         {promptError ? (
-          <div className={`${styles.status} ${styles.error}`} role="alert">
+          <Feedback live="assertive" tone="error">
             <p>{t(promptError.messageKey)}</p>
-            <code className={styles.diagnostic}>
+            <DiagnosticCode>
               {promptError.reference.code} · {promptError.reference.correlationId}
-            </code>
-          </div>
+            </DiagnosticCode>
+          </Feedback>
         ) : null}
         {prompt ? (
           <article className={styles.generatedPrompt} aria-label={t("writing.generatedPrompt")}>
@@ -328,9 +330,9 @@ export function WritingWorkspace({
             <h3>{prompt.title}</h3>
             <p>{prompt.situation}</p>
             <p>{prompt.task}</p>
-            <p className={styles.muted}>
+            <Muted as="p">
               {t("writing.suggestedWords", { count: prompt.suggestedWordCount })}
-            </p>
+            </Muted>
             {prompt.helpfulVocabulary.length > 0 ? (
               <ul>
                 {prompt.helpfulVocabulary.map((item) => (
@@ -345,8 +347,41 @@ export function WritingWorkspace({
       </section>
 
       <div className={styles.writingLayout}>
+        <aside className={styles.writingOptions} aria-label={t("writing.optionsTitle")}>
+          <div className={styles.writingOptionsHeading}>
+            <FilePenLine aria-hidden="true" />
+            <h2>{t("writing.optionsTitle")}</h2>
+          </div>
+          <FieldGroup>
+            <span>{t("writing.profileLabel")}</span>
+            <select
+              value={teachingProfile}
+              onChange={(event) => {
+                setTeachingProfile(event.currentTarget.value as TeachingProfileChoice);
+              }}
+            >
+              <option value="profile-default">{t("writing.profileDefault")}</option>
+              <option value="conversation-partner">{t("writing.profileConversation")}</option>
+              <option value="strict-corrector">{t("writing.profileStrict")}</option>
+            </select>
+          </FieldGroup>
+          <FieldGroup>
+            <span>{t("writing.feedbackLabel")}</span>
+            <select
+              value={feedback}
+              onChange={(event) => {
+                setFeedback(event.currentTarget.value as FeedbackChoice);
+              }}
+            >
+              <option value="all-meaningful">{t("writing.feedbackAll")}</option>
+              <option value="priority-only">{t("writing.feedbackPriority")}</option>
+            </select>
+          </FieldGroup>
+          <Muted as="p">{t("writing.localDraftNotice")}</Muted>
+        </aside>
+
         <div className={styles.writingEditor}>
-          <label className={styles.controlLabel}>
+          <FieldGroup>
             <span>{t("writing.contextLabel")}</span>
             <textarea
               aria-label={t("writing.contextLabel")}
@@ -359,8 +394,8 @@ export function WritingWorkspace({
               }}
             />
             <small>{t("writing.contextHint")}</small>
-          </label>
-          <label className={styles.controlLabel}>
+          </FieldGroup>
+          <FieldGroup>
             <span>{t("writing.editorLabel")}</span>
             <textarea
               className={styles.writingTextarea}
@@ -382,96 +417,50 @@ export function WritingWorkspace({
                 updateSelection(event.currentTarget);
               }}
             />
-          </label>
+          </FieldGroup>
           <p className={styles.selectionStatus} role="status">
             <MousePointer2 aria-hidden="true" />
             {selection.end > selection.start
               ? t("writing.selection", { count: selection.end - selection.start })
               : t("writing.noSelection")}
           </p>
-          <div className={styles.buttonRow}>
+          <ActionGroup>
             <Button
-              className={styles.primary}
+              variant="primary"
               isDisabled={!draft.trim() || correctionStage !== "idle" || promptStage !== "idle"}
               onPress={() => void startCorrection()}
             >
               <Sparkles aria-hidden="true" /> {t("writing.correctNow")}
             </Button>
             {correctionOperationId ? (
-              <Button className={styles.secondary} onPress={() => void cancelCorrection()}>
+              <Button onPress={() => void cancelCorrection()}>
                 <X aria-hidden="true" /> {t("writing.cancelCorrection")}
               </Button>
             ) : null}
             {(correctionError || correctionOutcome === "rate-limited") &&
             previousCorrectionOperationId ? (
-              <Button className={styles.secondary} onPress={() => void retryCorrection()}>
+              <Button onPress={() => void retryCorrection()}>
                 {t("writing.retryCorrection")}
               </Button>
             ) : null}
-          </div>
+          </ActionGroup>
           {correctionStage !== "idle" ? (
-            <p className={styles.status} role="status">
-              {t(`writing.correctionStages.${correctionStage}`)}
-            </p>
+            <LoadingState live>{t(`writing.correctionStages.${correctionStage}`)}</LoadingState>
           ) : null}
           {correctionError ? (
-            <div className={`${styles.status} ${styles.error}`} role="alert">
+            <Feedback live="assertive" tone="error">
               <p>{t(correctionError.messageKey)}</p>
-              <code className={styles.diagnostic}>
+              <DiagnosticCode>
                 {correctionError.reference.code} · {correctionError.reference.correlationId}
-              </code>
-            </div>
+              </DiagnosticCode>
+            </Feedback>
           ) : null}
           {correctionOutcome ? (
-            <p className={`${styles.status} ${styles.warning}`} role="status">
+            <Feedback live="polite" tone="warning">
               {t(`writing.correctionOutcomes.${correctionOutcome}`)}
-            </p>
+            </Feedback>
           ) : null}
         </div>
-
-        <aside className={styles.writingOptions} aria-label={t("writing.optionsTitle")}>
-          <FilePenLine aria-hidden="true" />
-          <h2>{t("writing.optionsTitle")}</h2>
-          <label className={styles.controlLabel}>
-            <span>{t("writing.profileLabel")}</span>
-            <select
-              value={teachingProfile}
-              onChange={(event) => {
-                setTeachingProfile(event.currentTarget.value as TeachingProfileChoice);
-              }}
-            >
-              <option value="profile-default">{t("writing.profileDefault")}</option>
-              <option value="conversation-partner">{t("writing.profileConversation")}</option>
-              <option value="strict-corrector">{t("writing.profileStrict")}</option>
-            </select>
-          </label>
-          <fieldset className={styles.optionGroup}>
-            <legend>{t("writing.feedbackLabel")}</legend>
-            <label className={styles.checkboxRow}>
-              <input
-                checked={feedback === "all-meaningful"}
-                name="writing-feedback"
-                onChange={() => {
-                  setFeedback("all-meaningful");
-                }}
-                type="radio"
-              />
-              <span>{t("writing.feedbackAll")}</span>
-            </label>
-            <label className={styles.checkboxRow}>
-              <input
-                checked={feedback === "priority-only"}
-                name="writing-feedback"
-                onChange={() => {
-                  setFeedback("priority-only");
-                }}
-                type="radio"
-              />
-              <span>{t("writing.feedbackPriority")}</span>
-            </label>
-          </fieldset>
-          <p className={styles.muted}>{t("writing.localDraftNotice")}</p>
-        </aside>
       </div>
       {correction ? (
         <CorrectionComparison
@@ -487,6 +476,6 @@ export function WritingWorkspace({
           }}
         />
       ) : null}
-    </section>
+    </Page>
   );
 }

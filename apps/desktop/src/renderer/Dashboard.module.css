@@ -1,0 +1,8 @@
+
+
+.refreshStamp {
+  color: var(--od-color-text-muted);
+  font-size: var(--od-font-size-sm);
+  margin-top: var(--od-space-4);
+  text-align: right;
+}

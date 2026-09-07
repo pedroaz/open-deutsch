@@ -22,6 +22,9 @@ const rendererUrl = new URL(
   process.env["OPEN_DEUTSCH_RENDERER_URL"] ?? new URL("../renderer/index.html", import.meta.url),
 ).href;
 const preload = fileURLToPath(new URL("../preload/index.cjs", import.meta.url));
+const developmentWindowIcon = fileURLToPath(
+  new URL("../../assets/open-deutsch.png", import.meta.url),
+);
 let backend: DesktopBackend | undefined;
 let mainWindow: BrowserWindow | undefined;
 let pendingActivityId: string | undefined;
@@ -111,6 +114,7 @@ function createWindow(): BrowserWindow {
     title: "Open Deutsch",
     backgroundColor: "#f7f3ea",
     show: false,
+    ...(app.isPackaged ? {} : { icon: developmentWindowIcon }),
     webPreferences: {
       contextIsolation: true,
       sandbox: true,
@@ -175,6 +179,8 @@ function installIpc(): void {
     });
   });
 }
+
+if (process.platform === "linux") app.setDesktopName("dev.opendeutsch.app");
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();

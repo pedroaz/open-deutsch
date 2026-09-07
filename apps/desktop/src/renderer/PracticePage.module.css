@@ -1,0 +1,594 @@
+
+
+.voicePreparation {
+  display: grid;
+  gap: var(--od-space-5);
+}
+
+.voiceSetupGrid {
+  display: grid;
+  gap: 0 var(--od-space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: var(--od-space-5);
+}
+
+.voiceScenarioField {
+  grid-column: 1 / -1;
+}
+
+.voicePreparedPreview {
+  border: var(--od-border-thin) solid var(--od-color-border);
+  border-radius: var(--od-radius-lg);
+  margin: var(--od-space-5) 0;
+  padding: var(--od-space-4);
+}
+
+.voicePreparedPreview h3,
+.voicePreparedPreview h4 {
+  margin-top: 0;
+}
+
+.voicePreparedPreview h4:not(:first-child) {
+  margin-top: var(--od-space-4);
+}
+
+.historyDetail {
+  display: grid;
+  gap: var(--od-space-4);
+}
+
+.page h1 {
+  font-size: var(--od-font-size-xl);
+  line-height: var(--od-line-tight);
+  margin: 0 0 var(--od-space-3);
+}
+
+.eyebrow {
+  color: var(--od-color-primary);
+  font-size: var(--od-font-size-xs);
+  font-weight: var(--od-weight-strong);
+  letter-spacing: var(--od-letter-wide);
+  margin: 0 0 var(--od-space-2);
+  text-transform: uppercase;
+}
+
+.lead {
+  color: var(--od-color-text-muted);
+  font-size: var(--od-font-size-lg);
+  max-width: var(--od-field-max);
+}
+
+.page {
+  display: grid;
+  gap: var(--od-space-6);
+  max-width: var(--od-content-max);
+}
+
+.practiceHeader {
+  margin-bottom: var(--od-space-8);
+}
+
+.practiceHeader .lead {
+  margin-bottom: 0;
+}
+
+.practiceSection,
+.generatedLibrary {
+  margin-bottom: var(--od-space-8);
+}
+
+.generatedLibrary {
+  background: var(--od-color-surface-muted);
+  border: var(--od-border-thin) solid var(--od-color-border);
+  border-radius: var(--od-radius-lg);
+  padding: var(--od-space-5);
+}
+
+.practiceSectionHeader {
+  align-items: start;
+  display: flex;
+  gap: var(--od-space-4);
+  justify-content: space-between;
+  margin-bottom: var(--od-space-4);
+}
+
+.practiceSectionHeader h2,
+.practiceSectionHeader p {
+  margin: 0;
+}
+
+.practiceSectionHeader p {
+  color: var(--od-color-text-muted);
+  margin-top: var(--od-space-1);
+}
+
+.countBadge {
+  color: var(--od-color-text-muted);
+  font-size: var(--od-font-size-xs);
+  font-weight: var(--od-weight-strong);
+  padding-top: var(--od-space-1);
+  white-space: nowrap;
+}
+
+.generatedActivityList {
+  display: grid;
+  gap: var(--od-space-2);
+}
+
+.generatedActivity {
+  align-items: center;
+  background: var(--od-color-surface);
+  border: var(--od-border-thin) solid var(--od-color-border);
+  border-radius: var(--od-radius-md);
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.generatedActivity:focus-within {
+  border-color: var(--od-color-primary);
+  box-shadow: var(--od-shadow-raised);
+}
+
+.generatedActivityOpen {
+  align-items: center;
+  background: var(--od-color-transparent);
+  border: 0;
+  color: var(--od-color-text);
+  cursor: pointer;
+  display: flex;
+  flex: 1;
+  gap: var(--od-space-4);
+  justify-content: space-between;
+  min-height: var(--od-control-min);
+  min-width: 0;
+  padding: var(--od-space-3) var(--od-space-4);
+  text-align: left;
+}
+
+.generatedActivityOpen:hover,
+.generatedActivityOpen[data-pressed] {
+  background: var(--od-color-surface-raised);
+}
+
+.generatedActivityOpen:focus-visible,
+.generatedActivityDelete:focus-visible,
+.libraryFilterButton:focus-visible,
+.practiceTypeCard:focus-visible,
+.backButton:focus-visible {
+  outline: var(--od-border-strong) solid var(--od-color-primary);
+  outline-offset: calc(var(--od-space-1) * -1);
+}
+
+.generatedActivityCopy {
+  display: grid;
+  gap: var(--od-space-1);
+  min-width: 0;
+}
+
+.generatedActivityCopy span {
+  color: var(--od-color-text-muted);
+  font-size: var(--od-font-size-sm);
+}
+
+.generatedActivityOpen svg {
+  color: var(--od-color-primary);
+  flex: 0 0 auto;
+}
+
+.generatedActivityDelete {
+  align-items: center;
+  align-self: stretch;
+  background: var(--od-color-transparent);
+  border: 0;
+  border-left: var(--od-border-thin) solid var(--od-color-border);
+  color: var(--od-color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  min-width: var(--od-control-min);
+  padding: var(--od-space-3);
+}
+
+.generatedActivityDelete:hover:not([data-disabled]),
+.generatedActivityDelete[data-pressed]:not([data-disabled]) {
+  background: var(--od-color-error-soft);
+  color: var(--od-color-error);
+}
+
+.generatedActivityDelete[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.generatedActivityDelete svg {
+  height: var(--od-icon-md);
+  width: var(--od-icon-md);
+}
+
+.libraryFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--od-space-2);
+  margin-bottom: var(--od-space-4);
+}
+
+.libraryFilterButton {
+  align-items: center;
+  background: var(--od-color-surface);
+  border: var(--od-border-thin) solid var(--od-color-border);
+  border-radius: var(--od-radius-sm);
+  color: var(--od-color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: var(--od-font-size-sm);
+  gap: var(--od-space-2);
+  min-height: var(--od-control-compact);
+  padding: var(--od-space-1) var(--od-space-3);
+}
+
+.libraryFilterButton > span {
+  color: inherit;
+  font-size: var(--od-font-size-xs);
+}
+
+.libraryFilterButton:hover,
+.libraryFilterButton[data-pressed],
+.libraryFilterButton[data-selected] {
+  border-color: var(--od-color-primary);
+  color: var(--od-color-primary);
+}
+
+.libraryFilterButton[data-selected] {
+  background: var(--od-color-primary-soft);
+  font-weight: var(--od-weight-strong);
+}
+
+.practiceTypeGrid {
+  display: grid;
+  gap: var(--od-space-3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.practiceTypeCard {
+  align-items: start;
+  background: var(--od-color-surface);
+  border: var(--od-border-thin) solid var(--od-color-border);
+  border-radius: var(--od-radius-lg);
+  color: var(--od-color-text);
+  cursor: pointer;
+  display: grid;
+  gap: var(--od-space-3);
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: var(--od-space-4);
+  text-align: left;
+}
+
+.practiceTypeCard:hover,
+.practiceTypeCard[data-pressed] {
+  border-color: var(--od-color-primary);
+}
+
+.practiceTypeCard[data-selected] {
+  background: var(--od-color-primary-soft);
+  border-color: var(--od-color-primary);
+  box-shadow: inset 0 0 0 var(--od-border-thin) var(--od-color-primary);
+}
+
+.practiceTypeIcon {
+  align-items: center;
+  background: var(--od-color-surface-muted);
+  border-radius: var(--od-radius-md);
+  color: var(--od-color-primary);
+  display: inline-flex;
+  justify-content: center;
+  padding: var(--od-space-2);
+}
+
+.practiceTypeCard[data-selected] .practiceTypeIcon {
+  background: var(--od-color-surface);
+}
+
+.practiceTypeCopy {
+  display: grid;
+  gap: var(--od-space-2);
+  min-width: 0;
+}
+
+.practiceTypeCopy > span {
+  color: var(--od-color-text-muted);
+  font-size: var(--od-font-size-sm);
+}
+
+.practiceContent {
+  margin-bottom: var(--od-space-12);
+}
+
+.practiceSession {
+  display: grid;
+  gap: var(--od-space-5);
+}
+
+:global([data-exercise-mode="true"]) .practiceSession {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--od-space-2);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.practiceSessionHeader {
+  border-bottom: var(--od-border-thin) solid var(--od-color-border);
+  padding-bottom: var(--od-space-5);
+}
+
+:global([data-exercise-mode="true"]) .practiceSessionHeader {
+  flex: 0 0 auto;
+  padding-bottom: var(--od-space-2);
+}
+
+.practiceSessionHeader .backButton {
+  margin-bottom: var(--od-space-5);
+}
+
+:global([data-exercise-mode="true"]) .practiceSessionHeader .backButton {
+  margin-bottom: var(--od-space-2);
+}
+
+.practiceSessionTitleRow {
+  align-items: end;
+  display: flex;
+  gap: var(--od-space-5);
+  justify-content: space-between;
+}
+
+.practiceSessionTitleRow h1,
+.practiceSessionTitleRow .eyebrow {
+  margin-bottom: 0;
+}
+
+.practiceSessionMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--od-space-2);
+  margin-top: var(--od-space-3);
+}
+
+.practiceSessionMeta span {
+  background: var(--od-color-surface-muted);
+  border: var(--od-border-thin) solid var(--od-color-border);
+  border-radius: var(--od-radius-sm);
+  color: var(--od-color-text-muted);
+  font-size: var(--od-font-size-sm);
+  padding: var(--od-space-1) var(--od-space-3);
+}
+
+.practiceLessonDisclosure {
+  background: var(--od-color-surface);
+  border: var(--od-border-thin) solid var(--od-color-border);
+  border-radius: var(--od-radius-lg);
+  margin: 0;
+  overflow: hidden;
+  padding-top: 0;
+}
+
+:global([data-exercise-mode="true"]) .practiceLessonDisclosure {
+  flex: 0 0 auto;
+  margin: 0;
+  max-height: 40%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+:global([data-exercise-mode="true"]) .practiceLessonDisclosure > summary {
+  padding: var(--od-space-3) var(--od-space-4);
+}
+
+.practiceLessonDisclosure > summary {
+  cursor: pointer;
+  list-style-position: inside;
+  padding: var(--od-space-4) var(--od-space-5);
+}
+
+.practiceLessonDisclosure > summary > span {
+  align-items: center;
+  display: inline-flex;
+  gap: var(--od-space-3);
+  margin-left: var(--od-space-2);
+  vertical-align: middle;
+}
+
+.practiceLessonDisclosure > summary svg {
+  color: var(--od-color-primary);
+  flex: none;
+}
+
+.practiceLessonDisclosure > summary span span {
+  display: grid;
+  gap: var(--od-space-1);
+}
+
+.practiceLessonDisclosure > summary small {
+  color: var(--od-color-text-muted);
+  font-weight: normal;
+}
+
+.practiceLessonBody {
+  border-top: var(--od-border-thin) solid var(--od-color-border);
+  padding: var(--od-space-2) var(--od-space-5) var(--od-space-5);
+}
+
+.practiceLessonBody section {
+  border-top: var(--od-border-thin) solid var(--od-color-border);
+  margin-top: var(--od-space-4);
+  padding-top: var(--od-space-3);
+}
+
+.practiceRunner > article {
+  border-color: var(--od-color-primary);
+  box-shadow: var(--od-shadow-raised);
+  padding: var(--od-space-5);
+}
+
+:global([data-exercise-mode="true"]) .practiceRunner {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+:global([data-exercise-mode="true"]) .practiceRunner > article {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--od-space-4);
+  scrollbar-gutter: stable;
+}
+
+.practiceRunner > article > .eyebrow {
+  margin-bottom: var(--od-space-3);
+}
+
+.practiceRunner > article > h2 {
+  margin: 0 0 var(--od-space-3);
+}
+
+.practiceRunner > article > p:not(.eyebrow) {
+  margin: 0 0 var(--od-space-4);
+}
+
+.practiceRunner fieldset {
+  border: 0;
+  margin: var(--od-space-4) 0 0;
+  padding: 0;
+}
+
+.practiceRunner fieldset legend {
+  font-weight: var(--od-weight-medium);
+  margin-bottom: var(--od-space-3);
+  padding: 0;
+}
+
+:global([data-exercise-mode="true"]) .practiceRunner > article > .eyebrow {
+  margin-bottom: var(--od-space-2);
+}
+
+:global([data-exercise-mode="true"]) .practiceRunner > article > h2 {
+  margin-bottom: var(--od-space-2);
+}
+
+:global([data-exercise-mode="true"]) .practiceRunner > article > p:not(.eyebrow) {
+  margin-bottom: var(--od-space-3);
+}
+
+:global([data-exercise-mode="true"]) .practiceRunner fieldset {
+  margin-top: var(--od-space-3);
+}
+
+:global([data-exercise-mode="true"]) .practiceRunner fieldset legend {
+  margin-bottom: var(--od-space-2);
+}
+
+:global([data-exercise-mode="true"]) .practiceRunner [role="status"],
+:global([data-exercise-mode="true"]) .practiceRunner [role="alert"] {
+  padding: var(--od-space-2) var(--od-space-3);
+}
+
+.quizLength {
+  border: 0;
+  margin: var(--od-space-5) 0;
+  padding: 0;
+}
+
+.quizLength legend {
+  font-weight: var(--od-weight-medium);
+  margin-bottom: var(--od-space-2);
+  padding: 0;
+}
+
+.quizLengthOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--od-space-2);
+}
+
+.quizLengthButton {
+  background: var(--od-color-surface-raised);
+  border: var(--od-border-thin) solid var(--od-color-border);
+  border-radius: var(--od-radius-sm);
+  color: var(--od-color-text-muted);
+  cursor: pointer;
+  font: inherit;
+  min-height: var(--od-control-small);
+  min-width: var(--od-control-wide);
+  padding: var(--od-space-1) var(--od-space-3);
+}
+
+.quizLengthButton:hover,
+.quizLengthButton[data-pressed],
+.quizLengthButton[data-selected] {
+  border-color: var(--od-color-primary);
+  color: var(--od-color-primary);
+}
+
+.quizLengthButton:focus-visible {
+  outline: var(--od-border-strong) solid var(--od-color-primary);
+  outline-offset: var(--od-space-1);
+}
+
+.quizLengthButton[data-selected] {
+  background: var(--od-color-primary-soft);
+  font-weight: var(--od-weight-strong);
+}
+
+.backButton {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--od-color-primary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: var(--od-weight-medium);
+  gap: var(--od-space-2);
+  margin-bottom: var(--od-space-4);
+  padding: var(--od-space-1) 0;
+}
+
+.inlineActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--od-space-3);
+}
+
+@media (max-width: 52rem) {
+
+  :global([data-exercise-mode="true"]) .practiceSession {
+    height: auto;
+    overflow: visible;
+  }
+
+  :global([data-exercise-mode="true"]) .practiceLessonDisclosure {
+    max-height: none;
+  }
+
+  :global([data-exercise-mode="true"]) .practiceRunner > article {
+    overflow: visible;
+  }
+
+  .practiceTypeGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .voiceSetupGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .practiceSessionTitleRow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
