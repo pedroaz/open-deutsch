@@ -10,7 +10,6 @@
     "band",
     "domain",
     "title",
-    "status",
     "communicativeGoals",
     "prerequisiteTopicIds",
     "grammarFoundations",
@@ -39,9 +38,6 @@
     },
     "title": {
       "type": "string"
-    },
-    "status": {
-      "enum": ["foundation-incomplete", "foundation-ready"]
     },
     "communicativeGoals": {
       "type": "array",

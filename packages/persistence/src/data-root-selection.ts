@@ -233,9 +233,6 @@ async function assertExistingLayoutSafe(dataRoot: string, warnings: Set<DataRoot
   const layout = resolveDataRootLayout(dataRoot);
   const directoryCandidates = [
     layout.attachments,
-    path.dirname(layout.researchStaging),
-    layout.researchStaging,
-    layout.researchCache,
     layout.logs,
     path.dirname(layout.diagnostics),
     layout.diagnostics,

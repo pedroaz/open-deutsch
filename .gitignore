@@ -65,16 +65,8 @@ learner-data/
 data-root/
 open-deutsch-data/
 
-# Unreviewed curriculum research and private caches
-research-staging/
-.research-staging/
-research-cache/
-.research-cache/
 .research/
-content/.staging/
 
-# Reviewed Markdown/YAML under content/curriculum remains version controlled;
-# generated staging, databases, logs, and test artifacts stay ignored there too.
 
 # Local editor and operating-system noise
 .DS_Store

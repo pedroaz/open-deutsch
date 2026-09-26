@@ -1,0 +1,4 @@
+interface:
+  display_name: "Open Deutsch Development"
+  short_description: "Develop, diagnose, and maintain Open Deutsch"
+  default_prompt: "Use $open-deutsch-development to implement this repository change using the current code and structural decisions."

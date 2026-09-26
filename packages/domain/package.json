@@ -12,6 +12,7 @@
     }
   },
   "dependencies": {
-    "@open-deutsch/contracts": "workspace:*"
+    "@open-deutsch/contracts": "workspace:*",
+    "zod": "4.4.3"
   }
 }

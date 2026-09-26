@@ -3,6 +3,7 @@ import {
   appServerOutputSchemaIds,
   appServerSnapshotSchema,
   correlationIdSchema,
+  errorDefinitions,
   modelRequestIdSchema,
   openDeutschErrorSchema,
   supportedCodexVersionSchema,
@@ -16,6 +17,7 @@ import {
   type AppServerWorkloadKind,
   type OpenDeutschAppServerAdapter,
   type OpenDeutschError,
+  type ErrorKind,
 } from "@open-deutsch/contracts";
 
 import {
@@ -56,16 +58,27 @@ export type OpenDeutschAppServerClientOptions = Readonly<{
   ) => Promise<void> | void;
 }>;
 
-type AdapterErrorKind = "cancellation" | "rate-limit" | "model-output" | "app-server";
+function operationErrorKind(code: string): ErrorKind {
+  if (code.startsWith("OD_APP_SERVER_POLICY_VIOLATION")) return "ai-policy";
+  if (code === "OD_APP_SERVER_OPERATION_TIMEOUT" || code === "APP_SERVER_REQUEST_TIMEOUT") {
+    return "ai-timeout";
+  }
+  if (
+    code === "OD_APP_SERVER_MODEL_UNAVAILABLE" ||
+    code === "OD_APP_SERVER_EFFORT_UNAVAILABLE" ||
+    code === "OD_APP_SERVER_MODEL_SELECTION_INVALID"
+  ) {
+    return "model-unavailable";
+  }
+  if (code.startsWith("OD_APP_SERVER_OUTPUT_") || code.startsWith("OD_APP_SERVER_FINAL_OUTPUT_")) {
+    return "model-output";
+  }
+  if (code.startsWith("OD_APP_SERVER_TURN_FAILED_UNAUTHORIZED")) return "authentication";
+  return "app-server";
+}
 
-function safeError(operationId: string, kind: AdapterErrorKind): OpenDeutschError {
-  const definitions = {
-    cancellation: ["OD_CANCELLED", "errors.cancellation"],
-    "rate-limit": ["OD_RATE_LIMITED", "errors.rateLimit"],
-    "model-output": ["OD_MODEL_OUTPUT_INVALID", "errors.modelOutput"],
-    "app-server": ["OD_APP_SERVER_FAILED", "errors.appServer"],
-  } as const;
-  const [code, messageKey] = definitions[kind];
+function safeError(operationId: string, kind: ErrorKind): OpenDeutschError {
+  const { code, messageKey } = errorDefinitions[kind];
   return openDeutschErrorSchema.parse({
     schemaVersion: 1,
     kind,
@@ -127,11 +140,18 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
   readonly #catalog: ModelCatalogClient;
   readonly #limits: RateLimitClient;
   readonly #forbiddenRoots: readonly string[];
-  readonly #codexSource: "path" | "configured-absolute-path";
+  readonly #codexSource: "desktop-bundled" | "configured-absolute-path";
   readonly #listeners = new Set<(event: AppServerEvent) => void>();
-  readonly #operations = new OperationController<AppServerOperationStart, AnyResult>();
+  readonly #operations = new OperationController<AppServerOperationStart, AnyResult>({
+    onForgot: (operationId) => {
+      this.#operationInputs.delete(operationId);
+      this.#operationStartedAt.delete(operationId);
+      this.#operationAttempts.delete(operationId);
+    },
+  });
   readonly #operationInputs = new Map<string, AppServerOperationStart>();
   readonly #operationStartedAt = new Map<string, number>();
+  readonly #operationAttempts = new Map<string, 1 | 2>();
   readonly #log: AppServerProcessManagerOptions["log"];
   #account: AccountState = { status: "signed-out" };
   #models: ModelCatalog = emptyCatalog;
@@ -140,14 +160,16 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
     status: "stopped",
     codex: { status: "missing" },
   };
-  #codexWasCompatible = false;
+  #codexVersion: ReturnType<typeof supportedCodexVersionSchema.parse> | undefined;
   #notificationQueue: Promise<void> = Promise.resolve();
 
   constructor(options: OpenDeutschAppServerClientOptions) {
     this.#process = options.process ?? new AppServerProcessManager(options.processOptions);
     this.#log = options.processOptions?.log;
     this.#codexSource =
-      options.processOptions?.executable === undefined ? "path" : "configured-absolute-path";
+      options.processOptions?.executable === undefined
+        ? "desktop-bundled"
+        : "configured-absolute-path";
     this.#forbiddenRoots = Object.freeze([...options.forbiddenRoots]);
     this.#authentication = new ManagedAuthenticationClient({
       requester: this.#process,
@@ -156,12 +178,15 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
         ? {}
         : { presentDeviceCode: options.presentDeviceCode }),
       onAccountChanged: (state) => {
+        const changed = state.status !== this.#account.status;
         this.#account = state;
         this.#stateLog(
           "APP_SERVER_ACCOUNT_STATE_CHANGED",
           "codex/account",
           `Account state changed to ${state.status}.`,
           { status: state.status },
+          undefined,
+          changed ? "info" : "debug",
         );
         this.#emit({ event: "account-changed", state });
       },
@@ -180,6 +205,8 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
             "codex/models",
             "Model catalog changed.",
             { count: catalog.models.length },
+            undefined,
+            "debug",
           );
         }
         if (changed) this.#emit({ event: "models-changed" });
@@ -188,12 +215,24 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
     this.#limits = new RateLimitClient({
       requester: this.#process,
       onRateLimitsChanged: (state) => {
+        const previous = this.#rateLimits.status;
         this.#rateLimits = state;
         this.#stateLog(
-          "APP_SERVER_RATE_LIMITS_CHANGED",
+          previous === "limited" && state.status === "available"
+            ? "APP_SERVER_RATE_LIMITS_RECOVERED"
+            : "APP_SERVER_RATE_LIMITS_CHANGED",
           "codex/rate-limits",
-          "Rate-limit state changed.",
+          `Rate-limit state is ${state.status}.`,
           { status: state.status },
+          undefined,
+          state.status === previous
+            ? "debug"
+            : state.status === "limited" ||
+                (state.status === "unavailable" && previous !== "unavailable")
+              ? "warn"
+              : previous === "limited"
+                ? "info"
+                : "debug",
         );
         this.#emit({ event: "rate-limits-changed" });
       },
@@ -289,6 +328,7 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
       AppServerOutputMap
     >;
     this.#operationStartedAt.delete(validated.operationId);
+    this.#operationAttempts.delete(validated.operationId);
     return result;
   }
 
@@ -354,6 +394,14 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
     return Promise.resolve();
   }
 
+  releaseOperation(operationId: Parameters<OpenDeutschAppServerAdapter["releaseOperation"]>[0]) {
+    if (this.#operations.forget(operationId)) {
+      this.#operationInputs.delete(operationId);
+      this.#operationStartedAt.delete(operationId);
+      this.#operationAttempts.delete(operationId);
+    }
+  }
+
   async shutdown(): Promise<void> {
     await this.#process.shutdown();
   }
@@ -370,10 +418,43 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
       ...selection,
       forbiddenRoots: this.#forbiddenRoots,
       signal: context.signal,
-      onProgress: (stage) => {
+      onTiming: (event) => {
+        const messages = {
+          "thread-start": "AI thread startup finished.",
+          "turn-start": "AI turn submission finished.",
+          "first-response": "First AI response received.",
+          generation: "AI generation finished.",
+          validation: "AI output validation finished.",
+          repair: "AI output rejected; starting the single repair attempt.",
+        };
+        this.#operationLog(
+          event.outcome === "error" ? "warn" : event.stage === "generation" ? "info" : "debug",
+          "APP_SERVER_OPERATION_TIMING",
+          retained,
+          messages[event.stage],
+          event.code,
+          {
+            phase: event.stage === "validation" ? "validating" : "running",
+            outcome: event.outcome,
+            durationMs: event.durationMs,
+            metadata: {
+              stage: event.stage,
+              attempt: event.attempt,
+              model: selection.model,
+              effort: selection.effort,
+              ...(event.exerciseIndex === undefined ? {} : { exerciseIndex: event.exerciseIndex }),
+              ...(event.validationField === undefined
+                ? {}
+                : { validationField: event.validationField }),
+              ...(event.answerLength === undefined ? {} : { answerLength: event.answerLength }),
+            },
+          },
+        );
+      },
+      onProgress: (stage, attempt) => {
         if (stage === "validating") context.validating();
         this.#operationLog(
-          "info",
+          "debug",
           "APP_SERVER_OPERATION_STAGE",
           retained,
           `Operation ${stage}.`,
@@ -381,20 +462,20 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
           {
             action: retained.input.kind,
             phase: stage === "validating" ? "validating" : "running",
-            metadata: { stage },
+            metadata: { stage, attempt },
           },
         );
-        this.#progress(retained, stage);
+        this.#progress(retained, stage, attempt);
       },
     });
   }
 
   #projectLifecycle(state: ReturnType<AppServerProcessManager["state"]>): void {
     if (state === "ready") {
-      this.#codexWasCompatible = true;
+      this.#codexVersion = supportedCodexVersionSchema.parse(this.#process.version());
       this.#lifecycle = {
         status: "ready",
-        codexVersion: supportedCodexVersionSchema.parse("0.146.0"),
+        codexVersion: this.#codexVersion,
         initializedAt: utcInstantSchema.parse(new Date().toISOString()),
       };
     } else if (state === "failed") {
@@ -405,10 +486,10 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
     } else if (state === "stopped") {
       this.#lifecycle = {
         status: "stopped",
-        codex: this.#codexWasCompatible
+        codex: this.#codexVersion
           ? {
               status: "compatible",
-              version: supportedCodexVersionSchema.parse("0.146.0"),
+              version: this.#codexVersion,
               source: this.#codexSource,
             }
           : { status: "missing" },
@@ -462,13 +543,16 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
   #progress(
     operation: AppServerOperationStart,
     stage: "queued" | "starting" | "running" | "validating" | "cancelling",
+    attempt: 1 | 2 = this.#operationAttempts.get(operation.operationId) ?? 1,
   ): void {
+    this.#operationAttempts.set(operation.operationId, attempt);
     this.#emit({
       event: "operation-progress",
       operationId: operation.operationId,
       submissionId: operation.submissionId,
       kind: operation.input.kind,
       stage,
+      attempt,
     });
   }
 
@@ -496,7 +580,7 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
         operation,
         "Operation output validated.",
         undefined,
-        { phase: "completed", outcome: "ok" },
+        { phase: "completed", outcome: "ok", metadata: { repaired: outcome.output.repaired } },
       );
       const result = {
         operationId: operation.operationId,
@@ -523,14 +607,12 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
       });
       return result;
     }
-    const kind: AdapterErrorKind =
+    const kind: ErrorKind =
       outcome.status === "rate-limited"
         ? "rate-limit"
         : outcome.status === "cancelled"
           ? "cancellation"
-          : outcome.errorCode.startsWith("OD_APP_SERVER_OUTPUT_")
-            ? "model-output"
-            : "app-server";
+          : (outcome.errorKind ?? operationErrorKind(outcome.errorCode));
     const error = safeError(operation.operationId, kind);
     this.#operationLog(
       outcome.status === "cancelled"
@@ -669,11 +751,12 @@ export class OpenDeutschAppServerClient implements OpenDeutschAppServerAdapter {
     message: string,
     metadata?: Readonly<Record<string, string | number | boolean | null>>,
     correlationId?: string,
+    severity: AppServerLogRecord["severity"] = "info",
   ): void {
     try {
       this.#log?.({
         timestamp: new Date().toISOString(),
-        severity: "info",
+        severity,
         component: "app-server",
         code,
         ...(correlationId === undefined

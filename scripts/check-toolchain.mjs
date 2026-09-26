@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
+import { resolveCodexExecutable } from "../packages/codex-client/src/desktop-runtime.ts";
 import { diagnoseToolchain } from "./lib/toolchain-diagnostics.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -32,9 +33,13 @@ function run(command, args) {
 }
 
 const pnpm = run("pnpm", ["--version"]);
-const codex = run("codex", ["--version"]);
+const executable = await resolveCodexExecutable(
+  process.env.OPEN_DEUTSCH_CODEX_EXECUTABLE,
+  process.env,
+);
+const codex = executable ? run(executable, ["--version"]) : { status: null };
 const appServer =
-  codex.status === 0 ? run("codex", policy.codex.appServerCommand) : { status: null };
+  codex.status === 0 ? run(executable, policy.codex.appServerCommand) : { status: null };
 const appServerStatus =
   appServer.status === 0
     ? "available"

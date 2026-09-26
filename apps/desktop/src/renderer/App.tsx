@@ -1,11 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
-import {
-  type DesktopIpcResponse,
-  type OpenDeutschError,
-} from "@open-deutsch/contracts";
+import type { PracticeLaunch } from "./usePracticeSuggestion.js";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { type DesktopIpcResponse, type OpenDeutschError } from "@open-deutsch/contracts";
 import type { ModelWorkload } from "@open-deutsch/domain";
 import {
-  CalendarDays,
+  Database,
   FilePenLine,
   Gauge,
   History,
@@ -27,12 +25,12 @@ import { ContextualHelper, type ContextualHelperSelection } from "./ContextualHe
 import { HistoryPage, type HistoryPracticeSeed } from "./HistoryPage.js";
 import { invokeDesktop, normalizeDesktopError, subscribeDesktop } from "./ipc.js";
 import { ProfileOnboarding } from "./ProfileOnboarding.js";
-import { ProgressPage } from "./ProgressPage.js";
+import { LearningPathPage } from "./LearningPathPage.js";
 import { PracticePage } from "./PracticePage.js";
+import { PersonalDataPage } from "./PersonalDataPage.js";
 import { SettingsPage } from "./SettingsPage.js";
 import { SidebarModelControl } from "./SidebarModelControl.js";
 import { VocabularyPage } from "./VocabularyPage.js";
-import { WeeklyPlanPage } from "./WeeklyPlanPage.js";
 import { WritingWorkspace } from "./WritingWorkspace.js";
 import {
   CodexBanner,
@@ -55,8 +53,8 @@ type Page =
   | "writing"
   | "vocabulary"
   | "history"
-  | "progress"
-  | "weeklyPlan"
+  | "learningPath"
+  | "personalData"
   | "settings";
 
 const navigation: ReadonlyArray<{
@@ -68,12 +66,12 @@ const navigation: ReadonlyArray<{
   { page: "writing", icon: FilePenLine },
   { page: "vocabulary", icon: LibraryBig },
   { page: "history", icon: History },
-  { page: "progress", icon: Sparkles },
-  { page: "weeklyPlan", icon: CalendarDays },
+  { page: "learningPath", icon: Sparkles },
+  { page: "personalData", icon: Database },
   { page: "settings", icon: Settings },
 ];
 
-function FirstAiReminder({ close }: { close: () => void }) {
+function FirstAiReminder({ close }: { close: (acknowledged: boolean) => void }) {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<OpenDeutschError>();
@@ -82,7 +80,7 @@ function FirstAiReminder({ close }: { close: () => void }) {
     setError(undefined);
     try {
       await invokeDesktop("privacy/ai-disclosure/acknowledge", {});
-      close();
+      close(true);
     } catch (cause) {
       setError(normalizeDesktopError(cause).detail);
     } finally {
@@ -94,7 +92,7 @@ function FirstAiReminder({ close }: { close: () => void }) {
       isOpen
       title={t("aiReminder.title")}
       onOpenChange={(open) => {
-        if (!open) close();
+        if (!open) close(false);
       }}
     >
       <p>{t("aiReminder.body")}</p>
@@ -108,42 +106,104 @@ function FirstAiReminder({ close }: { close: () => void }) {
         >
           {t("actions.acknowledge")}
         </Button>
-        <Button onPress={close}>{t("actions.cancel")}</Button>
+        <Button variant="secondary" isDisabled={busy} onPress={() => close(false)}>
+          {t("actions.cancel")}
+        </Button>
       </ActionGroup>
     </ModalDialog>
   );
 }
 
-function DesktopWorkspace({ readiness, reload }: { readiness: Readiness; reload: () => Promise<void> }) {
+function DesktopWorkspace({
+  readiness,
+  reload,
+}: {
+  readiness: Readiness;
+  reload: () => Promise<void>;
+}) {
   const { t } = useTranslation();
+  const [historyEntryIds, setHistoryEntryIds] = useState<NonNullable<Extract<import("@open-deutsch/contracts").DesktopIpcRequest, { channel: "history/read" }>["payload"]["historyEntryIds"]>>();
   const [page, setPage] = useState<Page>("dashboard");
   const [navCollapsed, setNavCollapsed] = useState(false);
-  const [helperOpen, setHelperOpen] = useState(
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [page]);
+  const [wideHelper, setWideHelper] = useState(
     () => window.matchMedia("(min-width: 68.01rem)").matches,
   );
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 68.01rem)");
+    const update = () => setWideHelper(media.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  const [helperPreference, setHelperPreference] = useState<boolean>();
+  const helperOpen = helperPreference ?? (page === "writing" && wideHelper);
   const [reminderOpen, setReminderOpen] = useState(false);
+  const disclosure = useRef<Array<(value: boolean) => void>>([]);
+  useEffect(
+    () => () => {
+      for (const resolve of disclosure.current.splice(0)) resolve(false);
+    },
+    [],
+  );
   const [accountSignedOut, setAccountSignedOut] = useState(false);
+  const [resetNotice, setResetNotice] = useState(false);
+  useEffect(() => {
+    void invokeDesktop("development-notice/read", {}).then(result => setResetNotice(result.pending)).catch(cause => setOperationError(normalizeDesktopError(cause).detail));
+  }, []);
   const [operationError, setOperationError] = useState<OpenDeutschError>();
   const [writingDirty, setWritingDirty] = useState(false);
   const [pendingPage, setPendingPage] = useState<Page>();
   const [writingSeed, setWritingSeed] =
     useState<Extract<HistoryPracticeSeed, { kind: "writing" }>>();
-  const [helperSelection, setHelperSelection] = useState<ContextualHelperSelection>();
   const [preparedActivityId, setPreparedActivityId] = useState<PreparedActivityId>();
+  const [suggestedWriting, setSuggestedWriting] = useState<string>();
+  const [practiceSeed, setPracticeSeed] =
+    useState<Extract<PracticeLaunch, { destination: "preparation" }>>();
+  const [vocabularyDue, setVocabularyDue] = useState(false);
+  const launchPractice = (intent: PracticeLaunch) => {
+    if (intent.destination === "writing") {
+      setWritingSeed(undefined);
+      setSuggestedWriting(intent.prompt);
+      setPage("writing");
+    } else if (intent.destination === "vocabulary") {
+      setVocabularyDue(true);
+      setPage("vocabulary");
+    } else {
+      setPreparedActivityId(intent.destination === "activity" ? intent.activityId : undefined);
+      setPracticeSeed(intent.destination === "preparation" ? intent : undefined);
+      setPage("practice");
+    }
+  };
+  const [helperSelection, setHelperSelection] = useState<ContextualHelperSelection>();
+  const [helperEpoch, setHelperEpoch] = useState(0);
 
   useEffect(() => {
-    void invokeDesktop("codex/account/read", {})
-      .then((state) => {
-        setAccountSignedOut(state.status === "signed-out");
-      })
-      .catch((cause: unknown) => {
-        setOperationError(normalizeDesktopError(cause).detail);
-      });
+    let disposed = false;
+    const refreshAccount = () => {
+      void invokeDesktop("codex/account/read", {})
+        .then((state) => {
+          if (!disposed) setAccountSignedOut(state.status === "signed-out");
+        })
+        .catch((cause: unknown) => {
+          if (!disposed) setOperationError(normalizeDesktopError(cause).detail);
+        });
+    };
+    refreshAccount();
+    const unsubscribe = subscribeDesktop((event) => {
+      if (event.event === "state-invalidated" && event.scope === "account") refreshAccount();
+    });
+    return () => {
+      disposed = true;
+      unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
     const unsubscribe = subscribeDesktop((event) => {
       if (event.event === "prepared-activity-open") {
+        setPracticeSeed(undefined);
         setPreparedActivityId(event.activityId);
         if (writingDirty) setPendingPage("practice");
         else setPage("practice");
@@ -153,7 +213,11 @@ function DesktopWorkspace({ readiness, reload }: { readiness: Readiness; reload:
         void reload();
         return;
       }
-      if (event.event === "state-invalidated") void reload();
+      if (
+        event.event === "state-invalidated" &&
+        (event.scope === "account" || event.scope === "settings")
+      )
+        void reload();
     });
     return unsubscribe;
   }, [reload, writingDirty]);
@@ -163,8 +227,9 @@ function DesktopWorkspace({ readiness, reload }: { readiness: Readiness; reload:
     try {
       const privacy = await invokeDesktop("privacy/ai-disclosure/read", {});
       if (!privacy.acknowledged) {
+        if (disclosure.current.length > 0) return false;
         setReminderOpen(true);
-        return false;
+        return new Promise<boolean>((resolve) => disclosure.current.push(resolve));
       }
       return true;
     } catch (cause) {
@@ -174,24 +239,32 @@ function DesktopWorkspace({ readiness, reload }: { readiness: Readiness; reload:
   };
 
   const moveNavFocus = (event: React.KeyboardEvent<HTMLButtonElement>) => {
-    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+    if (!["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
     const buttons = Array.from(
       event.currentTarget.closest("nav")?.querySelectorAll<HTMLButtonElement>("[data-nav]") ?? [],
     );
     const current = buttons.indexOf(document.activeElement as HTMLButtonElement);
     if (current < 0) return;
     event.preventDefault();
-    const delta = event.key === "ArrowDown" ? 1 : -1;
+    const delta = event.key === "ArrowDown" || event.key === "ArrowRight" ? 1 : -1;
     buttons[(current + delta + buttons.length) % buttons.length]?.focus();
   };
 
   const navigate = (destination: Page) => {
+    if (destination === "history") setHistoryEntryIds(undefined);
     if (page === "writing" && writingDirty && destination !== "writing") {
       setPendingPage(destination);
       return;
     }
-    if (destination === "writing" && page !== "writing") setWritingSeed(undefined);
-    if (destination === "practice") setPreparedActivityId(undefined);
+    if (destination === "writing" && page !== "writing") {
+      setWritingSeed(undefined);
+      setSuggestedWriting(undefined);
+    }
+    if (destination === "practice") {
+      setPreparedActivityId(undefined);
+      setPracticeSeed(undefined);
+    }
+    if (destination === "vocabulary") setVocabularyDue(false);
     setPage(destination);
   };
   const modelWorkload: ModelWorkload = page === "writing" ? "correction" : "generation";
@@ -204,77 +277,95 @@ function DesktopWorkspace({ readiness, reload }: { readiness: Readiness; reload:
         brandName={t("app.name")}
         content={
           <>
-          <CodexBanner readiness={readiness} />
-          {operationError && <OperationError error={operationError} />}
-          {accountSignedOut && readiness.codex.status === "available" && (
-            <Feedback live="polite">
-              <UserRound aria-hidden="true" /> {t("codex.signedOut")}
-            </Feedback>
-          )}
-          {page === "dashboard" ? (
-            <Dashboard onAi={() => void openAi()} onNavigate={navigate} />
-          ) : null}
-          {page === "practice" ? (
-            <PracticePage
-              {...(preparedActivityId ? { activityId: preparedActivityId } : {})}
-              requestAiAccess={openAi}
-              onOpenActivity={(activityId) => {
-                setPreparedActivityId(activityId);
-              }}
-              onCloseActivity={() => {
-                setPreparedActivityId(undefined);
-              }}
-            />
-          ) : null}
-          {page === "writing" ? (
-            <WritingWorkspace
-              key={writingSeed?.historyEntryId ?? "new-writing"}
-              {...(writingSeed
-                ? { initialContext: writingSeed.context, initialDraft: writingSeed.draft }
-                : {})}
-              onDirtyChange={setWritingDirty}
-              onHelperSelection={setHelperSelection}
-              requestAiAccess={openAi}
-            />
-          ) : null}
-          {page === "history" ? (
-            <HistoryPage
-              requestAiAccess={openAi}
-              onPracticeAgain={(seed) => {
-                if (seed.kind === "exercise") {
-                  setPreparedActivityId(seed.activityId as PreparedActivityId);
-                  setPage("practice");
-                } else {
-                  setWritingSeed(seed);
+            <CodexBanner readiness={readiness} />
+            {resetNotice && <Feedback live="polite">
+              <p>{t("developmentReset.body")}</p>
+              <Button onPress={() => { void invokeDesktop("development-notice/dismiss", {}).then(() => setResetNotice(false)).catch(cause => setOperationError(normalizeDesktopError(cause).detail)); }}>{t("developmentReset.dismiss")}</Button>
+            </Feedback>}
+            {operationError && <OperationError error={operationError} />}
+            {accountSignedOut && readiness.codex.status === "available" && (
+              <Feedback live="polite">
+                <UserRound aria-hidden="true" /> {t("codex.signedOut")}
+              </Feedback>
+            )}
+            {page === "dashboard" ? (
+              <Dashboard requestAiAccess={openAi} onLaunch={launchPractice} onNavigate={navigate} />
+            ) : null}
+            {page === "practice" ? (
+              <PracticePage
+                {...(practiceSeed ? { initialPreparation: practiceSeed } : {})}
+                {...(preparedActivityId ? { activityId: preparedActivityId } : {})}
+                requestAiAccess={openAi}
+                onOpenActivity={(activityId) => {
+                  setPreparedActivityId(activityId);
+                }}
+                onCloseActivity={() => {
+                  setPreparedActivityId(undefined);
+                }}
+              />
+            ) : null}
+            {page === "writing" ? (
+              <WritingWorkspace
+                key={writingSeed?.historyEntryId ?? "new-writing"}
+                {...(writingSeed
+                  ? { initialContext: writingSeed.context, initialDraft: writingSeed.draft }
+                  : suggestedWriting
+                    ? { initialContext: suggestedWriting }
+                    : {})}
+                onDirtyChange={setWritingDirty}
+                onHelperSelection={setHelperSelection}
+                requestAiAccess={openAi}
+              />
+            ) : null}
+            {page === "history" ? (
+              <HistoryPage
+                {...(historyEntryIds ? { initialHistoryEntryIds: historyEntryIds } : {})}
+                requestAiAccess={openAi}
+                onPracticeAgain={(seed) => {
+                  if (seed.kind === "exercise") {
+                    setPracticeSeed(undefined);
+                    setPreparedActivityId(seed.activityId as PreparedActivityId);
+                    setPage("practice");
+                  } else {
+                    setWritingSeed(seed);
+                    setWritingDirty(false);
+                    setPage("writing");
+                  }
+                }}
+              />
+            ) : null}
+            {page === "learningPath" ? <LearningPathPage requestAiAccess={openAi} onOpenHistory={(ids) => { setHistoryEntryIds(ids); setPage("history"); }} /> : null}
+            {page === "vocabulary" ? (
+              <VocabularyPage
+                initialDueOnly={vocabularyDue}
+                onNavigate={(destination) => {
+                  navigate(destination);
+                }}
+              />
+            ) : null}
+            {page === "personalData" ? (
+              <PersonalDataPage
+                onDataCleared={() => {
+                  setHelperSelection(undefined);
+                  setHelperEpoch((value) => value + 1);
+                  setWritingSeed(undefined);
+                  setSuggestedWriting(undefined);
                   setWritingDirty(false);
-                  setPage("writing");
-                }
-              }}
-            />
-          ) : null}
-          {page === "progress" ? (
-            <ProgressPage
-              onOpenHistory={() => {
-                setPage("history");
-              }}
-            />
-          ) : null}
-          {page === "vocabulary" ? (
-            <VocabularyPage
-              onNavigate={(destination) => {
-                navigate(destination);
-              }}
-            />
-          ) : null}
-          {page === "weeklyPlan" ? <WeeklyPlanPage requestAiAccess={openAi} /> : null}
-          {page === "settings" ? (
-            <SettingsPage readiness={readiness} onDataRootChanged={reload} />
-          ) : null}
+                  setPracticeSeed(undefined);
+                  setPreparedActivityId(undefined);
+                }}
+              />
+            ) : null}
+            {page === "settings" ? (
+              <SettingsPage readiness={readiness} onDataRootChanged={reload} />
+            ) : null}
           </>
         }
         exerciseMode={page === "practice" && Boolean(preparedActivityId)}
         header={<LanguageButton />}
-        helper={<ContextualHelper selection={helperSelection} requestAiAccess={openAi} />}
+        helper={
+          <ContextualHelper key={helperEpoch} selection={helperSelection} requestAiAccess={openAi} />
+        }
         helperOpen={helperOpen}
         helperTitle={t("dashboard.helperTitle")}
         helperToggleLabel={helperOpen ? t("actions.hideHelper") : t("actions.showHelper")}
@@ -293,7 +384,7 @@ function DesktopWorkspace({ readiness, reload }: { readiness: Readiness; reload:
         onMoveNavFocus={moveNavFocus}
         onNavigate={navigate}
         onToggleHelper={() => {
-          setHelperOpen((current) => !current);
+          setHelperPreference(!helperOpen);
         }}
         onToggleNavigation={() => {
           setNavCollapsed((current) => !current);
@@ -301,8 +392,9 @@ function DesktopWorkspace({ readiness, reload }: { readiness: Readiness; reload:
       />
       {reminderOpen && (
         <FirstAiReminder
-          close={() => {
+          close={(acknowledged) => {
             setReminderOpen(false);
+            for (const resolve of disclosure.current.splice(0)) resolve(acknowledged);
           }}
         />
       )}
@@ -418,7 +510,11 @@ export default function App() {
       body={t("errors.boundaryBody")}
       close={t("actions.close")}
     >
-      <DesktopWorkspace readiness={readiness} reload={load} />
+      <DesktopWorkspace
+        key={readiness.dataRoot.status === "ready" ? readiness.dataRoot.generation : "unavailable"}
+        readiness={readiness}
+        reload={load}
+      />
     </ViewBoundary>
   );
 }

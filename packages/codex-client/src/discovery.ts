@@ -1,18 +1,13 @@
 import { execFile } from "node:child_process";
-import { constants } from "node:fs";
-import { access, realpath, stat } from "node:fs/promises";
-import { delimiter, isAbsolute, join } from "node:path";
 import { promisify } from "node:util";
+
+import { resolveCodexExecutable } from "./desktop-runtime.js";
+export { resolveCodexExecutable } from "./desktop-runtime.js";
 
 import { scrubCodexEnvironment } from "./environment.js";
 
 const execFileAsync = promisify(execFile);
-const codexVersionPattern = /^(?:codex-cli\s+|v)?(\d+)\.(\d+)\.(\d+)$/u;
-
-export const supportedCodexVersion = Object.freeze({
-  minimum: "0.146.0",
-  maximumExclusive: "0.146.1",
-});
+const codexVersionPattern = /^(?:codex-cli\s+|v)?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/u;
 
 export type CodexDiscovery =
   | Readonly<{ status: "available"; version: string }>
@@ -21,70 +16,12 @@ export type CodexDiscovery =
       reason: "missing" | "unsupported-version" | "app-server-unavailable";
     }>;
 
-function versionTuple(value: string): readonly [number, number, number] | undefined {
-  const match = codexVersionPattern.exec(value.trim());
-  if (!match) return undefined;
-  return [Number(match[1]), Number(match[2]), Number(match[3])];
-}
-
-function compare(
-  left: readonly [number, number, number],
-  right: readonly [number, number, number],
-): number {
-  for (let index = 0; index < left.length; index += 1) {
-    const difference = (left[index] ?? 0) - (right[index] ?? 0);
-    if (difference !== 0) return difference;
-  }
-  return 0;
-}
-
+// Version is diagnostic metadata. Availability is established by the command and
+// the runtime handshake, not an exact release allowlist.
 export function classifyCodexVersion(rawVersion: string): CodexDiscovery {
-  const observed = versionTuple(rawVersion);
-  const minimum = versionTuple(supportedCodexVersion.minimum);
-  const maximum = versionTuple(supportedCodexVersion.maximumExclusive);
-  if (
-    !observed ||
-    !minimum ||
-    !maximum ||
-    compare(observed, minimum) < 0 ||
-    compare(observed, maximum) >= 0
-  ) {
-    return Object.freeze({ status: "unavailable", reason: "unsupported-version" });
-  }
-  return Object.freeze({
-    status: "available",
-    version: rawVersion.trim().replace(/^(?:codex-cli\s+|v)/u, ""),
-  });
-}
-
-async function executableCandidate(path: string): Promise<string | undefined> {
-  try {
-    const canonical = await realpath(path);
-    const information = await stat(canonical);
-    if (!information.isFile()) return undefined;
-    await access(canonical, constants.X_OK);
-    return canonical;
-  } catch {
-    return undefined;
-  }
-}
-
-export async function resolveCodexExecutable(
-  configured: string | undefined,
-  environment: NodeJS.ProcessEnv,
-): Promise<string | undefined> {
-  if (configured !== undefined) {
-    if (!isAbsolute(configured)) return undefined;
-    return executableCandidate(configured);
-  }
-  const path = environment["PATH"];
-  if (!path) return undefined;
-  for (const directory of path.split(delimiter)) {
-    if (!directory || !isAbsolute(directory)) continue;
-    const candidate = await executableCandidate(join(directory, "codex"));
-    if (candidate) return candidate;
-  }
-  return undefined;
+  const match = codexVersionPattern.exec(rawVersion.trim());
+  if (!match) return Object.freeze({ status: "unavailable", reason: "unsupported-version" });
+  return Object.freeze({ status: "available", version: match[1]! });
 }
 
 export async function discoverCodex(

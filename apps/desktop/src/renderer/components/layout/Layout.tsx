@@ -49,30 +49,61 @@ export function Stack(props: { children: ReactNode; compact?: boolean; className
   );
 }
 
-export function Section(props: { title?: string; description?: string; actions?: ReactNode; children: ReactNode; surface?: boolean; as?: ElementType; className?: string }) {
-  const content = <>{(props.title || props.description || props.actions) && <header className={styles.sectionHeading}><div>{props.title && <h2>{props.title}</h2>}{props.description && <p>{props.description}</p>}</div>{props.actions}</header>}{props.children}</>;
-  return props.surface ? <Card as={props.as ?? "section"} className={`${styles.section} ${props.className ?? ""}`}>{content}</Card> : <section className={`${styles.section} ${props.className ?? ""}`}>{content}</section>;
+export function Section(props: {
+  title?: string;
+  description?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+  surface?: boolean;
+  as?: ElementType;
+  className?: string;
+}) {
+  const content = (
+    <>
+      {(props.title || props.description || props.actions) && (
+        <header className={styles.sectionHeading}>
+          <div>
+            {props.title && <h2>{props.title}</h2>}
+            {props.description && <p>{props.description}</p>}
+          </div>
+          {props.actions}
+        </header>
+      )}
+      {props.children}
+    </>
+  );
+  return props.surface ? (
+    <Card as={props.as ?? "section"} className={`${styles.section} ${props.className ?? ""}`}>
+      {content}
+    </Card>
+  ) : (
+    <section className={`${styles.section} ${props.className ?? ""}`}>{content}</section>
+  );
 }
 
 export function SectionHeader(props: { children: ReactNode; className?: string }) {
-  return <div className={`${styles.sectionHeading} ${props.className ?? ""}`}>{props.children}</div>;
+  return (
+    <div className={`${styles.sectionHeading} ${props.className ?? ""}`}>{props.children}</div>
+  );
 }
 
 export function ActionGroup(props: { children: ReactNode; className?: string }) {
   return <div className={`${styles.actions} ${props.className ?? ""}`}>{props.children}</div>;
 }
 
-export function ContentGrid(props: {
-  children: ReactNode;
-  columns?: 1 | 2;
-  className?: string;
-  fillLast?: boolean;
-}) {
+export function ContentGrid({
+  children,
+  columns = 2,
+  className,
+  fillLast,
+  ...props
+}: ComponentPropsWithoutRef<"div"> & { columns?: 1 | 2; fillLast?: boolean }) {
   return (
     <div
-      className={`${styles.grid} ${props.columns === 1 ? "" : styles.twoColumns} ${props.fillLast ? styles.fillLast : ""} ${props.className ?? ""}`}
+      {...props}
+      className={`${styles.grid} ${columns === 1 ? "" : styles.twoColumns} ${fillLast ? styles.fillLast : ""} ${className ?? ""}`}
     >
-      {props.children}
+      {children}
     </div>
   );
 }

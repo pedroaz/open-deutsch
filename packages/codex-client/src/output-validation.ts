@@ -13,13 +13,36 @@ export type SafeOutputValidationIssue = Readonly<{
   path: readonly (number | "<field>")[];
 }>;
 
+export type ExerciseValidationLocation = Readonly<{
+  exerciseIndex: number;
+  field:
+    | "acceptedAnswers"
+    | "title"
+    | "instructions"
+    | "explanation"
+    | "question"
+    | "leadingText"
+    | "followingText"
+    | "sentence"
+    | "cue"
+    | "hint"
+    | "combined";
+  answerLength?: number;
+}>;
+
 export class AppServerOutputValidationError extends Error {
   readonly issues: readonly SafeOutputValidationIssue[];
+  readonly location: ExerciseValidationLocation | undefined;
 
-  constructor(code: string, issues: readonly SafeOutputValidationIssue[] = []) {
+  constructor(
+    code: string,
+    issues: readonly SafeOutputValidationIssue[] = [],
+    location?: ExerciseValidationLocation,
+  ) {
     super(code);
     this.name = "AppServerOutputValidationError";
     this.issues = Object.freeze([...issues]);
+    this.location = location;
   }
 }
 
@@ -72,6 +95,26 @@ export function parseAppServerCandidateOutput<Kind extends AppServerWorkloadKind
   }
   if (kind === "exercise-generation") {
     const workloadInput: AppServerWorkloadInput | undefined = input;
+    const output = parsed.data as AppServerCandidateOutputMap["exercise-generation"];
+    if (workloadInput?.kind === "exercise-generation" && workloadInput.reading) {
+      if (
+        !output.readingMaterial ||
+        (workloadInput.reading.passage !== null &&
+          output.readingMaterial.passage !== workloadInput.reading.passage) ||
+        !output.exercises.some((exercise) => exercise.kind === "free-writing")
+      ) {
+        throw new AppServerOutputValidationError("OD_READING_MATERIAL_INVALID");
+      }
+    } else if (output.readingMaterial) {
+      throw new AppServerOutputValidationError("OD_READING_MATERIAL_UNEXPECTED");
+    }
+    if (workloadInput?.kind === "exercise-generation" && workloadInput.courseTeaching?.objective) {
+      const description = workloadInput.courseTeaching.objective.description;
+      if (output.exercises.some((exercise) => exercise.objectives.length !== 1 || exercise.objectives[0] !== description) ||
+        (workloadInput.learningPath?.step === "writing" && output.exercises.some((exercise) => exercise.kind !== "free-writing"))) {
+        throw new AppServerOutputValidationError("OD_COURSE_OBJECTIVE_MISMATCH");
+      }
+    }
     assertExerciseGenerationQuality(
       parsed.data as AppServerCandidateOutputMap["exercise-generation"],
       workloadInput?.kind === "exercise-generation"
@@ -145,6 +188,36 @@ function visibleExerciseText(
   return normalized(shared.join(" "));
 }
 
+function answerLeakLocation(
+  exercise: AppServerCandidateOutputMap["exercise-generation"]["exercises"][number],
+  answer: string,
+  exerciseIndex: number,
+): ExerciseValidationLocation {
+  const fields: { field: ExerciseValidationLocation["field"]; text: string }[] = [
+    { field: "title", text: exercise.title },
+    { field: "instructions", text: exercise.instructions },
+    { field: "explanation", text: exercise.explanation ?? "" },
+  ];
+  if (exercise.kind === "short-answer" || exercise.kind === "multiple-choice") {
+    fields.push({ field: "question", text: exercise.question });
+  } else if (exercise.kind === "fill-in-the-blank") {
+    fields.push({ field: "leadingText", text: exercise.leadingText });
+    fields.push(
+      ...exercise.blanks.map(({ followingText }) => ({
+        field: "followingText" as const,
+        text: followingText,
+      })),
+    );
+  } else if (exercise.kind === "sentence-correction") {
+    fields.push({ field: "sentence", text: exercise.sentence });
+  } else if (exercise.kind === "vocabulary-recall") {
+    fields.push({ field: "cue", text: exercise.cue });
+  }
+  fields.push(...exercise.hints.map((text) => ({ field: "hint" as const, text })));
+  const field = fields.find(({ text }) => containsCompleteAnswer(text, answer))?.field ?? "combined";
+  return { exerciseIndex, field, answerLength: normalized(answer).length };
+}
+
 function assertExerciseGenerationQuality(
   output: AppServerCandidateOutputMap["exercise-generation"],
   expectedLevel?: "A1" | "A2" | "B1" | "B2",
@@ -158,7 +231,7 @@ function assertExerciseGenerationQuality(
     "OD_EXERCISE_DUPLICATE_TITLE",
   );
   assertDistinct(output.exercises.map(exerciseSignature), "OD_EXERCISE_DUPLICATE_CONTENT");
-  for (const exercise of output.exercises) {
+  for (const [exerciseIndex, exercise] of output.exercises.entries()) {
     if (expectedLevel && exercise.cefrBand !== expectedLevel) {
       throw new AppServerOutputValidationError("OD_EXERCISE_LEVEL_MISMATCH");
     }
@@ -176,12 +249,22 @@ function assertExerciseGenerationQuality(
       assertDistinct(exercise.options, "OD_EXERCISE_DUPLICATE_OPTION");
     }
     for (const answers of answerGroups) {
-      assertDistinct(answers, "OD_EXERCISE_DUPLICATE_ANSWER");
+      if (new Set(answers.map(normalized)).size !== answers.length) {
+        throw new AppServerOutputValidationError("OD_EXERCISE_DUPLICATE_ANSWER", [], {
+          exerciseIndex,
+          field: "acceptedAnswers",
+        });
+      }
       const preSubmitText = normalized(
         `${visibleExerciseText(exercise)} ${exercise.hints.join(" ")}`,
       );
-      if (answers.some((answer) => containsCompleteAnswer(preSubmitText, answer))) {
-        throw new AppServerOutputValidationError("OD_EXERCISE_ANSWER_LEAK");
+      const leakedAnswer = answers.find((answer) => containsCompleteAnswer(preSubmitText, answer));
+      if (leakedAnswer !== undefined) {
+        throw new AppServerOutputValidationError(
+          "OD_EXERCISE_ANSWER_LEAK",
+          [],
+          answerLeakLocation(exercise, leakedAnswer, exerciseIndex),
+        );
       }
     }
   }

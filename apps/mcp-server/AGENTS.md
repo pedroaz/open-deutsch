@@ -1,10 +1,8 @@
-# MCP server-specific instructions
+# MCP boundaries
 
-The root instructions still apply. These rules protect the local STDIO server and learner dataset.
+Follow root `AGENTS.md` and [the Codex integration skill](../../.agents/skills/open-deutsch-codex-integration/SKILL.md).
 
-- STDOUT is protocol-only. Send redacted diagnostics to STDERR and never print banners, debug objects, learner text, prompts, credentials, or raw MCP messages.
-- Bind to local STDIO only; do not add a public HTTP endpoint, tunnel, telemetry, or network dependency.
-- Validate tool inputs and outputs at runtime and keep tool names, descriptions, schemas, and error contracts synchronized with the plugin and shared contracts.
-- Resolve the selected data root through the supported bootstrap/generation contract. A process must fail closed when the root is unsafe, missing, or changes generation; it must never continue serving stale data.
-- Restrict writes to explicitly supported domain operations and preserve SQLite transaction and concurrency rules. Treat all model-provided arguments as untrusted.
-- Keep production runtime schemas and error handling authoritative. Do not add synthetic MCP tests unless the user explicitly requests a live user journey that requires them.
+- STDOUT is protocol-only; diagnostics go to redacted STDERR. Never print learner text, credentials, raw messages, or private paths.
+- Keep transport local STDIO. Runtime-validate tool inputs and outputs using the shared catalog; synchronize names, descriptions, schemas, and safe error contracts with the plugin.
+- Reuse domain/persistence services, selected-root generations, leases, and idempotency. Never expose arbitrary SQL, filesystem, process, network, or generic prompt tools.
+- Do not add automated MCP tests, fake servers, fixtures, or saved journeys. Inspect relevant real behavior interactively within the requested scope.

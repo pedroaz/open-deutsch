@@ -8,7 +8,15 @@ import {
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Card, Feedback, FieldGroup, IconButton, OptionCard, ItemList } from "./components/ui/index.js";
+import {
+  Button,
+  Card,
+  Feedback,
+  FieldGroup,
+  IconButton,
+  OptionCard,
+  ItemList,
+} from "./components/ui/index.js";
 import { ActionGroup } from "./components/layout/index.js";
 
 import styles from "./ExerciseEngine.module.css";
@@ -172,7 +180,7 @@ function Evaluation({
   aiFeedback,
 }: {
   evaluation: ExerciseEvaluation;
-  aiFeedback?: ExerciseAiFeedback;
+  aiFeedback?: ExerciseAiFeedback | undefined;
 }) {
   const { t } = useTranslation();
   const displayedStatus =
@@ -244,12 +252,14 @@ export function ExerciseEngine({
   onCompleted,
   onAbandoned,
   onAiEvaluationRequested,
+  onCancelAiEvaluation,
 }: {
   exercises: readonly ExerciseDefinition[];
   restart?: boolean;
   onStarted?: () => void | Promise<void>;
   onCompleted?: (evaluations: readonly ExerciseEvaluation[]) => void | Promise<void>;
   onAbandoned?: () => void | Promise<void>;
+  onCancelAiEvaluation?: () => void;
   onAiEvaluationRequested?: (
     evaluation: ExerciseEvaluation,
     exercisePosition: number,
@@ -264,9 +274,9 @@ export function ExerciseEngine({
     Readonly<Record<number, readonly string[]>>
   >({});
   const [hintCount, setHintCount] = useState(0);
-  const [hintCountByPosition, setHintCountByPosition] = useState<
-    Readonly<Record<number, number>>
-  >({});
+  const [hintCountByPosition, setHintCountByPosition] = useState<Readonly<Record<number, number>>>(
+    {},
+  );
   const [evaluations, setEvaluations] = useState<readonly ExerciseEvaluation[]>([]);
   const [currentEvaluation, setCurrentEvaluation] = useState<ExerciseEvaluation>();
   const [starting, setStarting] = useState(false);
@@ -301,10 +311,7 @@ export function ExerciseEngine({
         <ItemList>
           {evaluations.map((evaluation, index) => (
             <li key={`${evaluation.exerciseKind}:${String(index)}`}>
-              <Evaluation
-                evaluation={evaluation}
-                aiFeedback={aiFeedbackByPosition[index]}
-              />
+              <Evaluation evaluation={evaluation} aiFeedback={aiFeedbackByPosition[index]} />
               {aiFeedbackByPosition[index] && <AiFeedback feedback={aiFeedbackByPosition[index]} />}
             </li>
           ))}
@@ -319,9 +326,7 @@ export function ExerciseEngine({
           ...definition.hints,
           {
             text: t("exercises.answerFrameHint", {
-              frame: incompleteSentenceFrame(
-                definition.answerContract.acceptedAnswers[0] ?? "",
-              ),
+              frame: incompleteSentenceFrame(definition.answerContract.acceptedAnswers[0] ?? ""),
             }),
           },
         ]
@@ -415,7 +420,11 @@ export function ExerciseEngine({
       <Card as="article">
         <h2>{t("exercises.ready")}</h2>
         <p>{t("exercises.readyBody", { count: exercises.length })}</p>
-        {startFailed && <Feedback live="assertive" tone="error">{t("exercises.startFailed")}</Feedback>}
+        {startFailed && (
+          <Feedback live="assertive" tone="error">
+            {t("exercises.startFailed")}
+          </Feedback>
+        )}
         <Button variant="primary" isDisabled={starting} onPress={() => void start()}>
           {starting
             ? t("exercises.starting")
@@ -426,7 +435,7 @@ export function ExerciseEngine({
   }
 
   return (
-    <Card as="article">
+    <Card as="article" className={styles.activeExercise}>
       <div className={styles.exerciseCardHeader}>
         <p className={styles.eyebrow}>
           {t("exercises.progress", { current: position + 1, total: exercises.length })}
@@ -461,24 +470,37 @@ export function ExerciseEngine({
         setValue={setValue}
       />
       {displayedHints.slice(0, hintCount).map((hint, index) => (
-        <Feedback live="off" key={`${String(index)}:${hint.text}`}>{hint.text}</Feedback>
+        <Feedback live="off" key={`${String(index)}:${hint.text}`}>
+          {hint.text}
+        </Feedback>
       ))}
-      {answerInvalid && <Feedback live="assertive" tone="error">{t("exercises.answerRequired")}</Feedback>}
-      {completionFailed && (
-        <Feedback live="assertive" tone="error">{t("exercises.completionFailed")}</Feedback>
+      {answerInvalid && (
+        <Feedback live="assertive" tone="error">
+          {t("exercises.answerRequired")}
+        </Feedback>
       )}
-      {abandonFailed && <Feedback live="assertive" tone="error">{t("exercises.abandonFailed")}</Feedback>}
+      {completionFailed && (
+        <Feedback live="assertive" tone="error">
+          {t("exercises.completionFailed")}
+        </Feedback>
+      )}
+      {abandonFailed && (
+        <Feedback live="assertive" tone="error">
+          {t("exercises.abandonFailed")}
+        </Feedback>
+      )}
       {aiEvaluationFailed && (
-        <Feedback live="assertive" tone="error">{t("exercises.aiFeedback.failed")}</Feedback>
+        <Feedback live="assertive" tone="error">
+          {t("exercises.aiFeedback.failed")}
+        </Feedback>
       )}
       {currentEvaluation && (
         <Evaluation evaluation={currentEvaluation} aiFeedback={currentAiFeedback} />
       )}
       {currentAiFeedback && <AiFeedback feedback={currentAiFeedback} />}
-      <ActionGroup>
+      <ActionGroup className={styles.exerciseActions}>
         {onAbandoned && (
           <Button
-
             isDisabled={abandoning || completing || evaluatingWithAi}
             onPress={() => {
               setAbandoning(true);
@@ -500,7 +522,6 @@ export function ExerciseEngine({
         )}
         {hintCount < displayedHints.length && !currentEvaluation && (
           <Button
-
             onPress={() => {
               const next = hintCount + 1;
               setHintCount(next);
@@ -514,12 +535,13 @@ export function ExerciseEngine({
           </Button>
         )}
         {!currentEvaluation && (
-          <Button
-            variant="primary"
-            isDisabled={evaluatingWithAi}
-            onPress={() => void submit()}
-          >
+          <Button variant="primary" isDisabled={evaluatingWithAi} onPress={() => void submit()}>
             {evaluatingWithAi ? t("exercises.aiFeedback.evaluating") : t("exercises.submit")}
+          </Button>
+        )}
+        {evaluatingWithAi && onCancelAiEvaluation && (
+          <Button variant="secondary" onPress={onCancelAiEvaluation}>
+            {t("actions.cancel")}
           </Button>
         )}
         {currentEvaluation &&

@@ -63,9 +63,6 @@ export {
   learnerSettingsRecordSchema,
   learnerSettingsUpdateSchema,
   preparedActivitySchema,
-  persistentHandoffCreateSchema,
-  persistentHandoffSchema,
-  persistentHandoffUpdateSchema,
   targetedPracticeActivitySchema,
   type HistoryFilter,
   type HistoryEntryRecord,
@@ -82,9 +79,6 @@ export {
   type GeneratedExerciseAnswerSave,
   type LearnerSettingsUpdate,
   type PreparedActivityRecord,
-  type PersistentHandoffCreate,
-  type PersistentHandoffRecord,
-  type PersistentHandoffUpdate,
   type TargetedPracticeActivity,
   type VocabularyRecord,
   type VocabularyLessonSetRecord,
@@ -102,18 +96,5 @@ export {
   switchOpenDeutschDataRoot,
 } from "./switching.js";
 
-export {
-  ensureResearchStagingLayout,
-  readResearchStagingFile,
-  removeResearchStagingFile,
-  researchStagingBucketSchema,
-  researchStagingBuckets,
-  researchStagingManifestSchema,
-  researchStagingMaximumBytes,
-  resolveResearchStagingLayout,
-  writeResearchStagingFile,
-  writeResearchStagingManifest,
-  type ResearchStagingBucket,
-  type ResearchStagingLayout,
-  type ResearchStagingManifest,
-} from "./research-staging.js";
+
+export { readLearningCourse } from "./learning-path.js";

@@ -1,3 +1,23 @@
+import { courseReferenceSchema, learningPathSnapshotSchema, learningPathUpdateSchema } from "./learning-path.js";
+import {
+  vocabularyLibraryFilterSchema,
+  vocabularyVersionSchema,
+  vocabularyBulkRequestSchema,
+  vocabularySummarySchema,
+  vocabularyCountsSchema,
+} from "./vocabulary-library.js";
+import {
+  personalDataOverviewSchema,
+  personalDataCleanupRequestSchema,
+  personalDataCleanupResultSchema,
+} from "./personal-data.js";
+import { practiceSuggestionSchema } from "./practice-suggestion.js";
+import {
+  preparedActivitySchema,
+  activityLibraryCursorSchema,
+  activityLibraryFilterSchema,
+  activityLibraryItemSchema,
+} from "./activity.js";
 import {
   activityIdSchema,
   attemptIdSchema,
@@ -9,7 +29,6 @@ import {
   historyEntryIdSchema,
   mistakeIdSchema,
   modelRequestIdSchema,
-  planIdSchema,
   utcInstantSchema,
   vocabularyIdSchema,
 } from "./common.js";
@@ -33,18 +52,29 @@ export const desktopIpcChannels = [
   "privacy/ai-disclosure/read",
   "privacy/ai-disclosure/acknowledge",
   "placement/complete",
-  "reading/complete",
   "codex-activity/prepare",
   "learner-profile/read",
   "learner-profile/complete-onboarding",
   "learner-settings/read",
   "learner-settings/update",
+  "development-notice/read",
+  "development-notice/dismiss",
+  "personal-data/read",
+  "personal-data/clear",
   "diagnostics/read",
   "diagnostics/export",
   "logs/clear",
+  "learning-path/read",
+  "learning-path/update",
+  "learning-path/prepare-voice",
   "dashboard/read",
-  "weekly-plan/read",
+  "activity/list",
+  "activity/read",
   "vocabulary/read",
+  "vocabulary/detail",
+  "vocabulary/review-queue",
+  "vocabulary/bulk",
+  "vocabulary-set/list",
   "vocabulary-set/create",
   "vocabulary/confirm",
   "vocabulary/review",
@@ -54,6 +84,7 @@ export const desktopIpcChannels = [
   "vocabulary/delete",
   "prepared-activity/read",
   "voice-activity/read",
+  "voice-activity/open-in-codex",
   "prepared-activity/delete",
   "exercise-set/start",
   "exercise-set/complete",
@@ -108,7 +139,6 @@ const learnerProfileReadRequest = request("learner-profile/read", emptyPayload);
 const onboardingProfileInputSchema = z.strictObject({
   approximateLevel: z.enum(["a1", "a2", "b1", "b2"]),
   everydayGermanyGoal: text(500),
-  availableStudyMinutesPerWeek: z.int().min(15).max(10_080),
   defaultTeachingProfileId: z.enum(["conversation-partner", "strict-corrector"]),
   explanationLanguage: z.enum(["en", "de"]),
   placement: z.strictObject({ status: z.literal("skipped") }),
@@ -138,7 +168,6 @@ const persistedModelPreferencesSchema = z.strictObject({
 const editableLearnerSettingsSchema = z.strictObject({
   approximateLevel: z.enum(["a1", "a2", "b1", "b2"]),
   everydayGermanyGoal: text(500),
-  availableStudyMinutesPerWeek: z.int().min(15).max(10_080),
   defaultTeachingProfileId: z.enum(["conversation-partner", "strict-corrector"]),
   explanationLanguage: z.enum(["en", "de"]),
   uiLocale: z.enum(["en", "de"]),
@@ -165,14 +194,14 @@ const placementUncertaintySchema = z.discriminatedUnion("level", [
 const placementResultShape = {
   schemaVersion: z.literal(1),
   completedOn: calendarDateSchema,
-  estimatedLevel: z.enum(["a1", "a2", "b1", "b2"]),
+  estimatedLevel: z.null(),
   uncertainty: placementUncertaintySchema,
   sampleResults: z
     .array(
       z.strictObject({
         kind: z.enum(["grammar", "vocabulary", "reading", "writing"]),
         topic: text(160),
-        outcome: z.enum(["demonstrated", "developing", "not-demonstrated"]),
+        outcome: z.enum(["demonstrated", "developing", "not-demonstrated", "not-assessed"]),
         evidence: text(800),
         uncertainty: placementUncertaintySchema,
       }),
@@ -190,35 +219,6 @@ const placementCompleteRequest = request(
   "placement/complete",
   z.strictObject({ result: placementResultSchema }),
 );
-const readingResultShape = {
-  schemaVersion: z.literal(1),
-  title: text(160),
-  cefrBand: z.enum(["a1", "a2", "b1", "b2"]),
-  source: z.strictObject({
-    kind: z.enum(["bundled", "generated", "imported-local"]),
-    label: text(240),
-    retrievedOn: calendarDateSchema.optional(),
-  }),
-  passage: text(12_000),
-  exerciseResults: z
-    .array(
-      z.strictObject({
-        kind: z.enum(["comprehension", "summary", "vocabulary-in-context", "inference"]),
-        outcome: z.enum(["demonstrated", "developing", "not-demonstrated"]),
-        evidence: text(800),
-        uncertainty: placementUncertaintySchema,
-      }),
-    )
-    .length(4),
-  difficultWords: z.array(text(160)).max(20),
-  promptInjectionNotice: z.literal("OD_UNTRUSTED_READING_TEXT_TREATED_AS_DATA"),
-};
-export const readingResultSchema = strictBoundaryObject(readingResultShape);
-export type ReadingResult = z.infer<typeof readingResultSchema>;
-const readingCompleteRequest = request(
-  "reading/complete",
-  z.strictObject({ result: readingResultSchema }),
-);
 const codexActivityPrepareRequest = request(
   "codex-activity/prepare",
   z.strictObject({
@@ -226,15 +226,44 @@ const codexActivityPrepareRequest = request(
     context: voiceActivityContextSchema,
   }),
 );
+const personalDataReadRequest = request("personal-data/read", emptyPayload);
+const personalDataCleanupRequest = request(
+  "personal-data/clear",
+  personalDataCleanupRequestSchema,
+);
 const diagnosticsReadRequest = request("diagnostics/read", emptyPayload);
 const diagnosticsExportRequest = request("diagnostics/export", emptyPayload);
 const logsClearRequest = request("logs/clear", emptyPayload);
-const dashboardReadRequest = request("dashboard/read", emptyPayload);
-const weeklyPlanReadRequest = request("weekly-plan/read", emptyPayload);
-const vocabularyReadRequest = request("vocabulary/read", emptyPayload);
+const activityListRequest = request("activity/list", activityLibraryFilterSchema);
+const activityReadRequest = request(
+  "activity/read",
+  z.strictObject({ activityId: activityIdSchema }),
+);
+const dashboardReadRequest = request(
+  "dashboard/read",
+  z.strictObject({ locale: z.enum(["en", "de"]).optional() }),
+);
+const learningPathReadRequest = request("learning-path/read", emptyPayload);
+const learningPathUpdateRequest = request("learning-path/update", learningPathUpdateSchema);
+const learningPathPrepareVoiceRequest = request("learning-path/prepare-voice", z.strictObject({ expectedGeneration: dataRootGenerationSchema, reference: courseReferenceSchema }));
+const vocabularyReadRequest = request("vocabulary/read", vocabularyLibraryFilterSchema);
+const vocabularyDetailRequest = request(
+  "vocabulary/detail",
+  z.strictObject({ vocabularyId: vocabularyIdSchema, rootGeneration: dataRootGenerationSchema }),
+);
+const vocabularyQueueRequest = request(
+  "vocabulary/review-queue",
+  z.strictObject({ rootGeneration: dataRootGenerationSchema }),
+);
+const vocabularyBulkRequest = request("vocabulary/bulk", vocabularyBulkRequestSchema);
+const vocabularySetListRequest = request(
+  "vocabulary-set/list",
+  z.strictObject({ rootGeneration: dataRootGenerationSchema }),
+);
 const vocabularySetCreateRequest = request(
   "vocabulary-set/create",
   z.strictObject({
+    rootGeneration: dataRootGenerationSchema,
     title: text(160),
     naturalRequest: text(1_000),
     topic: text(160).optional(),
@@ -246,16 +275,18 @@ const vocabularyConfirmRequest = request(
 );
 const vocabularyReviewRequest = request(
   "vocabulary/review",
-  z.strictObject({
-    vocabularyId: vocabularyIdSchema,
+  vocabularyVersionSchema.extend({
+    rootGeneration: dataRootGenerationSchema,
     grade: z.enum(["again", "hard", "good", "easy"]),
   }),
 );
 const vocabularyEditRequest = request(
   "vocabulary/edit",
   z.strictObject({
+    rootGeneration: dataRootGenerationSchema,
     vocabularyId: vocabularyIdSchema,
     expectedRevision: z.int().nonnegative(),
+    expectedUpdatedAt: utcInstantSchema,
     lemma: text(160),
     meaning: text(500),
     example: text(500),
@@ -276,14 +307,22 @@ const vocabularyResumeRequest = request(
 );
 const vocabularyDeleteRequest = request(
   "vocabulary/delete",
-  z.strictObject({ vocabularyId: vocabularyIdSchema }),
+  z.strictObject({
+    rootGeneration: dataRootGenerationSchema,
+    vocabularyId: vocabularyIdSchema,
+  }),
 );
+
 const preparedActivityReadRequest = request(
   "prepared-activity/read",
   z.strictObject({ activityId: activityIdSchema }),
 );
 const voiceActivityReadRequest = request(
   "voice-activity/read",
+  z.strictObject({ activityId: activityIdSchema }),
+);
+const voiceActivityOpenInCodexRequest = request(
+  "voice-activity/open-in-codex",
   z.strictObject({ activityId: activityIdSchema }),
 );
 const preparedActivityDeleteRequest = request(
@@ -294,7 +333,6 @@ const exerciseSetStartRequest = request(
   "exercise-set/start",
   z.strictObject({
     activityId: activityIdSchema,
-    feedbackModeOverride: z.literal("immediate").optional(),
   }),
 );
 const exerciseSessionAnswerSchema = z.discriminatedUnion("kind", [
@@ -339,11 +377,11 @@ const historyActivityTypeSchema = z.enum([
   "voice-speaking",
   "placement",
   "custom-lesson",
-  "plan-generation",
 ]);
 const historyReadRequest = request(
   "history/read",
   z.strictObject({
+    historyEntryIds: z.array(historyEntryIdSchema).min(1).max(100).optional(),
     skill: z.enum(["writing", "reading", "listening", "speaking"]).optional(),
     activityType: historyActivityTypeSchema.optional(),
     fromDate: calendarDateSchema.optional(),
@@ -410,7 +448,6 @@ export const learningOperationKinds = [
   "contextual-help",
   "exercise-generation",
   "exercise-feedback",
-  "weekly-plan-generation",
 ] as const;
 export const learningOperationKindSchema = z.enum(learningOperationKinds);
 
@@ -441,8 +478,28 @@ export const learningOperationInputSchema = z.discriminatedUnion("kind", [
     kind: z.literal("exercise-generation"),
     request: z.discriminatedUnion("source", [
       z.strictObject({
+        source: z.literal("learning-path"),
+        expectedGeneration: dataRootGenerationSchema,
+        reference: courseReferenceSchema,
+      }),
+      z.strictObject({
+        source: z.literal("suggestion"),
+        suggestion: practiceSuggestionSchema,
+      }),
+      z.strictObject({
         source: z.literal("natural-request"),
         naturalRequest: text(2_000),
+        exerciseCount: z.int().min(3).max(10).optional(),
+      }),
+      z.strictObject({
+        source: z.literal("reading"),
+        naturalRequest: text(2_000),
+        passage: text(12_000).optional(),
+        exerciseCount: z.int().min(3).max(10).optional(),
+      }),
+      z.strictObject({
+        source: z.literal("prepared-activity"),
+        activityId: activityIdSchema,
         exerciseCount: z.int().min(3).max(10).optional(),
       }),
       z.strictObject({
@@ -472,10 +529,6 @@ export const learningOperationInputSchema = z.discriminatedUnion("kind", [
       z.strictObject({ kind: z.literal("sentence-correction"), text: text(12_000) }),
     ]),
   }),
-  z.strictObject({
-    kind: z.literal("weekly-plan-generation"),
-    naturalRequest: text(1_000).optional(),
-  }),
 ]);
 
 const learningOperationStartRequest = request(
@@ -502,18 +555,29 @@ export const desktopIpcRequestSchema = boundaryUnion([
   privacyDisclosureReadRequest,
   privacyDisclosureAcknowledgeRequest,
   placementCompleteRequest,
-  readingCompleteRequest,
   codexActivityPrepareRequest,
   learnerProfileReadRequest,
   learnerProfileCompleteOnboardingRequest,
   learnerSettingsReadRequest,
   learnerSettingsUpdateRequest,
+  request("development-notice/read", emptyPayload),
+  request("development-notice/dismiss", emptyPayload),
+  personalDataReadRequest,
+  personalDataCleanupRequest,
   diagnosticsReadRequest,
   diagnosticsExportRequest,
   logsClearRequest,
+  activityListRequest,
+  activityReadRequest,
+  learningPathReadRequest,
+  learningPathUpdateRequest,
+  learningPathPrepareVoiceRequest,
   dashboardReadRequest,
-  weeklyPlanReadRequest,
   vocabularyReadRequest,
+  vocabularyDetailRequest,
+  vocabularyQueueRequest,
+  vocabularyBulkRequest,
+  vocabularySetListRequest,
   vocabularySetCreateRequest,
   vocabularyConfirmRequest,
   vocabularyReviewRequest,
@@ -523,6 +587,7 @@ export const desktopIpcRequestSchema = boundaryUnion([
   vocabularyDeleteRequest,
   preparedActivityReadRequest,
   voiceActivityReadRequest,
+  voiceActivityOpenInCodexRequest,
   preparedActivityDeleteRequest,
   exerciseSetStartRequest,
   exerciseSetCompleteRequest,
@@ -582,7 +647,7 @@ export const codexIntegrationStateSchema = z.discriminatedUnion("status", [
   }),
   z.strictObject({
     status: z.literal("available"),
-    codexVersion: z.string().regex(/^\d+\.\d+\.\d+$/u),
+    codexVersion: z.string().regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u),
     plugin: z.enum(["not-installed", "installed", "refresh-required"]),
   }),
 ]);
@@ -645,7 +710,6 @@ const learnerProfileSummarySchema = z.strictObject({
   learnerId: z.string().regex(/^learner_[0-9A-Za-z]{16,64}$/u),
   approximateLevel: z.enum(["a1", "a2", "b1", "b2"]),
   everydayGermanyGoal: text(500),
-  availableStudyMinutesPerWeek: z.int().min(15).max(10_080),
   defaultTeachingProfileId: z.enum(["conversation-partner", "strict-corrector"]),
   explanationLanguage: z.enum(["en", "de"]),
   uiLocale: z.enum(["en", "de"]),
@@ -671,19 +735,11 @@ const placementCompleteResponse = response(
     profile: learnerProfileSummarySchema,
   }),
 );
-const readingCompleteResponse = response(
-  "reading/complete",
-  z.strictObject({
-    status: z.literal("completed"),
-    historyEntryId: historyEntryIdSchema,
-  }),
-);
 const codexActivityPrepareResponse = response(
   "codex-activity/prepare",
   z.strictObject({
     status: z.literal("prepared"),
     activityId: activityIdSchema,
-    handoff: voiceActivityContextSchema.shape.handoff,
   }),
 );
 const learnerSettingsProjectionSchema = z.strictObject({
@@ -701,6 +757,13 @@ const learnerSettingsReadResponse = response(
 const learnerSettingsUpdateResponse = response(
   "learner-settings/update",
   learnerSettingsProjectionSchema,
+);
+const developmentNoticeReadResponse = response("development-notice/read", z.strictObject({ pending: z.boolean() }));
+const developmentNoticeDismissResponse = response("development-notice/dismiss", z.strictObject({ dismissed: z.literal(true) }));
+const personalDataReadResponse = response("personal-data/read", personalDataOverviewSchema);
+const personalDataCleanupResponse = response(
+  "personal-data/clear",
+  personalDataCleanupResultSchema,
 );
 const diagnosticsReadResponse = response(
   "diagnostics/read",
@@ -725,18 +788,31 @@ const logsClearResponse = response(
   "logs/clear",
   z.strictObject({ clearedFileCount: z.int().nonnegative().max(1_000) }),
 );
+const activityListResponse = response(
+  "activity/list",
+  z.strictObject({
+    rootGeneration: dataRootGenerationSchema,
+    entries: z.array(activityLibraryItemSchema).max(50),
+    nextCursor: activityLibraryCursorSchema.nullable(),
+  }),
+);
+const activityReadResponse = response(
+  "activity/read",
+  z.strictObject({
+    activity: preparedActivitySchema,
+    generated: z.boolean(),
+    deletionStatus: z.enum(["available", "cascade", "retained-data"]),
+  }),
+);
+const learningPathReadResponse = response("learning-path/read", learningPathSnapshotSchema);
+const learningPathUpdateResponse = response("learning-path/update", learningPathSnapshotSchema);
+const learningPathPrepareVoiceResponse = response("learning-path/prepare-voice", z.strictObject({ activityId: activityIdSchema }));
 const dashboardReadResponse = response(
   "dashboard/read",
   z.strictObject({
     rootGeneration: dataRootGenerationSchema,
     refreshedAt: utcInstantSchema,
-    weeklyPlan: z
-      .strictObject({
-        planId: planIdSchema,
-        weekStartsOn: calendarDateSchema,
-        goalTitles: z.array(text(160)).min(1).max(10),
-      })
-      .nullable(),
+    suggestions: z.array(practiceSuggestionSchema).max(24),
     preparedActivities: z
       .array(
         z.strictObject({
@@ -795,58 +871,6 @@ const dashboardReadResponse = response(
         }),
       )
       .max(10),
-  }),
-);
-const weeklyPlanActivityProjectionSchema = z.strictObject({
-  kind: z.enum([
-    "writing",
-    "grammar",
-    "vocabulary-review",
-    "reading",
-    "codex-listening",
-    "voice-speaking",
-    "placement",
-    "custom-lesson",
-  ]),
-  title: text(160),
-  rationale: text(800),
-  naturalRequest: text(1_000),
-  estimatedMinutes: z.int().min(5).max(180),
-  context: z.strictObject({
-    curriculumTopicIds: z.array(curriculumTopicIdSchema).max(12),
-    mistakeIds: z.array(mistakeIdSchema).max(12),
-    vocabularyIds: z.array(vocabularyIdSchema).max(24),
-  }),
-});
-
-const weeklyPlanReadResponse = response(
-  "weekly-plan/read",
-  z.strictObject({
-    rootGeneration: dataRootGenerationSchema,
-    plan: z
-      .strictObject({
-        planId: planIdSchema,
-        role: z.literal("advisory"),
-        weekStartsOn: calendarDateSchema,
-        requestedFrom: z.enum(["desktop", "codex"]),
-        goals: z
-          .array(
-            z.strictObject({
-              title: text(160),
-              outcome: text(500),
-              suggestedActivities: z.array(weeklyPlanActivityProjectionSchema).min(1).max(12),
-            }),
-          )
-          .min(1)
-          .max(10),
-      })
-      .nullable(),
-    recommendation: z
-      .strictObject({
-        primary: weeklyPlanActivityProjectionSchema,
-        alternatives: z.array(weeklyPlanActivityProjectionSchema).max(3),
-      })
-      .nullable(),
   }),
 );
 const vocabularyProjectionSchema = z.strictObject({
@@ -927,21 +951,46 @@ const vocabularyProjectionSchema = z.strictObject({
   revision: z.int().nonnegative(),
   updatedAt: utcInstantSchema,
 });
-const vocabularyLessonSetProjectionSchema = z.strictObject({
-  setId: activityIdSchema,
-  title: text(160),
-  requestedFrom: z.enum(["desktop", "codex"]),
-  naturalRequest: text(1_000),
-  topic: text(160).nullable(),
-  createdAt: utcInstantSchema,
-  vocabularyIds: z.array(vocabularyIdSchema).max(50),
-});
 const vocabularyReadResponse = response(
   "vocabulary/read",
   z.strictObject({
     rootGeneration: dataRootGenerationSchema,
-    entries: z.array(vocabularyProjectionSchema).max(500),
-    lessonSets: z.array(vocabularyLessonSetProjectionSchema).max(50),
+    entries: z.array(vocabularySummarySchema).max(25),
+    total: z.int().nonnegative(),
+    page: z.int().nonnegative(),
+    counts: vocabularyCountsSchema,
+  }),
+);
+const vocabularyDetailResponse = response(
+  "vocabulary/detail",
+  z.strictObject({
+    rootGeneration: dataRootGenerationSchema,
+    entry: vocabularyProjectionSchema,
+  }),
+);
+const vocabularyQueueResponse = response(
+  "vocabulary/review-queue",
+  z.strictObject({
+    rootGeneration: dataRootGenerationSchema,
+    entries: z.array(vocabularyProjectionSchema).max(20),
+  }),
+);
+const vocabularyBulkResponse = response(
+  "vocabulary/bulk",
+  z.strictObject({ status: z.literal("updated") }),
+);
+const vocabularySetListResponse = response(
+  "vocabulary-set/list",
+  z.strictObject({
+    entries: z
+      .array(
+        z.strictObject({
+          setId: activityIdSchema,
+          title: text(160),
+          candidateCount: z.int().nonnegative().max(50),
+        }),
+      )
+      .max(50),
   }),
 );
 const vocabularySetCreateResponse = response(
@@ -966,11 +1015,19 @@ const vocabularyMutationResponse = (
     z.strictObject({ vocabularyId: vocabularyIdSchema, status: z.literal("updated") }),
   );
 const vocabularyConfirmResponse = vocabularyMutationResponse("vocabulary/confirm");
-const vocabularyReviewResponse = vocabularyMutationResponse("vocabulary/review");
+const vocabularyReviewResponse = response(
+  "vocabulary/review",
+  z.strictObject({
+    vocabularyId: vocabularyIdSchema,
+    status: z.literal("updated"),
+    dueOn: calendarDateSchema,
+  }),
+);
 const vocabularyEditResponse = vocabularyMutationResponse("vocabulary/edit");
 const vocabularySuspendResponse = vocabularyMutationResponse("vocabulary/suspend");
 const vocabularyResumeResponse = vocabularyMutationResponse("vocabulary/resume");
 const vocabularyDeleteResponse = vocabularyMutationResponse("vocabulary/delete");
+
 const generatedActivityProvenanceSchema = z.strictObject({
   modelRequestId: modelRequestIdSchema,
   generatedAt: utcInstantSchema,
@@ -1010,6 +1067,10 @@ const preparedActivityDeleteResponse = response(
   "prepared-activity/delete",
   z.strictObject({ activityId: activityIdSchema, status: z.literal("deleted") }),
 );
+const voiceActivityOpenInCodexResponse = response(
+  "voice-activity/open-in-codex",
+  z.strictObject({ status: z.enum(["open-requested", "setup-required"]) }),
+);
 const exerciseSetStartResponse = response(
   "exercise-set/start",
   z.strictObject({
@@ -1039,6 +1100,7 @@ const historyDetailSchema = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("reference") }),
   z.strictObject({
     kind: z.literal("exercise-attempt"),
+    readingMaterial: appServerCandidateOutputSchemas["exercise-generation"].shape.readingMaterial,
     activityId: activityIdSchema,
     exerciseKind: z.enum([
       "free-writing",
@@ -1114,7 +1176,6 @@ const historyDetailSchema = z.discriminatedUnion("kind", [
     changes: z.array(z.strictObject({ category: text(80), explanation: text(800) })).max(500),
   }),
   z.strictObject({ kind: z.literal("placement"), ...placementResultShape }),
-  z.strictObject({ kind: z.literal("reading"), ...readingResultShape }),
   z.strictObject({ kind: z.literal("listening"), ...listeningResultSchema.shape }),
   z.strictObject({
     kind: z.literal("voice-summary"),
@@ -1235,6 +1296,12 @@ const historyReadResponse = response(
   "history/read",
   z.strictObject({
     rootGeneration: dataRootGenerationSchema,
+    allTimeSkillTotals: z.strictObject({
+      writing: z.int().nonnegative(),
+      reading: z.int().nonnegative(),
+      listening: z.int().nonnegative(),
+      speaking: z.int().nonnegative(),
+    }),
     mistakePatterns: z.array(historyMistakePatternSchema).max(50),
     entries: z
       .array(
@@ -1246,7 +1313,6 @@ const historyReadResponse = response(
             "vocabulary-review",
             "voice-summary",
             "placement",
-            "plan",
           ]),
           skill: z.enum(["writing", "reading", "listening", "speaking"]),
           activityType: historyActivityTypeSchema,
@@ -1307,7 +1373,7 @@ const learningOperationStartResponse = response(
     operationId: correlationIdSchema,
     submissionId: correlationIdSchema,
     status: z.literal("accepted"),
-    submission: z.literal("retained").default("retained"),
+    submission: z.literal("retained"),
   }),
 );
 const learningOperationCancelResponse = response(
@@ -1323,7 +1389,7 @@ const learningOperationRetryResponse = response(
     operationId: correlationIdSchema,
     submissionId: correlationIdSchema,
     status: z.literal("accepted"),
-    submission: z.literal("retained").default("retained"),
+    submission: z.literal("retained"),
   }),
 );
 const errorResponse = strictBoundaryObject({
@@ -1343,16 +1409,27 @@ export const desktopIpcResponseSchema = boundaryUnion([
   learnerProfileReadResponse,
   learnerProfileCompleteOnboardingResponse,
   placementCompleteResponse,
-  readingCompleteResponse,
   codexActivityPrepareResponse,
   learnerSettingsReadResponse,
   learnerSettingsUpdateResponse,
+  developmentNoticeReadResponse,
+  developmentNoticeDismissResponse,
+  personalDataReadResponse,
+  personalDataCleanupResponse,
   diagnosticsReadResponse,
   diagnosticsExportResponse,
   logsClearResponse,
+  activityListResponse,
+  activityReadResponse,
+  learningPathReadResponse,
+  learningPathUpdateResponse,
+  learningPathPrepareVoiceResponse,
   dashboardReadResponse,
-  weeklyPlanReadResponse,
   vocabularyReadResponse,
+  vocabularyDetailResponse,
+  vocabularyQueueResponse,
+  vocabularyBulkResponse,
+  vocabularySetListResponse,
   vocabularySetCreateResponse,
   vocabularyConfirmResponse,
   vocabularyReviewResponse,
@@ -1362,6 +1439,7 @@ export const desktopIpcResponseSchema = boundaryUnion([
   vocabularyDeleteResponse,
   preparedActivityReadResponse,
   voiceActivityReadResponse,
+  voiceActivityOpenInCodexResponse,
   preparedActivityDeleteResponse,
   exerciseSetStartResponse,
   exerciseSetCompleteResponse,
@@ -1397,8 +1475,9 @@ export const desktopIpcEventSchema = boundaryUnion([
     operationId: correlationIdSchema,
     submissionId: correlationIdSchema,
     kind: learningOperationKindSchema,
-    submission: z.literal("retained").default("retained"),
-    stage: z.enum(["queued", "running", "validating", "persisting", "cancelling"]),
+    submission: z.literal("retained"),
+    stage: z.enum(["queued", "starting", "running", "validating", "persisting", "cancelling"]),
+    attempt: z.union([z.literal(1), z.literal(2)]),
   }),
   ...learningOperationKinds.map((kind) =>
     strictBoundaryObject({
@@ -1406,12 +1485,13 @@ export const desktopIpcEventSchema = boundaryUnion([
       operationId: correlationIdSchema,
       submissionId: correlationIdSchema,
       kind: z.literal(kind),
-      submission: z.literal("retained").default("retained"),
+      submission: z.literal("retained"),
       outcome: z.discriminatedUnion("status", [
         z.strictObject({
           status: z.literal("validated"),
           modelRequestId: modelRequestIdSchema,
           output: appServerCandidateOutputSchemas[kind],
+          activityId: activityIdSchema.optional(),
         }),
         z.strictObject({ status: z.literal("cancelled") }),
         z.strictObject({
@@ -1434,7 +1514,6 @@ export const desktopIpcEventSchema = boundaryUnion([
       "dashboard",
       "history",
       "vocabulary",
-      "weekly-plan",
       "account",
       "models",
       "rate-limits",

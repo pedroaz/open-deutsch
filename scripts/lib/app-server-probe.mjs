@@ -2,30 +2,18 @@ import { execFile, spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import { promisify } from "node:util";
 
-import { compareVersions, parseVersion } from "./toolchain-diagnostics.mjs";
+import { parseVersion } from "./toolchain-diagnostics.mjs";
 
 const execFileAsync = promisify(execFile);
-const minimumCodexVersion = parseVersion("0.146.0", "Codex minimum");
-const maximumCodexVersion = parseVersion("0.146.1", "Codex maximum");
 const managedLoginTypes = new Set(["chatgpt", "chatgptDeviceCode"]);
 const credentialFieldNames = new Set(["accessToken", "apiKey", "idToken", "refreshToken"]);
 
 export function assertSupportedCodexVersion(output) {
-  let version;
   try {
-    version = parseVersion(output, "Codex CLI");
+    return `codex-cli ${parseVersion(output, "Codex CLI").text}`;
   } catch {
-    throw new Error(`CODEX_VERSION_UNSUPPORTED: expected >=0.146.0 <0.146.1`);
+    throw new Error("CODEX_VERSION_UNSUPPORTED: unrecognized version output");
   }
-  if (
-    compareVersions(version, minimumCodexVersion) < 0 ||
-    compareVersions(version, maximumCodexVersion) >= 0
-  ) {
-    throw new Error(
-      `CODEX_VERSION_UNSUPPORTED: expected >=0.146.0 <0.146.1, received ${version.text}`,
-    );
-  }
-  return `codex-cli ${version.text}`;
 }
 
 export async function readSupportedCodexVersion(command, options = {}) {
@@ -276,7 +264,7 @@ export class AppServerProbeClient {
   #closed;
 
   constructor(command, options = {}) {
-    this.#child = spawn(command, options.args ?? ["app-server", "--stdio"], {
+    this.#child = spawn(command, options.args ?? ["app-server", "--listen", "stdio://"], {
       cwd: options.cwd,
       env: options.env,
       stdio: ["pipe", "pipe", "pipe"],

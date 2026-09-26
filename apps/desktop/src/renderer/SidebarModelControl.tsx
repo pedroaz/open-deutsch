@@ -8,7 +8,7 @@ import {
 } from "@open-deutsch/domain";
 import { Bot } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Button } from "./components/ui/index.js";
+import { Button, Disclosure, InfoHint } from "./components/ui/index.js";
 
 import styles from "./SidebarModelControl.module.css";
 import { invokeDesktop, normalizeDesktopError, subscribeDesktop } from "./ipc.js";
@@ -70,29 +70,28 @@ export function SidebarModelControl({ initialWorkload }: { initialWorkload: Mode
   }, [load]);
 
   const preference = settings?.settings.modelPreferences[workload];
+  const savedModelId = preference?.model.mode === "exact" ? preference.model.modelId : undefined;
   const resolution = useMemo(
     () =>
-      preference && catalog
-        ? resolveModelPreference(workload, preference, catalog)
-        : undefined,
+      preference && catalog ? resolveModelPreference(workload, preference, catalog) : undefined,
     [catalog, preference, workload],
   );
-  const runtimeDefaultModel = useMemo(
-    () =>
-      catalog?.models.find(({ id }) => id === catalog.runtimeDefaultModelId) ??
-      catalog?.models.find(({ isDefault }) => isDefault),
-    [catalog],
-  );
+  const automaticResolution =
+    preference && catalog
+      ? resolveModelPreference(workload, { ...preference, model: { mode: "automatic" } }, catalog)
+          .resolution
+      : undefined;
+  const automaticModel =
+    automaticResolution && automaticResolution.status !== "unavailable"
+      ? catalog?.models.find(({ id }) => id === automaticResolution.effectiveModelId)
+      : undefined;
   const effectiveResolution = resolution?.resolution as
-    | { status: string; effectiveModelId?: string; effectiveEffortId?: string }
-    | undefined;
+    { status: string; effectiveModelId?: string; effectiveEffortId?: string } | undefined;
   const selectedModel = useMemo(() => {
     if (!catalog || !effectiveResolution?.effectiveModelId) {
       return undefined;
     }
-    return catalog.models.find(
-      ({ id }) => id === effectiveResolution.effectiveModelId,
-    );
+    return catalog.models.find(({ id }) => id === effectiveResolution.effectiveModelId);
   }, [catalog, effectiveResolution]);
   const effectiveEffort = effectiveResolution?.effectiveEffortId;
 
@@ -127,9 +126,7 @@ export function SidebarModelControl({ initialWorkload }: { initialWorkload: Mode
         ? ({ mode: "automatic" } as const)
         : ({ mode: "exact", modelId } as const);
     const nextModel =
-      modelId === "automatic"
-        ? runtimeDefaultModel
-        : catalog?.models.find(({ id }) => id === modelId);
+      modelId === "automatic" ? automaticModel : catalog?.models.find(({ id }) => id === modelId);
     const fallbackEffort =
       nextModel?.defaultReasoningEffort ?? nextModel?.supportedReasoningEfforts[0];
     const effort =
@@ -149,83 +146,108 @@ export function SidebarModelControl({ initialWorkload }: { initialWorkload: Mode
 
   return (
     <section className={styles.navModelPanel} aria-busy={busy} aria-label={t("modelControl.title")}>
-      <div className={styles.navModelHeading}>
-        <Bot aria-hidden="true" />
-        <strong>{t("modelControl.title")}</strong>
-      </div>
-      <div
-        aria-label={t("modelControl.activity")}
-        className={styles.navModelWorkloads}
-        role="group"
+      <Disclosure
+        label={
+          <span className={styles.navModelHeading}>
+            <Bot aria-hidden="true" />
+            <span>
+              {t(`modelControl.workloads.${workload}`)}
+              <small>{selectedModel?.displayName ?? t("modelControl.title")}</small>
+            </span>
+          </span>
+        }
       >
-        {modelWorkloads.map((availableWorkload) => (
-          <Button
-            className={styles.navModelWorkloadButton}
-            data-selected={availableWorkload === workload || undefined}
-            isDisabled={busy}
-            key={availableWorkload}
-            onPress={() => {
-              setWorkload(availableWorkload);
-            }}
-          >
-            {t(`modelControl.workloads.${availableWorkload}`)}
-          </Button>
-        ))}
-      </div>
-      {!preference ? (
-        <p className={styles.navModelStatus}>{t("modelControl.loading")}</p>
-      ) : (
-        <>
-          <label className={styles.navModelField}>
-            <span>{t("modelControl.model")}</span>
-            <select
-              disabled={busy}
-              value={modelValue(preference)}
-              onChange={(event) => {
-                selectModel(event.currentTarget.value);
+        <div
+          aria-label={t("modelControl.activity")}
+          className={styles.navModelWorkloads}
+          role="group"
+        >
+          {modelWorkloads.map((availableWorkload) => (
+            <Button
+              className={styles.navModelWorkloadButton}
+              aria-pressed={availableWorkload === workload}
+              data-selected={availableWorkload === workload || undefined}
+              isDisabled={busy}
+              key={availableWorkload}
+              onPress={() => {
+                setWorkload(availableWorkload);
               }}
             >
-              <option value="automatic">
-                {t("modelControl.automatic", {
-                  model:
-                    runtimeDefaultModel?.displayName ?? t("settings.automatic"),
-                })}
-              </option>
-              {preference.model.mode === "exact" && !selectedModel ? (
-                <option value={preference.model.modelId}>
-                  {t("settings.unavailableSavedModel", { model: preference.model.modelId })}
+              {t(`modelControl.workloads.${availableWorkload}`)}
+            </Button>
+          ))}
+        </div>
+        {!preference ? (
+          <p className={styles.navModelStatus}>{t("modelControl.loading")}</p>
+        ) : (
+          <>
+            <label className={styles.navModelField}>
+              <span>{t("modelControl.model")}</span>
+              <select
+                disabled={busy}
+                value={modelValue(preference)}
+                onChange={(event) => {
+                  selectModel(event.currentTarget.value);
+                }}
+              >
+                <option value="automatic">
+                  {t("modelControl.automatic", {
+                    model: automaticModel?.displayName ?? t("settings.automatic"),
+                  })}
                 </option>
-              ) : null}
-              {catalog?.models.map((model) => (
-                <option key={model.id} value={model.id}>
-                  {model.displayName}
-                </option>
-              ))}
-            </select>
-          </label>
-          <fieldset className={styles.navModelReasoning}>
-            <legend>{t("modelControl.reasoning")}</legend>
-            <div className={styles.navModelEffortGrid}>
-              {selectedModel?.supportedReasoningEfforts.map((effort) => (
-                <Button
-                  className={styles.navModelEffortButton}
-                  data-selected={
-                    effectiveEffort === effort ? true : undefined
-                  }
-                  isDisabled={busy}
-                  key={effort}
-                  onPress={() => {
-                    selectEffort(effort);
-                  }}
-                >
-                  {t(`settings.exactEfforts.${effort}`, { defaultValue: effort })}
-                </Button>
-              ))}
-            </div>
-          </fieldset>
-          <p className={styles.navModelHint}>{t("modelControl.reasoningHint")}</p>
-        </>
+                {preference.model.mode === "exact" &&
+                !catalog?.models.some(({ id }) => id === savedModelId) ? (
+                  <option value={preference.model.modelId}>
+                    {t("settings.unavailableSavedModel", { model: preference.model.modelId })}
+                  </option>
+                ) : null}
+                {catalog?.models.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.displayName}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <fieldset className={styles.navModelReasoning}>
+              <legend>
+                {t("modelControl.reasoning")}{" "}
+                <InfoHint label={t("modelControl.reasoning")}>
+                  {t("modelControl.reasoningHint")}
+                </InfoHint>
+              </legend>
+              <div className={styles.navModelEffortGrid}>
+                {selectedModel?.supportedReasoningEfforts.map((effort) => (
+                  <Button
+                    className={styles.navModelEffortButton}
+                    aria-pressed={effectiveEffort === effort}
+                    data-selected={effectiveEffort === effort ? true : undefined}
+                    isDisabled={busy}
+                    key={effort}
+                    onPress={() => {
+                      selectEffort(effort);
+                    }}
+                  >
+                    {t(`settings.exactEfforts.${effort}`, { defaultValue: effort })}
+                  </Button>
+                ))}
+              </div>
+            </fieldset>
+          </>
+        )}
+      </Disclosure>
+      {resolution?.resolution.status === "fallback" && (
+        <p className={styles.navModelStatus}>{t("settings.savedModelFallback")}</p>
       )}
+      {resolution &&
+        resolution.resolution.status !== "unavailable" &&
+        resolution.resolution.unavailableAutomaticModelId && (
+          <p className={styles.navModelStatus}>
+            {t("settings.automaticFallback", {
+              model: resolution.resolution.unavailableAutomaticModelId,
+              effective: selectedModel?.displayName,
+            })}
+          </p>
+        )}
       {error && <p className={styles.navModelError}>{t(error.messageKey)}</p>}
       {busy && <p className={styles.navModelStatus}>{t("modelControl.saving")}</p>}
     </section>

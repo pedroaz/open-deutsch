@@ -5,25 +5,16 @@ slug: food
 band: b2
 domain: food
 title: "B2: Food and eating"
-status: foundation-ready
+
 communicativeGoals:
   [
     "Handle a practical food and eating interaction at B2 level.",
     "Understand and respond to the most useful food and eating language.",
   ]
 prerequisiteTopicIds: [curriculum-topic_0000000000000028]
-grammarFoundations:
-  - key: b2-core-structures
-    description: "Use B2-appropriate sentence structure, questions, and connectives for food and eating."
-vocabularyFoundations:
-  - key: food-foundations
-    description: "Use high-frequency words and phrases for food and eating."
-lessonFoundation:
-  explanation: "A reviewed B2 foundation for food and eating, with reusable examples and a clear progression from the previous band."
-  examples: ["Ich brauche Hilfe bei food and eating.", "Können Sie das bitte erklären?"]
-exerciseConcepts:
-  - key: b2-food-role-play
-    description: "Role-play a bounded food and eating exchange and report what was understood."
+grammarFoundations: []
+vocabularyFoundations: []
+exerciseConcepts: []
 sourceIds: [curriculum-source_0000000000000002, curriculum-source_0000000000000003]
 coverage:
   reception:
@@ -42,8 +33,6 @@ coverage:
 
 # B2: Food and eating
 
-This reviewed B2 foundation connects practical food and eating communication to the prior learning band and the Open Deutsch exercise blueprints.
+This topic records intended learning scope. See learning-path.json for available course lessons linked to this topic.
 
-Use the lesson foundation for explanation, the vocabulary foundation for reusable language, and the exercise concept for a bounded practice activity. Research staging may propose refinements, but this canonical snapshot changes only through explicit review.
-
-Sources: curriculum-source_0000000000000002, curriculum-source_0000000000000003.
+The framework citations support scope; they do not provide a lesson. Author original explanations, examples and activities with source, language and level checks.

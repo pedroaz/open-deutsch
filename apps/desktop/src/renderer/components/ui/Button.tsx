@@ -1,4 +1,4 @@
-import type { ReactElement, ReactNode } from "react";
+import type { ReactElement, ReactNode, Ref } from "react";
 import { LoaderCircle } from "lucide-react";
 import {
   Button as AriaButton,
@@ -9,11 +9,12 @@ import {
 
 import styles from "./Button.module.css";
 
-export type ButtonVariant = "primary" | "secondary" | "danger";
+export type ButtonVariant = "primary" | "secondary" | "quiet" | "danger";
 
 export type ButtonProps = Omit<AriaButtonProps, "className" | "children" | "isPending"> &
   Readonly<{
     children: ReactNode;
+    ref?: Ref<HTMLButtonElement>;
     className?: string;
     variant?: ButtonVariant;
     isPending?: boolean;
@@ -25,7 +26,7 @@ export type ButtonProps = Omit<AriaButtonProps, "className" | "children" | "isPe
 export function Button({
   children,
   className,
-  variant = "secondary",
+  variant,
   isPending = false,
   pendingLabel,
   leadingIcon,
@@ -33,21 +34,24 @@ export function Button({
   isDisabled,
   ...props
 }: ButtonProps) {
+  const resolvedVariant = variant ?? (props["aria-pressed"] !== undefined ? "secondary" : "primary");
   return (
     <AriaButton
       {...props}
-      className={`${styles.button} ${styles[variant]} ${className ?? ""}`}
+      className={`${styles.button} ${styles[resolvedVariant]} ${className ?? ""}`}
       data-pending={isPending || undefined}
       isDisabled={Boolean(isDisabled) || isPending}
     >
       {isPending ? <LoaderCircle className={styles.spinner} aria-hidden="true" /> : leadingIcon}
-      <span>{isPending && pendingLabel ? pendingLabel : children}</span>
+      <span className={styles.content}>{isPending && pendingLabel ? pendingLabel : children}</span>
       {!isPending && trailingIcon}
     </AriaButton>
   );
 }
 
-export function IconButton(props: Omit<ButtonProps, "children" | "pendingLabel"> & { label: string }) {
+export function IconButton(
+  props: Omit<ButtonProps, "children" | "pendingLabel"> & { label: string },
+) {
   const { label, className, leadingIcon, trailingIcon, ...buttonProps } = props;
   const icon = leadingIcon ?? trailingIcon;
   return (

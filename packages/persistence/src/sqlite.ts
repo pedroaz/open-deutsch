@@ -16,6 +16,21 @@ export type DatabaseMigration = Readonly<{
 }>;
 
 const connections = new WeakMap<OpenDeutschDatabase, DatabaseSync>();
+const connectionQueues = new WeakMap<OpenDeutschDatabase, Promise<void>>();
+
+// Serialize reads as well as writes: a read must not observe another operation's
+// uncommitted changes while its asynchronous lease check is pending.
+function withExclusiveConnection<T>(handle: OpenDeutschDatabase, operation: () => Promise<T>) {
+  const result = (connectionQueues.get(handle) ?? Promise.resolve()).then(operation);
+  connectionQueues.set(
+    handle,
+    result.then(
+      () => undefined,
+      () => undefined,
+    ),
+  );
+  return result;
+}
 const leases = new WeakMap<
   OpenDeutschDatabase,
   Readonly<{ bootstrapFile: string; dataRoot: string; rootGeneration: DataRootGeneration }>
@@ -71,40 +86,44 @@ export async function withLeasedConnection<T>(
   handle: OpenDeutschDatabase,
   operation: (connection: DatabaseSync) => T | Promise<T>,
 ): Promise<T> {
-  const lease = leases.get(handle);
-  if (!lease) throw new Error("OD_DATABASE_CLOSED");
-  await assertCurrentDataRootLease(lease);
-  const result = await operation(connectionFor(handle));
-  await assertCurrentDataRootLease(lease);
-  return result;
+  return withExclusiveConnection(handle, async () => {
+    const lease = leases.get(handle);
+    if (!lease) throw new Error("OD_DATABASE_CLOSED");
+    await assertCurrentDataRootLease(lease);
+    const result = await operation(connectionFor(handle));
+    await assertCurrentDataRootLease(lease);
+    return result;
+  });
 }
 
 export async function withLeasedTransaction<T>(
   handle: OpenDeutschDatabase,
   operation: (connection: DatabaseSync) => T | Promise<T>,
 ): Promise<T> {
-  const lease = leases.get(handle);
-  if (!lease) throw new Error("OD_DATABASE_CLOSED");
-  await assertCurrentDataRootLease(lease);
-  const connection = connectionFor(handle);
-  try {
-    connection.exec("BEGIN IMMEDIATE;");
-  } catch (error) {
-    throw normalizeDatabaseContention(error);
-  }
-  try {
-    const result = await operation(connection);
+  return withExclusiveConnection(handle, async () => {
+    const lease = leases.get(handle);
+    if (!lease) throw new Error("OD_DATABASE_CLOSED");
     await assertCurrentDataRootLease(lease);
-    connection.exec("COMMIT;");
-    return result;
-  } catch (error) {
+    const connection = connectionFor(handle);
     try {
-      connection.exec("ROLLBACK;");
-    } catch {
-      // The original operation or lease failure remains authoritative.
+      connection.exec("BEGIN IMMEDIATE;");
+    } catch (error) {
+      throw normalizeDatabaseContention(error);
     }
-    throw normalizeDatabaseContention(error);
-  }
+    try {
+      const result = await operation(connection);
+      await assertCurrentDataRootLease(lease);
+      connection.exec("COMMIT;");
+      return result;
+    } catch (error) {
+      try {
+        connection.exec("ROLLBACK;");
+      } catch {
+        // The original operation or lease failure remains authoritative.
+      }
+      throw normalizeDatabaseContention(error);
+    }
+  });
 }
 
 function normalizeDatabaseContention(error: unknown): unknown {

@@ -1,7 +1,15 @@
+import { readLearningPathState, updateLearningPath, saveCourseEvidence } from "./learning-path.js";
+import type { LearningCourse, CourseEvidence } from "@open-deutsch/contracts";
+import { readPersonalDataInventory, clearPersonalData } from "./personal-data.js";
 import { createHash, randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 
 import {
+  vocabularyLibraryFilterSchema,
+  vocabularyBulkRequestSchema,
+  vocabularySummarySchema,
+  vocabularyCountsSchema,
+  practiceSuggestionContextSchema,
   activityIdSchema,
   attemptIdSchema,
   type attemptFeedbackSaveInputSchema,
@@ -16,15 +24,14 @@ import {
   mistakeIdSchema,
   modelRequestIdSchema,
   placementResultSchema,
-  persistentHandoffIdSchema,
-  readingResultSchema,
+  preparedActivitySchema,
+  activityLibraryFilterSchema,
+  activityLibraryItemSchema,
   reviewIdSchema,
   sessionIdSchema,
   strictBoundaryObject,
   type PlacementResult,
-  type ReadingResult,
   type ListeningResult,
-  voiceActivityContextSchema,
   utcInstantSchema,
   vocabularyIdSchema,
   z,
@@ -51,7 +58,6 @@ import {
   type VocabularyLessonSetRequest,
   vocabularyReviewSchema,
   voiceSummarySchema,
-  weeklyPlanSchema,
   startedExerciseSnapshotSchema,
   type MistakeCategory,
   type LearnerProfile,
@@ -59,77 +65,13 @@ import {
   type VocabularyEntry,
   type VocabularyReview,
   type VoiceSummary,
-  type WeeklyPlan,
 } from "@open-deutsch/domain";
 
 import { type OpenDeutschDatabase, withLeasedConnection, withLeasedTransaction } from "./sqlite.js";
 import { claimIdempotentWrite, type IdempotentWriteResult } from "./idempotency.js";
 import { saveWritingAttempt, type WritingAttemptPersistence } from "./writing-attempt.js";
 
-export const preparedActivitySchema = z.strictObject({
-  activityId: activityIdSchema,
-  activityType: z.enum([
-    "writing",
-    "grammar",
-    "vocabulary-review",
-    "reading",
-    "codex-listening",
-    "voice-speaking",
-    "placement",
-    "custom-lesson",
-  ]),
-  title: z.string().min(1).max(160),
-  originSurface: z.enum(["desktop", "codex"]),
-  context: z.strictObject({
-    naturalRequest: z.string().min(1).max(1_000),
-    instructions: z.string().min(1).max(2_000).optional(),
-    curriculumTopicIds: z.array(curriculumTopicIdSchema).max(12),
-    mistakeIds: z.array(mistakeIdSchema).max(12),
-    vocabularyIds: z.array(vocabularyIdSchema).max(24),
-    voiceContext: voiceActivityContextSchema.optional(),
-  }),
-  preparedAt: utcInstantSchema,
-});
-
-const handoffOriginSurfaceSchema = z.enum(["desktop", "codex"]);
-const handoffDestinationSurfaceSchema = z.enum(["desktop", "codex", "voice"]);
-const handoffTargetKindSchema = z.enum(["desktop-activity", "codex-task", "voice-session"]);
-const handoffStatusSchema = z.enum(["prepared", "opened", "completed", "failed"]);
-
-export const persistentHandoffSchema = strictBoundaryObject({
-  handoffId: persistentHandoffIdSchema,
-  activityId: activityIdSchema,
-  originSurface: handoffOriginSurfaceSchema,
-  destinationSurface: handoffDestinationSurfaceSchema,
-  targetKind: handoffTargetKindSchema,
-  targetReference: z.string().min(1).max(256).nullable(),
-  status: handoffStatusSchema,
-  payloadVersion: z.literal(1),
-  continuationSummary: z.string().min(1).max(2_000).regex(/\S/u),
-  createdAt: utcInstantSchema,
-  updatedAt: utcInstantSchema,
-  rootGeneration: z.int().positive(),
-});
-export const persistentHandoffCreateSchema = strictBoundaryObject({
-  handoffId: persistentHandoffIdSchema,
-  activityId: activityIdSchema,
-  originSurface: handoffOriginSurfaceSchema,
-  destinationSurface: handoffDestinationSurfaceSchema,
-  targetKind: handoffTargetKindSchema,
-  payloadVersion: z.literal(1),
-  continuationSummary: z.string().min(1).max(2_000).regex(/\S/u),
-  createdAt: utcInstantSchema,
-});
-export const persistentHandoffUpdateSchema = strictBoundaryObject({
-  handoffId: persistentHandoffIdSchema,
-  targetReference: z.string().min(1).max(256).nullable(),
-  status: z.enum(["opened", "completed", "failed"]),
-  continuationSummary: z.string().min(1).max(2_000).regex(/\S/u),
-  updatedAt: utcInstantSchema,
-});
-export type PersistentHandoffRecord = z.infer<typeof persistentHandoffSchema>;
-export type PersistentHandoffCreate = z.infer<typeof persistentHandoffCreateSchema>;
-export type PersistentHandoffUpdate = z.infer<typeof persistentHandoffUpdateSchema>;
+export { preparedActivitySchema } from "@open-deutsch/contracts";
 
 const historyActivityTypeSchema = z.enum([
   "writing",
@@ -140,10 +82,10 @@ const historyActivityTypeSchema = z.enum([
   "voice-speaking",
   "placement",
   "custom-lesson",
-  "plan-generation",
 ]);
 
 const historyFilterSchema = z.strictObject({
+  historyEntryIds: z.array(historyEntryIdSchema).min(1).max(100).optional(),
   skill: z.enum(["writing", "reading", "listening", "speaking"]).optional(),
   activityType: historyActivityTypeSchema.optional(),
   fromDate: calendarDateSchema.optional(),
@@ -165,10 +107,10 @@ export type HistoryFilter = z.input<typeof historyFilterSchema>;
 export type HistoryEntryRecord = Readonly<{
   historyEntryId: string;
   entityKind:
-    "attempt" | "correction" | "vocabulary-review" | "voice-summary" | "placement" | "plan";
+    "attempt" | "correction" | "vocabulary-review" | "voice-summary" | "placement";
   entityId: string;
   skill: "writing" | "reading" | "listening" | "speaking";
-  activityType: PreparedActivityRecord["activityType"] | "plan-generation";
+  activityType: PreparedActivityRecord["activityType"];
   title: string;
   occurredAt: string;
   curriculumTopicIds: readonly string[];
@@ -196,6 +138,9 @@ export type HistoryEntryRecord = Readonly<{
         objectiveEvaluations: readonly ReturnType<typeof objectiveEvaluationSchema.parse>[];
         feedback: ReturnType<typeof attemptFeedbackSchema.parse>;
         suggestedAnswer: string | null;
+        readingMaterial: ReturnType<
+          typeof exerciseGenerationCandidateSchema.parse
+        >["readingMaterial"];
       }>
     | Readonly<{
         kind: "voice-summary";
@@ -207,7 +152,6 @@ export type HistoryEntryRecord = Readonly<{
         nextSteps: VoiceSummary["nextSteps"];
       }>
     | Readonly<PlacementResult & { kind: "placement" }>
-    | Readonly<ReadingResult & { kind: "reading" }>
     | Readonly<ListeningResult & { kind: "listening" }>
     | Readonly<{ kind: "reference" }>;
   rootGeneration: number;
@@ -226,7 +170,6 @@ export type LearnerSettingsUpdate = z.infer<typeof learnerSettingsUpdateSchema>;
 
 export type DashboardSnapshot = Readonly<{
   rootGeneration: number;
-  weeklyPlan: WeeklyPlan | null;
   preparedActivities: readonly Readonly<{
     activityId: string;
     activityType: PreparedActivityRecord["activityType"];
@@ -318,7 +261,6 @@ export const generatedActivityReadSchema = strictBoundaryObject({
 export const generatedExerciseSetStartSchema = strictBoundaryObject({
   activityId: activityIdSchema,
   startedAt: utcInstantSchema,
-  feedbackModeOverride: z.literal("immediate").optional(),
   exercises: z
     .array(
       z.strictObject({
@@ -407,6 +349,7 @@ export const vocabularyLessonSetRecordSchema = strictBoundaryObject({
 });
 export type VocabularyLessonSetRecord = z.infer<typeof vocabularyLessonSetRecordSchema>;
 const generatedExerciseHistorySchema = strictBoundaryObject({
+  readingMaterial: exerciseGenerationCandidateSchema.shape.readingMaterial,
   kind: z.literal("exercise-attempt"),
   snapshot: startedExerciseSnapshotSchema,
   answer: exerciseAnswerSchema,
@@ -467,23 +410,6 @@ function insertActivityVocabularyCandidates(
 
 function parseJson(value: unknown): unknown {
   return JSON.parse(String(value)) as unknown;
-}
-
-function persistentHandoffFromRow(row: Record<string, unknown>): PersistentHandoffRecord {
-  return persistentHandoffSchema.parse({
-    handoffId: row["handoff_id"],
-    activityId: row["activity_id"],
-    originSurface: row["origin_surface"],
-    destinationSurface: row["destination_surface"],
-    targetKind: row["target_kind"],
-    targetReference: row["target_reference"],
-    status: row["status"],
-    payloadVersion: row["payload_version"],
-    continuationSummary: row["continuation_summary"],
-    createdAt: row["created_at"],
-    updatedAt: row["updated_at"],
-    rootGeneration: row["root_generation"],
-  });
 }
 
 function booleanFromSqlite(value: unknown): boolean {
@@ -588,7 +514,6 @@ function readLearnerSettingsFromConnection(
     motivation: row["motivation"],
     interests: strings("learner_interests"),
     preferredTopics: strings("learner_preferred_topics"),
-    availableStudyMinutesPerWeek: row["available_study_minutes_per_week"],
     correctionPreferences: {
       timing: row["correction_timing"],
       coverage: row["correction_coverage"],
@@ -686,6 +611,18 @@ export class OpenDeutschRepository {
     this.#database = database;
   }
 
+  async readLearningPathState() { return readLearningPathState(this.#database); }
+
+  async updateLearningPath(course: LearningCourse, input: unknown) { return updateLearningPath(this.#database, course, input); }
+
+  async readPersonalDataInventory() {
+    return readPersonalDataInventory(this.#database);
+  }
+
+  async clearPersonalData(input: Parameters<typeof clearPersonalData>[1]) {
+    return clearPersonalData(this.#database, input);
+  }
+
   async saveWritingAttempt(record: WritingAttemptPersistence): Promise<void> {
     await saveWritingAttempt(this.#database, record);
   }
@@ -744,8 +681,8 @@ export class OpenDeutschRepository {
           `INSERT INTO learner_profiles (
             learner_id, schema_version, current_level, target_level, level_basis,
             optional_diagnostic_completed_on, level_updated_at, everyday_germany_goal,
-            motivation, available_study_minutes_per_week, onboarding_state, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            motivation, onboarding_state, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           profile.learnerId,
@@ -757,7 +694,6 @@ export class OpenDeutschRepository {
           profile.levelEstimate.updatedAt,
           profile.everydayGermanyGoal,
           profile.motivation,
-          profile.availableStudyMinutesPerWeek,
           profile.onboardingState,
           profile.createdAt,
           profile.updatedAt,
@@ -814,7 +750,7 @@ export class OpenDeutschRepository {
           `UPDATE learner_profiles SET
             current_level = ?, target_level = ?, level_basis = ?,
             optional_diagnostic_completed_on = ?, level_updated_at = ?,
-            everyday_germany_goal = ?, motivation = ?, available_study_minutes_per_week = ?,
+            everyday_germany_goal = ?, motivation = ?,
             onboarding_state = ?, updated_at = ?
            WHERE learner_id = ? AND created_at = ? AND updated_at = ?`,
         )
@@ -826,7 +762,6 @@ export class OpenDeutschRepository {
           profile.levelEstimate.updatedAt,
           profile.everydayGermanyGoal,
           profile.motivation,
-          profile.availableStudyMinutesPerWeek,
           profile.onboardingState,
           profile.updatedAt,
           profile.learnerId,
@@ -1050,9 +985,11 @@ export class OpenDeutschRepository {
       reviewedAt: string;
       reviewId: string;
       historyEntryId?: string;
+      expectedRevision?: number;
+      expectedUpdatedAt?: string;
       idempotencyKey: string;
     }>,
-  ): Promise<IdempotentWriteResult> {
+  ): Promise<IdempotentWriteResult & { dueOn: string }> {
     const vocabularyId = vocabularyIdSchema.parse(input.vocabularyId);
     const reviewedAt = utcInstantSchema.parse(input.reviewedAt);
     const reviewId = reviewIdSchema.parse(input.reviewId);
@@ -1060,7 +997,14 @@ export class OpenDeutschRepository {
       const row = connection
         .prepare(`SELECT * FROM vocabulary_entries WHERE vocabulary_id = ? AND status = 'active'`)
         .get(vocabularyId) as Record<string, unknown> | undefined;
-      if (!row) throw new Error("OD_VOCABULARY_NOT_ACTIVE");
+      if (!row) throw new Error("OD_VOCABULARY_REVIEW_STATE_CONFLICT");
+      if (
+        input.expectedRevision !== undefined &&
+        (row["revision"] !== z.int().nonnegative().parse(input.expectedRevision) ||
+          row["updated_at"] !== utcInstantSchema.parse(input.expectedUpdatedAt) ||
+          String(row["due_on"]) > reviewedAt.slice(0, 10))
+      )
+        throw new Error("OD_VOCABULARY_REVIEW_STATE_CONFLICT");
       return vocabularyEntryFromRow(row);
     });
     if (entry.state.status !== "active") throw new Error("OD_VOCABULARY_NOT_ACTIVE");
@@ -1071,7 +1015,13 @@ export class OpenDeutschRepository {
       reviewedAt,
       grade: input.grade,
     });
-    return this.applyVocabularyReview(review, input.idempotencyKey, input.historyEntryId);
+    const saved = await this.applyVocabularyReview(
+      review,
+      input.idempotencyKey,
+      input.historyEntryId,
+      input.expectedRevision,
+    );
+    return { ...saved, dueOn: review.transition.result.nextSchedule.dueOn };
   }
 
   async confirmVocabulary(
@@ -1106,6 +1056,130 @@ export class OpenDeutschRepository {
     });
   }
 
+  async readVocabularyLibrary(
+    input: z.input<typeof vocabularyLibraryFilterSchema>,
+    todayValue: string,
+  ) {
+    const filter = vocabularyLibraryFilterSchema.parse(input);
+    const today = calendarDateSchema.parse(todayValue);
+    return withLeasedConnection(this.#database, (connection) => {
+      // SQLite lower() is ASCII-only; fold German uppercase letters explicitly.
+      const fold = (column: "lemma" | "meaning") =>
+        `lower(replace(replace(replace(replace(${column}, 'Ä', 'ä'), 'Ö', 'ö'), 'Ü', 'ü'), 'ẞ', 'ß'))`;
+      const search = filter.search.trim().toLocaleLowerCase("de");
+      const where = `(? = '' OR instr(${fold("lemma")}, ?) > 0 OR instr(${fold("meaning")}, ?) > 0)
+        AND (? = 'all' OR status = ? OR (? = 'due' AND status = 'active' AND due_on <= ?))`;
+      const parameters = [
+        search,
+        search,
+        search,
+        filter.filter,
+        filter.filter,
+        filter.filter,
+        today,
+      ];
+      const total = z
+        .int()
+        .nonnegative()
+        .parse(
+          connection
+            .prepare(`SELECT COUNT(*) AS count FROM vocabulary_entries WHERE ${where}`)
+            .get(...parameters)?.["count"],
+        );
+      const page = Math.min(filter.page, Math.max(0, Math.ceil(total / 25) - 1));
+      const order =
+        filter.sort === "due"
+          ? "due_on IS NULL, due_on, lemma COLLATE NOCASE, vocabulary_id"
+          : "lemma COLLATE NOCASE, vocabulary_id";
+      const entries = connection
+        .prepare(
+          `SELECT vocabulary_id, lemma, meaning, status, due_on, revision, updated_at
+         FROM vocabulary_entries WHERE ${where} ORDER BY ${order} LIMIT 25 OFFSET ?`,
+        )
+        .all(...parameters, page * 25)
+        .map((row) =>
+          vocabularySummarySchema.parse({
+            vocabularyId: row["vocabulary_id"],
+            lemma: row["lemma"],
+            meaning: row["meaning"],
+            status: row["status"],
+            dueOn: row["due_on"],
+            revision: row["revision"],
+            updatedAt: row["updated_at"],
+          }),
+        );
+      const counts = vocabularyCountsSchema.parse(
+        connection
+          .prepare(
+            `SELECT COUNT(*) AS "all",
+        COUNT(CASE WHEN status = 'candidate' THEN 1 END) AS candidate,
+        COUNT(CASE WHEN status = 'active' THEN 1 END) AS active,
+        COUNT(CASE WHEN status = 'suspended' THEN 1 END) AS suspended,
+        COUNT(CASE WHEN status = 'active' AND due_on <= ? THEN 1 END) AS due
+        FROM vocabulary_entries`,
+          )
+          .get(today),
+      );
+      return { entries, total, page, counts };
+    });
+  }
+
+  async readVocabularyRecord(id: string): Promise<VocabularyRecord | undefined> {
+    const vocabularyId = vocabularyIdSchema.parse(id);
+    return withLeasedConnection(this.#database, (connection) => {
+      const row = connection
+        .prepare("SELECT * FROM vocabulary_entries WHERE vocabulary_id = ?")
+        .get(vocabularyId);
+      return row ? vocabularyRecordFromRow(row) : undefined;
+    });
+  }
+
+  async readVocabularyReviewQueue(todayValue: string): Promise<readonly VocabularyRecord[]> {
+    const today = calendarDateSchema.parse(todayValue);
+    return withLeasedConnection(this.#database, (connection) =>
+      connection
+        .prepare(
+          "SELECT * FROM vocabulary_entries WHERE status = 'active' AND due_on <= ? ORDER BY due_on, vocabulary_id LIMIT 20",
+        )
+        .all(today)
+        .map(vocabularyRecordFromRow),
+    );
+  }
+
+  async mutateVocabularyBulk(
+    input: z.infer<typeof vocabularyBulkRequestSchema>,
+    atValue: string,
+  ): Promise<void> {
+    const { action, entries, rootGeneration } = vocabularyBulkRequestSchema.parse(input);
+    const at = utcInstantSchema.parse(atValue);
+    if (rootGeneration !== this.#database.rootGeneration) throw new Error("OD_DATA_ROOT_STALE");
+    await withLeasedTransaction(this.#database, (connection) => {
+      const status =
+        action === "confirm" ? "candidate" : action === "suspend" ? "active" : "suspended";
+      const update =
+        action === "confirm"
+          ? "status = 'active', confirmed_at = ?, due_on = substr(?, 1, 10), stage = 1, revision = revision + 1"
+          : action === "suspend"
+            ? "status = 'suspended', suspended_at = ?, suspension_reason = 'learner-paused', revision = revision + 1"
+            : "status = 'active', suspended_at = NULL, suspension_reason = NULL, revision = revision + 1";
+      const statement = connection.prepare(`UPDATE vocabulary_entries SET ${update}, updated_at = ?
+        WHERE vocabulary_id = ? AND status = ? AND revision = ? AND updated_at = ? AND updated_at < ?`);
+      for (const entry of entries) {
+        const dates = action === "confirm" ? [at, at] : action === "suspend" ? [at] : [];
+        const result = statement.run(
+          ...dates,
+          at,
+          entry.vocabularyId,
+          status,
+          entry.expectedRevision,
+          entry.expectedUpdatedAt,
+          at,
+        );
+        if (result.changes !== 1) throw new Error("OD_VOCABULARY_STATE_CONFLICT");
+      }
+    });
+  }
+
   async listVocabularyRecords(
     status?: "candidate" | "active" | "suspended",
   ): Promise<readonly VocabularyRecord[]> {
@@ -1134,6 +1208,7 @@ export class OpenDeutschRepository {
     input: Readonly<{
       vocabularyId: string;
       expectedRevision: number;
+      expectedUpdatedAt?: string;
       lemma: string;
       meaning: string;
       example: { german: string; meaning: string };
@@ -1146,20 +1221,32 @@ export class OpenDeutschRepository {
     const meaning = z.string().min(1).max(500).regex(/\S/u).parse(input.meaning);
     const examples = z.array(vocabularyExampleSchema).length(1).parse([input.example]);
     await withLeasedTransaction(this.#database, (connection) => {
+      const existing = connection
+        .prepare("SELECT examples_json FROM vocabulary_entries WHERE vocabulary_id = ?")
+        .get(vocabularyId);
+      if (!existing) throw new Error("OD_VOCABULARY_NOT_FOUND");
+      const savedExamples = z
+        .array(vocabularyExampleSchema)
+        .min(1)
+        .max(12)
+        .parse(parseJson(existing["examples_json"]));
       const result = connection
         .prepare(
           `UPDATE vocabulary_entries SET lemma = ?, meaning = ?, examples_json = ?,
-            revision = revision + 1, updated_at = ?
-           WHERE vocabulary_id = ? AND revision = ? AND updated_at < ?`,
+            revision = CASE WHEN status = 'candidate' THEN 0 ELSE revision + 1 END, updated_at = ?
+           WHERE vocabulary_id = ? AND revision = ? AND updated_at < ?
+             AND (? IS NULL OR updated_at = ?)`,
         )
         .run(
           lemma,
           meaning,
-          stringifyBounded(examples),
+          stringifyBounded([...examples, ...savedExamples.slice(1)]),
           updatedAt,
           vocabularyId,
           z.int().nonnegative().parse(input.expectedRevision),
           updatedAt,
+          input.expectedUpdatedAt ? utcInstantSchema.parse(input.expectedUpdatedAt) : null,
+          input.expectedUpdatedAt ?? null,
         );
       if (result.changes !== 1) throw new Error("OD_VOCABULARY_STATE_CONFLICT");
     });
@@ -1327,6 +1414,7 @@ export class OpenDeutschRepository {
     reviewValue: VocabularyReview,
     idempotencyKey: string,
     historyEntryIdValue?: string,
+    expectedRevision?: number,
   ): Promise<IdempotentWriteResult> {
     const review = vocabularyReviewSchema.parse(reviewValue);
     return withLeasedTransaction(this.#database, (connection) => {
@@ -1349,6 +1437,7 @@ export class OpenDeutschRepository {
         expected.schedule.status === "reviewed" ? expected.schedule.lastReview.reviewId : null;
       if (
         row === undefined ||
+        (expectedRevision !== undefined && row["revision"] !== expectedRevision) ||
         row["confirmed_at"] !== expected.confirmedAt ||
         row["due_on"] !== expected.schedule.dueOn ||
         row["stage"] !== expected.schedule.stage ||
@@ -1457,17 +1546,21 @@ export class OpenDeutschRepository {
     });
   }
 
+  async readDevelopmentNotice(): Promise<boolean> {
+    return withLeasedConnection(this.#database, connection => Boolean(
+      connection.prepare("SELECT 1 FROM development_notices WHERE version = 18 AND dismissed = 0").get(),
+    ));
+  }
+
+  async dismissDevelopmentNotice(): Promise<void> {
+    await withLeasedTransaction(this.#database, connection => {
+      connection.prepare("UPDATE development_notices SET dismissed = 1 WHERE version = 18").run();
+    });
+  }
+
   async readDashboardSnapshot(onDateValue: string): Promise<DashboardSnapshot> {
     const onDate = calendarDateSchema.parse(onDateValue);
     return withLeasedConnection(this.#database, (connection) => {
-      const weeklyPlanRow = connection
-        .prepare(`SELECT plan_json FROM weekly_plans WHERE is_current = 1`)
-        .get() as Record<string, unknown> | undefined;
-      const weeklyPlan =
-        weeklyPlanRow === undefined
-          ? null
-          : weeklyPlanSchema.parse(parseJson(weeklyPlanRow["plan_json"]));
-
       const preparedActivities = connection
         .prepare(
           `SELECT p.activity_id, p.activity_type, p.title, p.origin_surface, p.prepared_at,
@@ -1569,12 +1662,63 @@ export class OpenDeutschRepository {
 
       return Object.freeze({
         rootGeneration: this.#database.rootGeneration,
-        weeklyPlan,
         preparedActivities: Object.freeze(preparedActivities),
         dueVocabulary: Object.freeze(dueVocabulary),
         recentCorrections: Object.freeze(recentCorrections),
         recurringMistakes: Object.freeze(recurringMistakes),
       });
+    });
+  }
+
+  async readSuggestionLearningContext(contextValue: unknown) {
+    const context = practiceSuggestionContextSchema.parse(contextValue);
+    return withLeasedConnection(this.#database, (connection) => {
+      const mistakes = connection
+        .prepare(
+          `SELECT m.mistake_id, m.effective_category_json, COUNT(*) AS occurrence_count,
+          MAX(o.observed_on) AS last_observed_on
+         FROM mistakes m JOIN mistake_occurrences o ON o.mistake_id = m.mistake_id
+         WHERE m.disposition = 'active'
+           AND m.mistake_id IN (SELECT value FROM json_each(?))
+         GROUP BY m.mistake_id ORDER BY last_observed_on DESC, m.mistake_id LIMIT 12`,
+        )
+        .all(JSON.stringify(context.mistakeIds))
+        .map((raw) => {
+          const row = raw as Record<string, unknown>;
+          const category = mistakeCategorySchema.parse(parseJson(row["effective_category_json"]));
+          return {
+            mistakeId: mistakeIdSchema.parse(row["mistake_id"]),
+            summary: {
+              kind: category.kind,
+              categoryKey: category.categoryKey,
+              ...(category.kind === "vocabulary" ? { lemma: category.lemma } : {}),
+              occurrenceCount: z.int().min(1).max(100).parse(row["occurrence_count"]),
+              lastObservedOn: calendarDateSchema.parse(row["last_observed_on"]),
+            },
+          };
+        });
+      const vocabulary = connection
+        .prepare(
+          `SELECT * FROM vocabulary_entries WHERE status = 'active'
+         AND vocabulary_id IN (SELECT value FROM json_each(?))
+         ORDER BY due_on, vocabulary_id LIMIT 24`,
+        )
+        .all(JSON.stringify(context.vocabularyIds))
+        .map((row) => vocabularyEntryFromRow(row as Record<string, unknown>));
+      return {
+        relevantMistakes: mistakes
+          .filter(({ summary }) => summary.occurrenceCount >= 2)
+          .slice(0, 6)
+          .map(({ summary }) => summary),
+        relevantMistakeIds: mistakes.map(({ mistakeId }) => mistakeId),
+        relevantVocabularyIds: vocabulary.map(({ vocabularyId }) => vocabularyId),
+        vocabularyToReview: vocabulary.slice(0, 12).map((entry) => ({
+          vocabularyId: entry.vocabularyId,
+          lemma: entry.lemma,
+          meaning: entry.meaning,
+          ...(entry.examples[0] ? { example: entry.examples[0].german } : {}),
+        })),
+      };
     });
   }
 
@@ -1742,42 +1886,16 @@ export class OpenDeutschRepository {
     });
   }
 
-  async replaceWeeklyPlan(
-    planValue: WeeklyPlan,
-    createdAtValue: string,
-    idempotencyKey: string,
-  ): Promise<IdempotentWriteResult> {
-    const plan = weeklyPlanSchema.parse(planValue);
-    const createdAt = utcInstantSchema.parse(createdAtValue);
-    return withLeasedTransaction(this.#database, (connection) => {
-      const claim = claimIdempotentWrite(connection, {
-        operation: "weekly-plan",
-        idempotencyKey,
-        request: {
-          ...plan,
-          aiProvenance: { ...plan.aiProvenance, generatedAt: null },
-        },
-        entityId: plan.planId,
-        recordedAt: createdAt,
-      });
-      if (claim.replayed) return claim;
-      connection
-        .prepare(
-          `INSERT INTO weekly_plans (
-            plan_id, week_starts_on, requested_from, plan_json, created_at
-          ) VALUES (?, ?, ?, ?, ?)`,
-        )
-        .run(plan.planId, plan.weekStartsOn, plan.requestedFrom, stringifyBounded(plan), createdAt);
-      return claim;
-    });
-  }
-
   async saveVoiceSummary(
     summaryValue: VoiceSummary,
     idempotencyKey: string,
   ): Promise<IdempotentWriteResult> {
     const summary = voiceSummarySchema.parse(summaryValue);
     return withLeasedTransaction(this.#database, (connection) => {
+      const linked = summary.activity ? connection.prepare("SELECT context_json FROM prepared_activities WHERE activity_id = ?").get(summary.activity.activityId) as { context_json: string } | undefined : undefined;
+      const linkedContext = linked ? preparedActivitySchema.shape.context.parse(parseJson(linked.context_json)) : undefined;
+      if (summary.activity && (!linkedContext?.learningPath || !linkedContext.courseTeaching?.objective || summary.activity.objectiveResults.length !== 1 || summary.activity.objectiveResults.some((r) => r.objectiveId !== linkedContext.courseTeaching?.objective?.id || r.skill !== linkedContext.courseTeaching?.objective?.skill))) throw new Error("OD_COURSE_EVIDENCE_INVALID");
+      const skill = linkedContext?.voiceContext?.kind ?? "speaking";
       const claim = claimIdempotentWrite(connection, {
         operation: "voice-summary",
         idempotencyKey,
@@ -1807,16 +1925,22 @@ export class OpenDeutschRepository {
           `INSERT INTO history_entries (
             history_entry_id, entity_kind, entity_id, skill, activity_type, title,
             occurred_at, reconstruction_json, root_generation
-          ) VALUES (?, 'voice-summary', ?, 'speaking', 'voice-speaking', ?, ?, ?, ?)`,
+          ) VALUES (?, 'voice-summary', ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           historyEntryId,
           summary.voiceSessionId,
+          skill,
+          skill === "listening" ? "codex-listening" : "voice-speaking",
           summary.scenario.title,
           summary.summarizedAt,
           stringifyBounded(summary),
           this.#database.rootGeneration,
         );
+      if (summary.activity) {
+        saveCourseEvidence(connection, { activityId: summary.activity.activityId, historyEntryId, occurredAt: summary.summarizedAt, evidence: summary.activity.objectiveResults });
+        if (summary.activity.outcome === "completed") connection.prepare("UPDATE prepared_activities SET status = 'completed', completed_at = ? WHERE activity_id = ?").run(summary.summarizedAt, summary.activity.activityId);
+      }
       return claim;
     });
   }
@@ -1858,50 +1982,6 @@ export class OpenDeutschRepository {
           entityId,
           "Optional diagnostic",
           `${result.completedOn}T12:00:00.000Z`,
-          stringifyBounded(result),
-          this.#database.rootGeneration,
-        );
-      return { historyEntryId, replayed: false };
-    });
-  }
-
-  async saveReadingResult(
-    resultValue: ReadingResult,
-    idempotencyKeyValue: string,
-  ): Promise<Readonly<{ historyEntryId: string; replayed: boolean }>> {
-    const result = readingResultSchema.parse(resultValue);
-    const idempotencyKey = z.string().min(8).max(128).parse(idempotencyKeyValue);
-    const digest = createHash("sha256").update(idempotencyKey, "utf8").digest("hex").slice(0, 32);
-    const entityId = `reading_${digest}`;
-    const historyEntryId = historyEntryIdSchema.parse(`history-entry_${digest}`);
-    return withLeasedTransaction(this.#database, (connection) => {
-      const existing = connection
-        .prepare(
-          `SELECT reconstruction_json FROM history_entries
-           WHERE entity_kind = 'attempt' AND entity_id = ?`,
-        )
-        .get(entityId) as { reconstruction_json: string } | undefined;
-      if (existing) {
-        if (
-          JSON.stringify(readingResultSchema.parse(parseJson(existing.reconstruction_json))) !==
-          JSON.stringify(result)
-        ) {
-          throw new Error("OD_READING_RESULT_CONFLICT");
-        }
-        return { historyEntryId, replayed: true };
-      }
-      connection
-        .prepare(
-          `INSERT INTO history_entries (
-            history_entry_id, entity_kind, entity_id, skill, activity_type, title,
-            occurred_at, reconstruction_json, root_generation
-          ) VALUES (?, 'attempt', ?, 'reading', 'reading', ?, ?, ?, ?)`,
-        )
-        .run(
-          historyEntryId,
-          entityId,
-          result.title,
-          `${result.source.retrievedOn ?? "2026-08-20"}T12:00:00.000Z`,
           stringifyBounded(result),
           this.#database.rootGeneration,
         );
@@ -1965,6 +2045,64 @@ export class OpenDeutschRepository {
     });
   }
 
+  async listPreparedActivities(filterValue: z.input<typeof activityLibraryFilterSchema> = {}) {
+    const filter = activityLibraryFilterSchema.parse(filterValue);
+    return withLeasedConnection(this.#database, (connection) => {
+      const clauses = ["p.status IN ('prepared', 'completed')"];
+      const parameters: Array<string | number> = [];
+      if (filter.activityTypes.length > 0) {
+        clauses.push(`p.activity_type IN (${filter.activityTypes.map(() => "?").join(", ")})`);
+        parameters.push(...filter.activityTypes);
+      }
+      if (filter.cursor) {
+        clauses.push("(p.prepared_at < ? OR (p.prepared_at = ? AND p.activity_id > ?))");
+        parameters.push(
+          filter.cursor.preparedAt,
+          filter.cursor.preparedAt,
+          filter.cursor.activityId,
+        );
+      }
+      const rows = connection
+        .prepare(
+          `
+        SELECT p.*, EXISTS (SELECT 1 FROM generated_activity_payloads g
+          WHERE g.activity_id = p.activity_id) AS generated,
+          CASE WHEN p.status <> 'prepared' OR EXISTS (
+            SELECT 1 FROM vocabulary_entries v
+            WHERE json_extract(v.source_json, '$.kind') = 'activity'
+              AND json_extract(v.source_json, '$.activityId') = p.activity_id
+              AND v.status <> 'candidate'
+          ) THEN 'retained-data'
+          WHEN EXISTS (SELECT 1 FROM exercises e WHERE e.activity_id = p.activity_id) OR EXISTS (SELECT 1 FROM course_results r WHERE r.activity_id = p.activity_id)
+            THEN 'cascade' ELSE 'available' END AS deletion_status
+        FROM prepared_activities p WHERE ${clauses.join(" AND ")}
+        ORDER BY p.prepared_at DESC, p.activity_id LIMIT ?
+      `,
+        )
+        .all(...parameters, filter.maximum + 1) as Record<string, unknown>[];
+      const entries = rows.slice(0, filter.maximum).map((row) =>
+        activityLibraryItemSchema.parse({
+          activityId: row["activity_id"],
+          activityType: row["activity_type"],
+          title: row["title"],
+          originSurface: row["origin_surface"],
+          preparedAt: row["prepared_at"],
+          generated: row["generated"] === 1,
+          deletionStatus: row["deletion_status"],
+        }),
+      );
+      const last = entries.at(-1);
+      return {
+        rootGeneration: this.#database.rootGeneration,
+        entries,
+        nextCursor:
+          rows.length > filter.maximum && last
+            ? { preparedAt: last.preparedAt, activityId: last.activityId }
+            : null,
+      };
+    });
+  }
+
   async readLatestPreparedVoiceActivity(
     kind: "speaking" | "listening",
   ): Promise<PreparedActivityRecord | undefined> {
@@ -1987,95 +2125,6 @@ export class OpenDeutschRepository {
         originSurface: row["origin_surface"],
         context: parseJson(row["context_json"]),
         preparedAt: row["prepared_at"],
-      });
-    });
-  }
-
-  async createPersistentHandoff(value: PersistentHandoffCreate): Promise<PersistentHandoffRecord> {
-    const record = persistentHandoffCreateSchema.parse(value);
-    return withLeasedTransaction(this.#database, (connection) => {
-      const activity = connection
-        .prepare(`SELECT activity_id FROM prepared_activities WHERE activity_id = ?`)
-        .get(record.activityId) as { activity_id: string } | undefined;
-      if (!activity) throw new Error("OD_HANDOFF_ACTIVITY_NOT_FOUND");
-      connection
-        .prepare(
-          `INSERT INTO persistent_handoffs (
-            handoff_id, activity_id, origin_surface, destination_surface, target_kind,
-            target_reference, status, created_at, updated_at, root_generation,
-            payload_version, continuation_summary
-          ) VALUES (?, ?, ?, ?, ?, NULL, 'prepared', ?, ?, ?, ?, ?)`,
-        )
-        .run(
-          record.handoffId,
-          record.activityId,
-          record.originSurface,
-          record.destinationSurface,
-          record.targetKind,
-          record.createdAt,
-          record.createdAt,
-          this.#database.rootGeneration,
-          record.payloadVersion,
-          record.continuationSummary,
-        );
-      return persistentHandoffSchema.parse({
-        ...record,
-        targetReference: null,
-        status: "prepared",
-        updatedAt: record.createdAt,
-        rootGeneration: this.#database.rootGeneration,
-      });
-    });
-  }
-
-  async readPersistentHandoff(
-    handoffIdValue: string,
-  ): Promise<PersistentHandoffRecord | undefined> {
-    const handoffId = persistentHandoffIdSchema.parse(handoffIdValue);
-    return withLeasedConnection(this.#database, (connection) => {
-      const row = connection
-        .prepare(`SELECT * FROM persistent_handoffs WHERE handoff_id = ?`)
-        .get(handoffId) as Record<string, unknown> | undefined;
-      return row ? persistentHandoffFromRow(row) : undefined;
-    });
-  }
-
-  async updatePersistentHandoff(value: PersistentHandoffUpdate): Promise<PersistentHandoffRecord> {
-    const update = persistentHandoffUpdateSchema.parse(value);
-    return withLeasedTransaction(this.#database, (connection) => {
-      const row = connection
-        .prepare(`SELECT * FROM persistent_handoffs WHERE handoff_id = ?`)
-        .get(update.handoffId) as Record<string, unknown> | undefined;
-      if (!row) throw new Error("OD_HANDOFF_NOT_FOUND");
-      const current = persistentHandoffFromRow(row);
-      if (current.status === "completed" || current.status === "failed") {
-        throw new Error("OD_HANDOFF_TERMINAL");
-      }
-      if (update.status === "opened" && update.targetReference === null) {
-        throw new Error("OD_HANDOFF_TARGET_REQUIRED");
-      }
-      if (update.status === "completed" && update.targetReference === null) {
-        throw new Error("OD_HANDOFF_TARGET_REQUIRED");
-      }
-      connection
-        .prepare(
-          `UPDATE persistent_handoffs
-           SET target_reference = ?, status = ?, updated_at = ?, continuation_summary = ?
-           WHERE handoff_id = ?`,
-        )
-        .run(
-          update.targetReference,
-          update.status,
-          update.updatedAt,
-          update.continuationSummary,
-          update.handoffId,
-        );
-      return persistentHandoffSchema.parse({
-        ...current,
-        targetReference: update.targetReference,
-        status: update.status,
-        updatedAt: update.updatedAt,
-        continuationSummary: update.continuationSummary,
       });
     });
   }
@@ -2104,6 +2153,9 @@ export class OpenDeutschRepository {
       if (retainedVocabulary) {
         throw new Error("OD_PREPARED_ACTIVITY_DELETE_BLOCKED");
       }
+      const courseVoice = connection.prepare(`SELECT h.entity_id FROM course_results r JOIN history_entries h ON h.history_entry_id = r.history_entry_id WHERE r.activity_id = ? AND h.entity_kind = 'voice-summary'`).all(activityId) as { entity_id: string }[];
+      connection.prepare("DELETE FROM history_entries WHERE history_entry_id IN (SELECT history_entry_id FROM course_results WHERE activity_id = ?)").run(activityId);
+      for (const row of courseVoice) connection.prepare("DELETE FROM voice_summaries WHERE voice_session_id = ?").run(row.entity_id);
       connection
         .prepare(
           `DELETE FROM history_entries
@@ -2485,7 +2537,7 @@ export class OpenDeutschRepository {
              ) THEN 'retained-data'
              WHEN EXISTS (
                SELECT 1 FROM exercises e WHERE e.activity_id = p.activity_id
-             ) THEN 'cascade'
+             ) OR EXISTS (SELECT 1 FROM course_results r WHERE r.activity_id = p.activity_id) THEN 'cascade'
              ELSE 'available'
            END AS deletion_status
            FROM prepared_activities p
@@ -2561,9 +2613,6 @@ export class OpenDeutschRepository {
         exerciseIds: record.exercises.map(({ snapshot }) => snapshot.exercise.exerciseId),
         aiProvenance: provenance,
         curriculumTopicIds: context.curriculumTopicIds,
-        ...(record.feedbackModeOverride
-          ? { feedbackModeOverride: record.feedbackModeOverride }
-          : {}),
       };
       const lesson = materializeGeneratedLesson(output, {
         ...materializeOptions,
@@ -2684,6 +2733,13 @@ export class OpenDeutschRepository {
       const activityContext = preparedActivitySchema.shape.context.parse(
         parseJson(activity["context_json"]),
       );
+      const payload = connection
+        .prepare("SELECT output_json FROM generated_activity_payloads WHERE activity_id = ?")
+        .get(record.activityId) as { output_json: string } | undefined;
+      if (!payload) throw new Error("OD_GENERATED_ACTIVITY_NOT_FOUND");
+      const readingMaterial = exerciseGenerationCandidateSchema.parse(
+        parseJson(payload.output_json),
+      ).readingMaterial;
       const expectedCount = (
         connection
           .prepare(
@@ -2757,7 +2813,7 @@ export class OpenDeutschRepository {
             vocabularyCandidateIds: [],
           });
         } else {
-          const outcome =
+          const outcome: CourseEvidence["outcome"] =
             evaluation.status === "correct"
               ? "demonstrated"
               : evaluation.status === "almost-correct"
@@ -2811,6 +2867,7 @@ export class OpenDeutschRepository {
           );
         const reconstruction = generatedExerciseHistorySchema.parse({
           kind: "exercise-attempt",
+          readingMaterial,
           snapshot,
           answer: item.answer,
           objectiveEvaluations,
@@ -2821,11 +2878,13 @@ export class OpenDeutschRepository {
               : null,
         });
         const skill =
-          snapshot.exercise.kind === "free-writing" ||
-          snapshot.exercise.kind === "short-answer" ||
-          snapshot.exercise.kind === "sentence-correction"
-            ? "writing"
-            : "reading";
+          activityType === "reading"
+            ? "reading"
+            : snapshot.exercise.kind === "free-writing" ||
+                snapshot.exercise.kind === "short-answer" ||
+                snapshot.exercise.kind === "sentence-correction"
+              ? "writing"
+              : "reading";
         connection
           .prepare(
             `INSERT INTO history_entries (
@@ -2843,6 +2902,11 @@ export class OpenDeutschRepository {
             stringifyBounded(reconstruction),
             this.#database.rootGeneration,
           );
+        if (activityContext.learningPath) {
+          const objective = activityContext.courseTeaching?.objective;
+          const evidence: CourseEvidence[] = objective ? objectiveEvaluations.map((evaluation) => ({ objectiveId: objective.id, skill: objective.skill, outcome: evaluation.outcome, evidence: evaluation.evidence, uncertainty: evaluation.uncertainty.level })) : [];
+          saveCourseEvidence(connection, { activityId: record.activityId, historyEntryId: item.historyEntryId, occurredAt: record.completedAt, evidence });
+        }
         const insertTopic = connection.prepare(
           `INSERT INTO history_curriculum_topics (history_entry_id, curriculum_topic_id)
            VALUES (?, ?)`,
@@ -2890,6 +2954,19 @@ export class OpenDeutschRepository {
     });
   }
 
+  async readHistorySkillTotals() {
+    return withLeasedConnection(this.#database, (connection) => {
+      const totals = { writing: 0, reading: 0, listening: 0, speaking: 0 };
+      for (const row of connection
+        .prepare("SELECT skill, COUNT(*) AS count FROM history_entries GROUP BY skill")
+        .all()) {
+        const skill = z.enum(["writing", "reading", "listening", "speaking"]).parse(row["skill"]);
+        totals[skill] = z.int().nonnegative().parse(row["count"]);
+      }
+      return totals;
+    });
+  }
+
   async listHistory(filterValue: HistoryFilter = {}): Promise<readonly HistoryEntryRecord[]> {
     const filter = historyFilterSchema.parse(filterValue);
     if (filter.fromDate && filter.toDate && filter.fromDate > filter.toDate) {
@@ -2924,6 +3001,10 @@ export class OpenDeutschRepository {
         "EXISTS (SELECT 1 FROM history_mistake_categories m WHERE m.history_entry_id = history_entries.history_entry_id AND m.category = ?)",
       );
       parameters.push(filter.mistakeCategory);
+    }
+    if (filter.historyEntryIds) {
+      clauses.push(`history_entry_id IN (${filter.historyEntryIds.map(() => "?").join(",")})`);
+      parameters.push(...filter.historyEntryIds);
     }
     const where = clauses.length === 0 ? "" : `WHERE ${clauses.join(" AND ")}`;
     return withLeasedConnection(this.#database, (connection) =>
@@ -3009,11 +3090,6 @@ export class OpenDeutschRepository {
               kind: "placement" as const,
               ...placementResultSchema.parse(parseJson(record["reconstruction_json"])),
             });
-          } else if (record["entity_kind"] === "attempt" && record["activity_type"] === "reading") {
-            detail = Object.freeze({
-              kind: "reading" as const,
-              ...readingResultSchema.parse(parseJson(record["reconstruction_json"])),
-            });
           } else if (
             record["entity_kind"] === "attempt" &&
             record["activity_type"] === "codex-listening"
@@ -3050,7 +3126,6 @@ export class OpenDeutschRepository {
                 "vocabulary-review",
                 "voice-summary",
                 "placement",
-                "plan",
               ])
               .parse(record["entity_kind"]),
             entityId: z.string().min(18).max(96).parse(record["entity_id"]),
@@ -3073,10 +3148,16 @@ export class OpenDeutschRepository {
     await withLeasedTransaction(this.#database, (connection) => {
       const entry = connection
         .prepare(
-          `SELECT entity_kind, entity_id, activity_type FROM history_entries WHERE history_entry_id = ?`,
+          `SELECT entity_kind, entity_id, activity_type, reconstruction_json FROM history_entries WHERE history_entry_id = ?`,
         )
         .get(historyEntryId) as
-        { entity_kind: string; entity_id: string; activity_type: string } | undefined;
+        | {
+            entity_kind: string;
+            entity_id: string;
+            activity_type: string;
+            reconstruction_json: string;
+          }
+        | undefined;
       if (!entry) throw new Error("OD_HISTORY_NOT_FOUND");
       if (entry.entity_kind === "voice-summary") {
         const voiceSessionId = z.string().min(18).max(96).parse(entry.entity_id);
@@ -3098,7 +3179,7 @@ export class OpenDeutschRepository {
       }
       if (
         entry.entity_kind === "attempt" &&
-        (entry.activity_type === "reading" || entry.activity_type === "codex-listening")
+        entry.activity_type === "codex-listening"
       ) {
         const result = connection
           .prepare(`DELETE FROM history_entries WHERE history_entry_id = ?`)
@@ -3211,6 +3292,25 @@ function vocabularyEntryFromRow(row: Record<string, unknown>): VocabularyEntry {
     lexeme: parseJson(row["lexeme_json"]),
     examples: parseJson(row["examples_json"]),
     source: parseJson(row["source_json"]),
-    state: { status: "active", confirmedAt: row["confirmed_at"], schedule },
+    state:
+      row["status"] === "candidate"
+        ? { status: "candidate", confirmation: "required" }
+        : row["status"] === "suspended"
+          ? {
+              status: "suspended",
+              confirmedAt: row["confirmed_at"],
+              schedule,
+              suspendedAt: row["suspended_at"],
+              reason: row["suspension_reason"],
+            }
+          : { status: row["status"], confirmedAt: row["confirmed_at"], schedule },
   });
+}
+
+function vocabularyRecordFromRow(row: Record<string, unknown>): VocabularyRecord {
+  return {
+    entry: vocabularyEntryFromRow(row),
+    revision: z.int().nonnegative().parse(row["revision"]),
+    updatedAt: utcInstantSchema.parse(row["updated_at"]),
+  };
 }

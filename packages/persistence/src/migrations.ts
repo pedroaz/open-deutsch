@@ -1124,6 +1124,108 @@ export const openDeutschMigrations = [
       CHECK (length(continuation_summary) BETWEEN 1 AND 2000);
     `,
   },
+  {
+    version: 17,
+    name: "self-paced-learning-path",
+    sql: `
+      CREATE TABLE course_selection (singleton INTEGER PRIMARY KEY CHECK(singleton = 1), selected_stage TEXT NOT NULL CHECK(selected_stage IN ('a1-1','a1-2')), current_json TEXT CHECK(current_json IS NULL OR json_valid(current_json))) STRICT;
+      CREATE TABLE course_marks (version TEXT NOT NULL, unit_id TEXT NOT NULL, step TEXT NOT NULL CHECK(step IN ('learn','practice','reading','writing','listening','speaking')), status TEXT NOT NULL CHECK(status IN ('completed','skipped','not-started')), updated_at TEXT NOT NULL, PRIMARY KEY(version, unit_id, step)) STRICT;
+      CREATE TABLE course_results (history_entry_id TEXT PRIMARY KEY REFERENCES history_entries(history_entry_id) ON DELETE CASCADE, activity_id TEXT NOT NULL REFERENCES prepared_activities(activity_id) ON DELETE CASCADE, occurred_at TEXT NOT NULL, evidence_json TEXT NOT NULL CHECK(json_valid(evidence_json))) STRICT;
+      CREATE INDEX course_results_by_activity ON course_results(activity_id, occurred_at);
+    `,
+  },
+  {
+    version: 18,
+    name: "current-learning-contract-development-reset",
+    sql: `
+      CREATE TABLE development_notices (
+        version INTEGER PRIMARY KEY, dismissed INTEGER NOT NULL DEFAULT 0 CHECK(dismissed IN (0, 1))
+      ) STRICT;
+      INSERT INTO development_notices(version)
+      SELECT 18 WHERE EXISTS (SELECT 1 FROM prepared_activities)
+        OR EXISTS (SELECT 1 FROM exercises) OR EXISTS (SELECT 1 FROM history_entries)
+        OR EXISTS (SELECT 1 FROM weekly_plans) OR EXISTS (SELECT 1 FROM vocabulary_entries)
+        OR EXISTS (SELECT 1 FROM voice_summaries) OR EXISTS (SELECT 1 FROM course_marks)
+        OR EXISTS (SELECT 1 FROM lessons) OR EXISTS (SELECT 1 FROM mistakes)
+        OR EXISTS (SELECT 1 FROM learner_profile_insights) OR EXISTS (SELECT 1 FROM attachment_metadata);
+      -- This version explicitly resets development learning data, never arbitrary files.
+      INSERT OR IGNORE INTO attempt_deletions SELECT attempt_id, strftime('%Y-%m-%dT%H:%M:%fZ', 'now') FROM attempts;
+      INSERT OR IGNORE INTO vocabulary_deletions SELECT vocabulary_id, strftime('%Y-%m-%dT%H:%M:%fZ', 'now') FROM vocabulary_entries;
+      DELETE FROM course_results;
+      DELETE FROM course_marks;
+      DELETE FROM course_selection;
+      DELETE FROM attachment_metadata;
+      DELETE FROM history_entries;
+      DELETE FROM mcp_attempt_feedback;
+      DELETE FROM vocabulary_lesson_sets;
+      DELETE FROM vocabulary_entries;
+      DELETE FROM attempts;
+      DELETE FROM exercises;
+      DELETE FROM lessons;
+      DELETE FROM prepared_activities;
+      DELETE FROM mistakes;
+      DELETE FROM voice_summaries;
+      DELETE FROM learner_profile_insights;
+      UPDATE learner_profiles SET level_basis = 'self-reported', optional_diagnostic_completed_on = NULL;
+      DROP TABLE history_entries;
+      CREATE TABLE history_entries (
+        history_entry_id TEXT PRIMARY KEY,
+        entity_kind TEXT NOT NULL CHECK (entity_kind IN (
+          'attempt', 'correction', 'vocabulary-review', 'voice-summary', 'placement'
+        )),
+        entity_id TEXT NOT NULL CHECK (length(entity_id) BETWEEN 18 AND 96),
+        skill TEXT NOT NULL CHECK (skill IN ('writing', 'reading', 'listening', 'speaking')),
+        activity_type TEXT NOT NULL CHECK (activity_type IN (
+          'writing', 'grammar', 'vocabulary-review', 'reading',
+          'codex-listening', 'voice-speaking', 'placement', 'custom-lesson'
+        )),
+        title TEXT NOT NULL CHECK (length(title) BETWEEN 1 AND 160),
+        occurred_at TEXT NOT NULL CHECK (occurred_at GLOB '????-??-??T??:??:??.???Z'),
+        reconstruction_json TEXT NOT NULL CHECK (json_valid(reconstruction_json)),
+        root_generation INTEGER NOT NULL CHECK (root_generation > 0),
+        UNIQUE (entity_kind, entity_id)
+      ) STRICT;
+
+      CREATE INDEX history_by_time ON history_entries(occurred_at DESC, history_entry_id);
+      CREATE INDEX history_by_skill ON history_entries(skill, occurred_at DESC);
+      CREATE INDEX history_by_activity_type ON history_entries(activity_type, occurred_at DESC);
+      ALTER TABLE learner_profiles DROP COLUMN available_study_minutes_per_week;
+      DROP TABLE weekly_plans;
+      DROP TABLE persistent_handoffs;
+      DROP TABLE idempotent_writes;
+      CREATE TABLE idempotent_writes (
+        operation TEXT NOT NULL CHECK (operation IN (
+          'vocabulary-candidate', 'vocabulary-confirmation', 'vocabulary-review',
+          'voice-summary', 'prepared-activity', 'attempt-completion'
+        )),
+        idempotency_key TEXT NOT NULL CHECK (
+          length(idempotency_key) BETWEEN 8 AND 128 AND
+          idempotency_key NOT GLOB '*[^0-9A-Za-z._:-]*'
+        ),
+        request_sha256 TEXT NOT NULL CHECK (
+          length(request_sha256) = 64 AND request_sha256 NOT GLOB '*[^0-9a-f]*'
+        ),
+        entity_id TEXT NOT NULL CHECK (length(entity_id) BETWEEN 18 AND 128),
+        recorded_at TEXT NOT NULL CHECK (recorded_at GLOB '????-??-??T??:??:??.???Z'),
+        PRIMARY KEY (operation, idempotency_key)
+      ) STRICT;
+
+      CREATE TRIGGER idempotent_writes_immutable_update
+      BEFORE UPDATE ON idempotent_writes
+      BEGIN
+        SELECT RAISE(ABORT, 'OD_IDEMPOTENCY_LEDGER_IMMUTABLE');
+      END;
+
+      CREATE TRIGGER idempotent_writes_immutable_delete
+      BEFORE DELETE ON idempotent_writes
+      BEGIN
+        SELECT RAISE(ABORT, 'OD_IDEMPOTENCY_LEDGER_IMMUTABLE');
+      END;
+      DELETE FROM attempt_deletions;
+      DELETE FROM mistake_deletions;
+      DELETE FROM vocabulary_deletions;
+    `,
+  },
 ] as const satisfies readonly DatabaseMigration[];
 
 export function openOpenDeutschDatabase(options: {

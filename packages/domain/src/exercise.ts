@@ -25,9 +25,7 @@ const shortTokenSchema = z
   .max(80)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u);
 
-// `submit-at-end` remains readable so previously saved exercise snapshots stay valid.
-// New exercises and the desktop flow always use immediate feedback.
-export const feedbackModes = ["immediate", "submit-at-end"] as const;
+export const feedbackModes = ["immediate"] as const;
 export const feedbackModeSchema = z.enum(feedbackModes);
 
 export const exerciseKinds = [
@@ -172,8 +170,7 @@ export const exerciseDefinitionSchema = z.discriminatedUnion("kind", [
     answerContract: z.strictObject({
       kind: z.literal("corrected-sentence"),
       acceptedAnswers: acceptedAnswersSchema,
-      // Keep the legacy value readable for generated exercises saved before local evaluation.
-      evaluation: z.enum(["accepted-answer", "accepted-answer-or-ai"]),
+      evaluation: z.literal("accepted-answer"),
     }),
   }),
   z.strictObject({

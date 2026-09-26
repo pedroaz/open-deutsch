@@ -1,230 +1,150 @@
-import { useCallback, useEffect, useState } from "react";
+import { nextCourseStep } from "@open-deutsch/domain";
+import { useLearningPath } from "./useLearningPath.js";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { DesktopIpcResponse, OpenDeutschError } from "@open-deutsch/contracts";
-import {
-  BookOpen,
-  CalendarDays,
-  FilePenLine,
-  History,
-  LibraryBig,
-  RefreshCw,
-  Repeat2,
-  Sparkles,
-} from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { DiagnosticCode, Button, Card, Feedback, Muted, ItemList } from "./components/ui/index.js";
-import { ActionGroup, Page, ContentGrid } from "./components/layout/index.js";
-
-import styles from "./Dashboard.module.css";
+import { Button, Card, Muted, LoadingState } from "./components/ui/index.js";
+import { ActionGroup, Page, ContentGrid, SectionHeader } from "./components/layout/index.js";
 import { invokeDesktop, normalizeDesktopError, subscribeDesktop } from "./ipc.js";
+import { PracticeSuggestionCard } from "./PracticeSuggestionCard.js";
+import { usePracticeSuggestion, type SuggestionActions } from "./usePracticeSuggestion.js";
+import { OperationError } from "./Startup.js";
+import styles from "./Dashboard.module.css";
 
 type Snapshot = Extract<DesktopIpcResponse, { status: "ok"; channel: "dashboard/read" }>["result"];
-type Destination = "writing" | "practice" | "vocabulary" | "weeklyPlan" | "history";
-
-function EmptyCard({ children }: { children: string }) {
-  return <Muted as="p">{children}</Muted>;
-}
+type Destination = "writing" | "practice" | "vocabulary" | "learningPath" | "history";
 
 export function Dashboard({
-  onAi,
   onNavigate,
-}: {
-  onAi: () => void;
+  ...actions
+}: SuggestionActions & {
   onNavigate: (destination: Destination) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const learning = useLearningPath();
+  const next = learning.snapshot?.course ? nextCourseStep(learning.snapshot.course, learning.snapshot.state) : null;
+  const locale = i18n.resolvedLanguage === "de" ? "de" : "en";
   const [snapshot, setSnapshot] = useState<Snapshot>();
+  const [offset, setOffset] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<OpenDeutschError>();
-
+  const request = useRef(0);
+  const launch = usePracticeSuggestion(actions);
   const refresh = useCallback(async () => {
+    const current = ++request.current;
     setBusy(true);
     setError(undefined);
     try {
-      setSnapshot(await invokeDesktop("dashboard/read", {}));
+      const result = await invokeDesktop("dashboard/read", { locale });
+      if (current === request.current) setSnapshot(result);
     } catch (cause) {
-      setError(normalizeDesktopError(cause).detail);
+      if (current === request.current) setError(normalizeDesktopError(cause).detail);
     } finally {
-      setBusy(false);
+      if (current === request.current) setBusy(false);
     }
-  }, []);
-
+  }, [locale]);
   useEffect(() => {
     const initial = window.setTimeout(() => void refresh(), 0);
     const onFocus = () => void refresh();
     const unsubscribe = subscribeDesktop((event) => {
-      if (event.event === "state-invalidated" && event.scope === "dashboard") void refresh();
+      if (
+        event.event === "state-invalidated" &&
+        ["dashboard", "settings"].includes(event.scope)
+      )
+        void refresh();
     });
     window.addEventListener("focus", onFocus);
     return () => {
+      request.current += 1;
       window.clearTimeout(initial);
       window.removeEventListener("focus", onFocus);
       unsubscribe();
     };
   }, [refresh]);
-
+  const suggestions = snapshot?.suggestions ?? [];
+  const visible = suggestions.length
+    ? Array.from(
+        { length: Math.min(3, suggestions.length) },
+        (_, index) => suggestions[(offset + index) % suggestions.length],
+      ).flatMap((suggestion) => (suggestion ? [suggestion] : []))
+    : [];
   return (
     <Page
+      title={t("dashboard.title")}
       actions={
-        <Button isPending={busy} pendingLabel={t("dashboard.refreshing")} onPress={() => void refresh()}>
-          <RefreshCw aria-hidden="true" />
-          {t("dashboard.refresh")}
+        <Button
+          isPending={busy}
+          pendingLabel={t("dashboard.refreshing")}
+          onPress={() => void refresh()}
+        >
+          <RefreshCw aria-hidden="true" /> {t("dashboard.refresh")}
         </Button>
       }
-      description={t("dashboard.body")}
-      eyebrow={t("dashboard.eyebrow")}
-      title={t("dashboard.title")}
     >
-      {error && (
-        <Feedback live="assertive" tone="error">
-          <p>{t(error.messageKey)}</p>
-          <DiagnosticCode>
-            {error.reference.code} · {error.reference.correlationId}
-          </DiagnosticCode>
-        </Feedback>
-      )}
-      <ActionGroup>
-        <Button
-          variant="primary"
-          onPress={() => {
-            onNavigate("practice");
-          }}
-        >
-          <FilePenLine aria-hidden="true" /> {t("dashboard.primary")}
-        </Button>
-        <Button onPress={onAi}>
-          <Sparkles aria-hidden="true" />
-          {t("actions.startAi")}
-        </Button>
-      </ActionGroup>
-
-      <ContentGrid fillLast aria-busy={busy}>
-        <Card as="article">
-          <CalendarDays aria-hidden="true" />
-          <h2>{t("dashboard.cards.plan")}</h2>
-          {snapshot?.weeklyPlan ? (
-            <>
-              <p>{t("dashboard.planWeek", { date: snapshot.weeklyPlan.weekStartsOn })}</p>
-              <ItemList>
-                {snapshot.weeklyPlan.goalTitles.map((title) => (
-                  <li key={title}>{title}</li>
-                ))}
-              </ItemList>
-            </>
-          ) : (
-            <EmptyCard>{t("dashboard.emptyPlan")}</EmptyCard>
-          )}
-          <Button
-
-            onPress={() => {
-              onNavigate("weeklyPlan");
-            }}
-          >
-            {t("dashboard.openPlan")}
-          </Button>
-        </Card>
-
-        <Card as="article">
-          <BookOpen aria-hidden="true" />
-          <h2>{t("dashboard.cards.quickPractice")}</h2>
-          <p>{t("dashboard.quickPracticeBody")}</p>
+      {error && <OperationError error={error} />}
+      {launch.error && <OperationError error={launch.error} />}
+      {!snapshot && !error && <LoadingState live>{t("dashboard.refreshing")}</LoadingState>}
+      {snapshot && (
+        <>
+          <Card as="section" className={styles.summary}>
+            <h2>{t("learningPath.continue")}</h2>
+            <p>{next ? `${learning.snapshot?.course?.units.find((u) => u.id === next.unitId)?.title[locale]} · ${t(`learningPath.steps.${next.step}`)}` : t("learningPath.intro")}</p>
+            <Button variant="primary" onPress={() => onNavigate("learningPath")}>{t("learningPath.continue")}</Button>
+          </Card>
+          <section aria-labelledby="practice-next-heading" aria-busy={busy}>
+            <SectionHeader>
+              <h2 id="practice-next-heading">{t("suggestions.title")}</h2>
+              <Button
+                isDisabled={Boolean(launch.starting) || suggestions.length <= 3}
+                onPress={() => setOffset((value) => (value + 3) % suggestions.length)}
+              >
+                {t("suggestions.more")}
+              </Button>
+            </SectionHeader>
+            <div className={styles.suggestions}>
+              {visible.map((suggestion) => (
+                <PracticeSuggestionCard
+                  key={suggestion.id}
+                  suggestion={suggestion}
+                  progress={launch.starting === suggestion.id ? launch.progress : undefined}
+                  recommended={false}
+                  starting={launch.starting === suggestion.id}
+                  onCancel={launch.generating ? launch.cancel : undefined}
+                  disabled={Boolean(launch.starting)}
+                  onStart={() => void launch.start(suggestion)}
+                />
+              ))}
+            </div>
+          </section>
+          <ContentGrid>
+            <Card as="section" className={styles.summary}>
+              <h2>{t("suggestions.learningSummary")}</h2>
+              <p>
+                {t("suggestions.recentSummary", {
+                  corrections: snapshot.recentCorrections.length,
+                  patterns: snapshot.recurringMistakes.length,
+                })}
+              </p>
+              <ActionGroup>
+                <Button onPress={() => onNavigate("history")}>
+                  {t("dashboard.openHistory")}
+                </Button>
+                <Button onPress={() => onNavigate("vocabulary")}>
+                  {t("dashboard.openVocabulary")}
+                </Button>
+              </ActionGroup>
+            </Card>
+          </ContentGrid>
           <ActionGroup>
-            <Button
-
-              onPress={() => {
-                onNavigate("practice");
-              }}
-            >
-              {t("dashboard.openPractice")}
+            <Button onPress={() => onNavigate("practice")}>
+              {t("suggestions.choosePractice")}
             </Button>
-            <Button
-
-              onPress={() => {
-                onNavigate("writing");
-              }}
-            >
-              {t("dashboard.openWriting")}
+            <Button onPress={() => onNavigate("writing")}>
+              {t("suggestions.freeWriting")}
             </Button>
           </ActionGroup>
-        </Card>
-
-        <Card as="article">
-          <History aria-hidden="true" />
-          <h2>{t("dashboard.cards.corrections")}</h2>
-          {snapshot && snapshot.recentCorrections.length > 0 ? (
-            <ItemList>
-              {snapshot.recentCorrections.map((correction) => (
-                <li key={correction.correctionId}>
-                  {t("dashboard.correctionItem", {
-                    count: correction.changedSegmentCount,
-                    date: correction.createdAt.slice(0, 10),
-                  })}
-                </li>
-              ))}
-            </ItemList>
-          ) : (
-            <EmptyCard>{t("dashboard.emptyCorrections")}</EmptyCard>
-          )}
-          <Button
-
-            onPress={() => {
-              onNavigate("history");
-            }}
-          >
-            {t("dashboard.openHistory")}
-          </Button>
-        </Card>
-
-        <Card as="article">
-          <Repeat2 aria-hidden="true" />
-          <h2>{t("dashboard.cards.mistakes")}</h2>
-          {snapshot && snapshot.recurringMistakes.length > 0 ? (
-            <ItemList>
-              {snapshot.recurringMistakes.map((mistake) => (
-                <li key={mistake.mistakeId}>
-                  {t("dashboard.mistakeItem", {
-                    category:
-                      mistake.category.kind === "vocabulary"
-                        ? mistake.category.lemma
-                        : mistake.category.categoryKey,
-                    count: mistake.occurrenceCount,
-                  })}
-                </li>
-              ))}
-            </ItemList>
-          ) : (
-            <EmptyCard>{t("dashboard.emptyMistakes")}</EmptyCard>
-          )}
-        </Card>
-
-        <Card as="article">
-          <LibraryBig aria-hidden="true" />
-          <h2>{t("dashboard.cards.vocabulary")}</h2>
-          {snapshot && snapshot.dueVocabulary.length > 0 ? (
-            <ItemList>
-              {snapshot.dueVocabulary.map((entry) => (
-                <li key={entry.vocabularyId}>
-                  <strong>{entry.lemma}</strong> — {entry.meaning}
-                </li>
-              ))}
-            </ItemList>
-          ) : (
-            <EmptyCard>{t("dashboard.emptyVocabulary")}</EmptyCard>
-          )}
-          <Button
-
-            onPress={() => {
-              onNavigate("vocabulary");
-            }}
-          >
-            {t("dashboard.openVocabulary")}
-          </Button>
-        </Card>
-
-      </ContentGrid>
-      {snapshot && (
-        <p className={styles.refreshStamp} role="status">
-          {t("dashboard.refreshed", { time: snapshot.refreshedAt.slice(11, 16) })}
-        </p>
+        </>
       )}
     </Page>
   );

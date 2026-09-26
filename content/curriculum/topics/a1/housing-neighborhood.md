@@ -5,7 +5,7 @@ slug: housing-neighborhood
 band: a1
 domain: housing-neighborhood
 title: "A1: Housing and neighborhood"
-status: foundation-ready
+
 communicativeGoals:
   [
     "Ask what is needed to register a new address after moving.",
@@ -19,7 +19,7 @@ vocabularyFoundations:
   - key: address-registration
     description: "Use Wohnung, Anmeldung, Wohnungsgeberbestätigung, Termin, Ausweis, and Frist in a bounded everyday exchange."
 lessonFoundation:
-  explanation: "A reviewed A1 foundation for asking about address registration after moving. Administrative facts are time-sensitive and must be checked against the cited public-service sources before reuse."
+  explanation: "An A1 foundation for asking about address registration after moving. Administrative facts are time-sensitive and must be checked against the cited public-service sources before reuse."
   examples:
     ["Ich bin umgezogen. Wo kann ich mich anmelden?", "Welche Unterlagen brauche ich bitte?"]
 exerciseConcepts:
@@ -55,7 +55,7 @@ coverage:
 
 # A1: Housing and neighborhood
 
-This reviewed A1 foundation uses a concrete Germany everyday-life situation: asking about registering a new address after moving. It deliberately separates reusable German from changeable administrative facts.
+This A1 foundation uses a concrete Germany everyday-life situation: asking about registering a new address after moving. It deliberately separates reusable German from changeable administrative facts.
 
 Use the lesson foundation for explanation, the vocabulary foundation for reusable language, and the exercise concept for a bounded practice activity. The public-service sources describe the two-week registration period and region-dependent service details; learners should confirm current requirements with their responsible authority.
 

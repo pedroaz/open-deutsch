@@ -1,11 +1,8 @@
-# Desktop-specific instructions
+# Desktop boundaries
 
-The root instructions still apply. These rules cover Electron main, preload, and renderer work.
+Follow root `AGENTS.md` and [the desktop UI skill](../../.agents/skills/open-deutsch-desktop-ui/SKILL.md).
 
-- Keep main, preload, and renderer as separate TypeScript projects. The renderer must remain browser-only and must not import Node or privileged package APIs.
-- Create every `BrowserWindow` with context isolation and sandboxing enabled and Node integration disabled using explicit safe literals. Do not use Electron `remote` in any form.
-- Expose the smallest possible typed preload surface. Runtime-validate every IPC request and response, use explicit channel ownership, and keep filesystem, process, SQLite, App Server, and plugin operations in the main process.
-- Never expose learner paths or content through renderer logs, error strings, or live-journey output.
-- Add or run a Playwright journey only when the user explicitly requests that user-visible behavior. Use the production app, real services, accessible UI actions, and selected learner data; warn without pausing for confirmation, and do not use mocks or fake adapters.
-- Live journeys disable screenshots, traces, video, and DOM dumps. Inspect only bounded diagnostics and redacted application logs on failure.
-- Follow `docs/agent/design-direction.md`; the product authority remains `docs/design-direction.md`.
+- Keep main, preload, and renderer TypeScript projects separate. Renderer is browser-only; main owns filesystem, processes, SQLite, App Server, and plugins.
+- Keep context isolation and sandboxing enabled and Node integration disabled. Never use Electron `remote`. Preload/IPC stays narrow, typed, and runtime-validated in both directions.
+- Verify changed behavior using [the interactive Electron skill](../../.agents/skills/open-deutsch-electron-verification/SKILL.md), real services, and GPT-6 Luna for AI calls. No automated tests or saved journeys.
+- Session screenshots/UI snapshots are allowed; learner content, paths, credentials, and raw protocols never enter application logs or diagnostic errors. Restore settings and clean up only the session's newly created records through the UI.

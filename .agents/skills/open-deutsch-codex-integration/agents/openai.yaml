@@ -1,0 +1,4 @@
+interface:
+  display_name: "Open Deutsch Codex Integration"
+  short_description: "Maintain App Server, MCP, and plugin boundaries"
+  default_prompt: "Use $open-deutsch-codex-integration to diagnose this integration and update its supported behavior."

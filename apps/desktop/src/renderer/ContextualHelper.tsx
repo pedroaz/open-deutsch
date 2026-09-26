@@ -1,3 +1,5 @@
+import { useOperationProgress } from "./useOperationProgress.js";
+import { OperationProgress } from "./OperationProgress.js";
 import {
   contextualHelpCandidateSchema,
   type AppServerCandidateOutputMap,
@@ -45,6 +47,7 @@ export function ContextualHelper({
   requestAiAccess: () => Promise<boolean>;
 }) {
   const { t } = useTranslation();
+  const progress = useOperationProgress();
   const [question, setQuestion] = useState("");
   const [turns, setTurns] = useState<readonly HelperTurn[]>([]);
   const [stage, setStage] = useState<"idle" | "queued" | "running" | "validating">("idle");
@@ -72,13 +75,14 @@ export function ContextualHelper({
           event.submissionId === submissionId.current
         ) {
           setOperationId(event.operationId);
-          setStage(event.stage === "validating" ? "validating" : "running");
+          setStage(event.stage === "queued" || event.stage === "starting" ? "queued" : event.stage === "validating" ? "validating" : "running");
         }
         if (
           event.event === "learning-operation-finished" &&
           event.kind === "contextual-help" &&
           event.submissionId === submissionId.current
         ) {
+          submissionId.current = undefined;
           setOperationId(undefined);
           setStage("idle");
           if (event.outcome.status === "validated") {
@@ -111,6 +115,7 @@ export function ContextualHelper({
     if (!selection || stage !== "idle" || !(await requestAiAccess())) return;
     const nextSubmissionId = createDesktopSubmissionId();
     submissionId.current = nextSubmissionId;
+    progress.begin(nextSubmissionId, "contextual-help");
     submittedRequests.current.set(nextSubmissionId, request);
     setStage("queued");
     setError(undefined);
@@ -129,7 +134,7 @@ export function ContextualHelper({
             : {}),
         },
       });
-      setOperationId(result.operationId);
+      if (submissionId.current === nextSubmissionId) setOperationId(result.operationId);
     } catch (cause) {
       setStage("idle");
       submittedRequests.current.delete(nextSubmissionId);
@@ -231,6 +236,7 @@ export function ContextualHelper({
             ))}
       </div>
       <div className={styles.helperComposer}>
+        <OperationProgress progress={stage === "idle" ? undefined : progress.progress} />
             <textarea
               aria-label={t("helper.messageLabel")}
               disabled={!selection || stage !== "idle"}
@@ -270,6 +276,7 @@ export function ContextualHelper({
               </Button>
               {operationId ? (
                 <Button
+                  variant="secondary"
                   leadingIcon={<Square aria-hidden="true" />}
                   onPress={() => {
                     if (operationId) {

@@ -115,7 +115,9 @@ export function CorrectionComparison({
     <article className={styles.correctionReady} aria-label={t("writing.correctionReady")}>
       <p className={styles.eyebrow}>{t("writing.correctionReady")}</p>
       <h2>{t("writing.correctedText")}</h2>
-      <p className={styles.correctedPriority}>{correction.correctedText}</p>
+      {changes.length === 0 && (
+        <p className={styles.correctedPriority}>{correction.correctedText}</p>
+      )}
       <Muted as="p">{correction.summary}</Muted>
       {changes.length > 0 ? (
         <>
@@ -144,8 +146,7 @@ export function CorrectionComparison({
               ),
             )}
           </p>
-          <section aria-labelledby="mistake-list-heading">
-            <h3 id="mistake-list-heading">{t("writing.mistakes", { count: changes.length })}</h3>
+          <Disclosure label={t("writing.mistakes", { count: changes.length })}>
             <ul className={styles.correctionMistakes}>
               {changes.map((segment) => {
                 const itemCandidate = candidateFor(segment);
@@ -173,7 +174,7 @@ export function CorrectionComparison({
                 );
               })}
             </ul>
-          </section>
+          </Disclosure>
           <section className={styles.correctionHelper} aria-live="polite">
             <h3>{t("writing.changeHeading", { number: Number(selected?.changeId.slice(7)) })}</h3>
             <p>
@@ -192,8 +193,7 @@ export function CorrectionComparison({
               </p>
             ) : null}
           </section>
-          <section aria-labelledby="side-by-side-heading">
-            <h3 id="side-by-side-heading">{t("writing.sideBySide")}</h3>
+          <Disclosure label={t("writing.sideBySide")}>
             <DiffView
               corrected={
                 <AlignedPane
@@ -221,12 +221,11 @@ export function CorrectionComparison({
               }
               originalLabel={t("writing.originalText")}
             />
-          </section>
+          </Disclosure>
         </>
       ) : (
         <div className={styles.noChanges} role="status">
           <strong>{t("writing.noChanges")}</strong>
-          <p>{correction.correctedText}</p>
         </div>
       )}
       {correction.naturalAlternative ? (

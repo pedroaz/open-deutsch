@@ -7,7 +7,10 @@
   font-weight: var(--od-weight-medium);
   gap: var(--od-space-2);
   justify-content: center;
-  min-height: var(--od-control-min);
+  min-height: var(--od-control-small);
+  min-width: 0;
+  max-width: 100%;
+  font-size: var(--od-font-size-sm);
   padding: var(--od-space-2) var(--od-space-4);
 }
 
@@ -100,4 +103,27 @@
   .spinner {
     animation: none;
   }
+}
+
+.content {
+  display: contents;
+}
+.button svg {
+  flex: none;
+  height: var(--od-icon-md);
+  width: var(--od-icon-md);
+}
+.quiet {
+  background: transparent;
+  color: var(--od-color-primary);
+}
+.quiet:hover,
+.quiet[data-pressed],
+.quiet[aria-pressed="true"] {
+  background: var(--od-color-primary-soft);
+}
+.button[aria-pressed="true"] {
+  background: var(--od-color-primary-soft);
+  border-color: var(--od-color-primary);
+  color: var(--od-color-primary);
 }

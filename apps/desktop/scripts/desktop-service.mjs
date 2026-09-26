@@ -4,6 +4,7 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { processOutputLevel } from "../../../scripts/lib/log-view.mjs";
 
 const desktopRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = path.resolve(desktopRoot, "../..");
@@ -27,7 +28,7 @@ function start(command, args, environment = process.env, essential = false) {
     env: environment,
     stdio: ["ignore", "pipe", "pipe"],
   });
-  attachOutput(child, command);
+  attachOutput(child, command, args.includes("electron") ? "electron" : "build");
   children.add(child);
   child.once("exit", (code, signal) => {
     children.delete(child);
@@ -40,10 +41,10 @@ function start(command, args, environment = process.env, essential = false) {
   return child;
 }
 
-function attachOutput(child, command) {
+function attachOutput(child, command, component) {
   let stdout = "";
   let stderr = "";
-  const emit = (severity, stream, line) => {
+  const emit = (stream, line) => {
     const home = process.env["HOME"];
     const safe = line
       .replaceAll("\u001b[2K", "")
@@ -55,30 +56,48 @@ function attachOutput(child, command) {
       .trim()
       .slice(0, 1_000);
     if (!safe) return;
+    const level = processOutputLevel(safe, stream, stopping).toUpperCase();
     process.stdout.write(
-      `${new Date().toISOString()} ${severity} ${stream === "stderr" ? "electron" : "build"} PROCESS_${stream.toUpperCase()} run=${serviceRunId} session=${serviceSessionId} correlation=- action=${command.replace(/[^a-z0-9]+/giu, "-").toLowerCase()} phase=running outcome=- duration_ms=- ${safe}\n`,
+      `${new Date().toISOString()} ${level} ${component} PROCESS_${stream.toUpperCase()} run=${serviceRunId} session=${serviceSessionId} correlation=- action=${command.replace(/[^a-z0-9]+/giu, "-").toLowerCase()} phase=running outcome=- duration_ms=- ${safe}\n`,
     );
   };
-  const consume = (severity, stream, chunk) => {
+  const consume = (stream, chunk) => {
     const state = stream === "stderr" ? stderr : stdout;
     const lines = `${state}${chunk.toString("utf8")}`.split("\n");
     const remainder = lines.pop() ?? "";
-    for (const line of lines) emit(severity, stream, line);
+    for (const line of lines) emit(stream, line);
     if (stream === "stderr") stderr = remainder;
     else stdout = remainder;
   };
-  child.stdout.on("data", (chunk) => consume("INFO", "stdout", chunk));
-  child.stderr.on("data", (chunk) => consume("WARN", "stderr", chunk));
+  child.stdout.on("data", (chunk) => consume("stdout", chunk));
+  child.stderr.on("data", (chunk) => consume("stderr", chunk));
   child.once("close", () => {
-    if (stdout) emit("INFO", "stdout", stdout);
-    if (stderr) emit("WARN", "stderr", stderr);
+    if (stdout) emit("stdout", stdout);
+    if (stderr) emit("stderr", stderr);
   });
 }
 
-async function run(command, args) {
+async function run(command, args, stage) {
+  const startedAt = Date.now();
+  const logStage = (phase) => {
+    process.stdout.write(
+      `${new Date().toISOString()} DEBUG build DESKTOP_BUILD_STAGE run=${serviceRunId} session=${serviceSessionId} correlation=- action=${stage} phase=${phase} outcome=- duration_ms=${Date.now() - startedAt} ${stage}\n`,
+    );
+  };
+  logStage("started");
   const child = start(command, args);
-  const [code] = await once(child, "exit");
-  if (code !== 0) throw new Error(`${command} exited with ${String(code)}.`);
+  const progress = setInterval(() => logStage("running"), 15_000);
+  try {
+    const [code, signal] = await once(child, "exit");
+    if (code !== 0) {
+      throw new Error(
+        `${stage} failed: ${command} ${signal ? `received ${signal}` : `exited with ${String(code)}`}.`,
+      );
+    }
+    logStage("completed");
+  } finally {
+    clearInterval(progress);
+  }
 }
 
 async function waitForVite(url) {
@@ -112,22 +131,23 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
 try {
   let rendererUrl;
   if (mode === "dev") {
-    await run("pnpm", [
-      "exec",
-      "tsc",
-      "-b",
-      "apps/desktop/tsconfig.main.json",
-      "apps/desktop/tsconfig.preload.json",
-    ]);
-    await run("pnpm", [
-      "--dir",
-      "apps/desktop",
-      "exec",
-      "vite",
-      "build",
-      "--config",
-      "vite.preload.config.ts",
-    ]);
+    await run("node", ["apps/desktop/scripts/generate-css-types.mjs"], "css-module-types");
+    await run(
+      "pnpm",
+      [
+        "exec",
+        "tsc",
+        "-b",
+        "apps/desktop/tsconfig.main.json",
+        "apps/desktop/tsconfig.preload.json",
+      ],
+      "compile-electron",
+    );
+    await run(
+      "pnpm",
+      ["--dir", "apps/desktop", "exec", "vite", "build", "--config", "vite.preload.config.ts"],
+      "bundle-preload",
+    );
     start(
       "pnpm",
       [

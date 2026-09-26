@@ -105,7 +105,9 @@ export function ConfirmDialog(props: {
                   >
                     {props.confirm}
                   </Button>
-                  <Button isDisabled={pending} onPress={close}>{props.cancel}</Button>
+                  <Button variant="secondary" isDisabled={pending} onPress={close}>
+                    {props.cancel}
+                  </Button>
                 </div>
               </>
             )}

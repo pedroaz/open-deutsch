@@ -1,158 +1,62 @@
-
-
-.writingLayout {
-  display: grid;
-  gap: var(--od-space-5);
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.promptActions {
-  align-items: end;
-  background: var(--od-color-surface);
-  border: var(--od-border-thin) solid var(--od-color-border);
-  border-radius: var(--od-radius-lg);
+.writingLayout,
+.writingEditor {
   display: grid;
   gap: var(--od-space-4);
-  grid-template-columns: minmax(0, 1fr) auto;
-  margin-bottom: var(--od-space-5);
-  padding: var(--od-space-4);
+  min-width: 0;
 }
-
-.promptActions h2,
-.promptActions p,
-.generatedPrompt h3 {
-  margin: 0;
+.promptActions {
+  display: grid;
+  gap: var(--od-space-3);
+  min-width: 0;
 }
-
-.promptActions > .generatedPrompt {
-  grid-column: 1 / -1;
-}
-
 .promptActionButtons {
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
-
 .generatedPrompt {
-  background: var(--od-color-surface-muted);
-  border-inline-start: var(--od-border-strong) solid var(--od-color-accent);
-  border-radius: var(--od-radius-md);
+  border-inline-start: var(--od-border-strong) solid var(--od-color-primary);
   display: grid;
   gap: var(--od-space-2);
-  padding: var(--od-space-4);
+  padding: var(--od-space-3) var(--od-space-4);
 }
-
-.generatedPrompt ul {
+.generatedPrompt > * {
   margin: 0;
+}
+.generatedPrompt ul {
   padding-inline-start: var(--od-space-5);
 }
-
-.writingEditor,
 .writingOptions {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
   gap: var(--od-space-4);
 }
-
-.writingOptions {
-  align-items: end;
-  background: var(--od-color-surface);
-  border: var(--od-border-thin) solid var(--od-color-border);
-  border-radius: var(--od-radius-lg);
-  grid-template-columns:
-    auto minmax(var(--od-writing-option-medium), 0.7fr)
-    minmax(var(--od-writing-option-large), 1.3fr);
-  padding: var(--od-space-4);
-}
-
-.writingOptions h2,
-.writingOptions p {
-  margin: 0;
-}
-
-.writingOptions > p {
-  font-size: var(--od-font-size-sm);
-  grid-column: 1 / -1;
-}
-
-.writingOptionsHeading {
-  align-items: center;
-  align-self: center;
-  display: flex;
-  gap: var(--od-space-2);
-}
-
-.writingOptionsHeading h2 {
-  font-size: var(--od-font-size-lg);
-  white-space: nowrap;
-}
-
-.writingOptionsHeading svg {
-  color: var(--od-color-primary);
-  flex: none;
-  height: var(--od-icon-md);
-  width: var(--od-icon-md);
-}
-
 .writingTextarea {
   min-height: var(--od-writing-editor-min);
   resize: vertical;
 }
-
 .selectionStatus {
-  align-items: center;
-  color: var(--od-color-text-muted);
   display: flex;
-  font-size: var(--od-font-size-sm);
+  align-items: center;
   gap: var(--od-space-2);
+  color: var(--od-color-text-muted);
+  font-size: var(--od-font-size-xs);
   margin: 0;
 }
-
 .selectionStatus svg {
-  height: var(--od-icon-sm);
   width: var(--od-icon-sm);
+  height: var(--od-icon-sm);
+  flex: none;
 }
-
-.eyebrow {
-  color: var(--od-color-primary);
+.draftNotice {
   font-size: var(--od-font-size-xs);
-  font-weight: var(--od-weight-strong);
-  letter-spacing: var(--od-letter-wide);
-  margin: 0 0 var(--od-space-2);
-  text-transform: uppercase;
+  margin: 0;
 }
-
-@media (max-width: 68rem) {
-
-  .promptActionButtons {
-    flex-wrap: wrap;
-  }
-
-  .writingOptions {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .writingOptionsHeading,
-  .writingOptions > p {
-    grid-column: 1 / -1;
-  }
-
-  .promptActions {
-    align-items: start;
-    grid-template-columns: 1fr;
-  }
+.eyebrow {
+  color: var(--od-color-text-muted);
+  font-size: var(--od-font-size-xs);
 }
-
-@media (max-width: 52rem) {
-
-  .writingLayout {
-    grid-template-columns: 1fr;
-  }
-
+@container workspace (max-width: 42rem) {
   .writingOptions {
     grid-template-columns: 1fr;
-  }
-
-  .writingOptionsHeading,
-  .writingOptions > p {
-    grid-column: 1;
   }
 }

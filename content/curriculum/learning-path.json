@@ -1,0 +1,2766 @@
+{
+  "schemaVersion": 1,
+  "version": "a1-2026-09-v1",
+  "sources": [
+    {
+      "id": "cefr-levels",
+      "title": "The CEFR Levels",
+      "url": "https://www.coe.int/en/web/common-european-framework-reference-languages/level-descriptions",
+      "publisher": "Council of Europe",
+      "reviewedOn": "2026-09-26",
+      "claim": "A1 communicative outcomes and locally defined subdivisions; not an official grammar order."
+    },
+    {
+      "id": "goethe-a1-scope",
+      "title": "A1 – Description of Course Content",
+      "url": "https://www.goethe.de/resources/files/pdf315/a1-panorama---description-of-course-content-v1.pdf",
+      "publisher": "Goethe-Institut",
+      "reviewedOn": "2026-09-26",
+      "claim": "General everyday A1 topic coverage; this course uses its own A1.1/A1.2 split and original explanations."
+    },
+    {
+      "id": "goethe-a1-practice",
+      "title": "Practice materials Goethe-Zertifikat A1",
+      "url": "https://www.goethe.de/ins/de/en/prf/prf/gzsd1/ueb.html",
+      "publisher": "Goethe-Institut",
+      "reviewedOn": "2026-09-26",
+      "claim": "A1 practice spans reading, writing, listening and speaking; no exam tasks are copied."
+    }
+  ],
+  "units": [
+    {
+      "id": "introductions",
+      "stage": "a1-1",
+      "title": {
+        "en": "Introduce yourself",
+        "de": "Sich vorstellen"
+      },
+      "prerequisites": [],
+      "grammar": {
+        "en": "Greetings, du/Sie, personal pronouns, sein, alphabet and spelling.",
+        "de": "Begrüßungen, du/Sie, Personalpronomen, sein, Alphabet und Buchstabieren."
+      },
+      "explanation": {
+        "en": "Use Hallo with people you know and Guten Tag in a polite first meeting. Use du for one person informally; use Sie with an adult you do not know in a formal situation. Sie takes the same verb form as sie meaning they: Wie heißen Sie? In a statement the conjugated verb is in second position: Ich bin Ana. In a yes/no question it comes first: Sind Sie Ana? A question word comes before the verb: Wie heißen Sie? Learn sein as a useful irregular verb: ich bin, du bist, er/sie/es ist, wir sind, ihr seid, sie/Sie sind. Personal names and all German nouns begin with a capital letter. To spell your name, learn the German letter names; ä, ö, ü and ß are distinct from a, o, u and s. In Voice, ask to hear and repeat letters and short names slowly. You can ask Wie bitte? or Bitte langsam when you need another chance to understand.\n\nLetter names to practise: A (ah), B (beh), C (tseh), D (deh), E (eh), F (eff), G (geh), H (hah), I (ee), J (yott), K (kah), L (ell), M (emm), N (enn), O (oh), P (peh), Q (koo), R (err), S (ess), T (teh), U (oo), V (fow), W (veh), X (iks), Y (üpsilon), Z (tsett). These English-friendly hints are approximate; hear the sounds in Voice. Spell Ana as A–N–A. Ä, Ö and Ü are vowel letters with an umlaut; ß is called Eszett or scharfes S. Learn Bitte buchstabieren Sie as a whole polite request for now. Informally ask: Wie heißt du?",
+        "de": "Mit bekannten Personen passt Hallo; bei einer höflichen ersten Begegnung passt Guten Tag. Du ist informell. Sie passt in formellen Situationen mit unbekannten Erwachsenen: Wie heißen Sie? Im Aussagesatz steht das konjugierte Verb an zweiter Stelle: Ich bin Ana. In einer Ja/Nein-Frage steht es zuerst: Sind Sie Ana? Ein Fragewort steht vor dem Verb: Wie heißen Sie? Lerne sein als unregelmäßiges Verb: ich bin, du bist, er/sie/es ist, wir sind, ihr seid, sie/Sie sind. Namen und deutsche Nomen beginnen mit einem Großbuchstaben. Übe im Voice-Gespräch die deutschen Buchstabennamen und kurze Namen langsam. Ä, ö, ü und ß unterscheiden sich von a, o, u und s. Mit Wie bitte? oder Bitte langsam kannst du um Hilfe bitten.\n\nBuchstabennamen: A, Be, Ce, De, E, Eff, Ge, Ha, I, Jot, Ka, Ell, Emm, Enn, O, Pe, Qu, Err, Ess, Te, U, Vau, We, Ix, Ypsilon, Zett. Höre die Aussprache in Voice und sprich langsam nach. Ana buchstabierst du A–N–A. Ä, Ö und Ü sind Vokale mit Umlaut; ß heißt Eszett oder scharfes S. Lerne Bitte buchstabieren Sie zunächst als feste höfliche Bitte. Informell fragst du: Wie heißt du?"
+      },
+      "examples": [
+        {
+          "german": "Guten Tag!",
+          "meaning": {
+            "en": "Hello!",
+            "de": "Eine höfliche Begrüßung."
+          }
+        },
+        {
+          "german": "Ich bin Ana.",
+          "meaning": {
+            "en": "I am Ana.",
+            "de": "Ich stelle mich vor."
+          }
+        },
+        {
+          "german": "Wie heißen Sie?",
+          "meaning": {
+            "en": "What is your name? (formal)",
+            "de": "Ich frage höflich nach dem Namen."
+          }
+        },
+        {
+          "german": "Bitte buchstabieren Sie Ihren Namen.",
+          "meaning": {
+            "en": "Please spell your name.",
+            "de": "Ich bitte um die einzelnen Buchstaben."
+          }
+        }
+      ],
+      "vocabulary": [
+        {
+          "german": "Hallo",
+          "meaning": {
+            "en": "hello",
+            "de": "Begrüßung"
+          }
+        },
+        {
+          "german": "Guten Tag",
+          "meaning": {
+            "en": "hello (formal)",
+            "de": "höfliche Begrüßung"
+          }
+        },
+        {
+          "german": "Tschüss",
+          "meaning": {
+            "en": "bye",
+            "de": "Abschiedsgruß"
+          }
+        },
+        {
+          "german": "bitte",
+          "meaning": {
+            "en": "please",
+            "de": "Wort für eine höfliche Bitte"
+          }
+        },
+        {
+          "german": "danke",
+          "meaning": {
+            "en": "thank you",
+            "de": "Wort zum Bedanken"
+          }
+        },
+        {
+          "german": "der Name",
+          "meaning": {
+            "en": "name",
+            "de": "Bezeichnung einer Person"
+          }
+        },
+        {
+          "german": "heißen",
+          "meaning": {
+            "en": "to be called",
+            "de": "einen Namen haben"
+          }
+        },
+        {
+          "german": "sein",
+          "meaning": {
+            "en": "to be",
+            "de": "Verb: ich bin, du bist"
+          }
+        },
+        {
+          "german": "langsam",
+          "meaning": {
+            "en": "slowly",
+            "de": "nicht schnell"
+          }
+        },
+        {
+          "german": "buchstabieren",
+          "meaning": {
+            "en": "to spell",
+            "de": "einzelne Buchstaben nennen"
+          }
+        }
+      ],
+      "objectives": [
+        {
+          "id": "introductions-reading",
+          "skill": "reading",
+          "description": {
+            "en": "Find a person’s name and greeting in a short introduction.",
+            "de": "Finde Name und Gruß in einer kurzen Vorstellung."
+          },
+          "criterion": {
+            "en": "Identify the relevant people, action and stated details from the supplied text; do not require inference beyond A1.",
+            "de": "Erkenne relevante Personen, Handlung und ausdrücklich genannte Angaben; verlange keine über A1 hinausgehenden Schlussfolgerungen."
+          }
+        },
+        {
+          "id": "introductions-writing",
+          "skill": "writing",
+          "description": {
+            "en": "Write a greeting, a fictional name and a question about another person’s name.",
+            "de": "Schreibe einen Gruß, einen erfundenen Namen und eine Frage nach dem Namen."
+          },
+          "criterion": {
+            "en": "Convey the requested details in short understandable sentences. Accept meaningful A1 errors; distinguish missing meaning from minor spelling.",
+            "de": "Vermittle die gefragten Angaben in kurzen verständlichen Sätzen. Akzeptiere typische A1-Fehler; unterscheide fehlende Bedeutung von kleinen Schreibfehlern."
+          }
+        },
+        {
+          "id": "introductions-listening",
+          "skill": "listening",
+          "description": {
+            "en": "Listen to the short, slowly spoken text and find the details: What is her first name? What does she ask the other person to do?",
+            "de": "Höre den kurzen, langsam gesprochenen Text und finde die Angaben: Wie heißt sie mit Vornamen? Was soll die andere Person tun?"
+          },
+          "criterion": {
+            "en": "Identify the key details after slow delivery and repetition on request. Record repetitions and support; do not infer pronunciation from listening answers.",
+            "de": "Erkenne die wichtigen Angaben bei langsamem Sprechen und Wiederholung auf Wunsch. Halte Hilfen fest; leite aus Hörantworten keine Aussprachebewertung ab."
+          }
+        },
+        {
+          "id": "introductions-speaking",
+          "skill": "speaking",
+          "description": {
+            "en": "Greet a partner, introduce yourself and spell a fictional name.",
+            "de": "Begrüße eine Person, stelle dich vor und buchstabiere einen erfundenen Namen."
+          },
+          "criterion": {
+            "en": "Complete the simple exchange with an interlocutor who speaks slowly and helps. Record actual support and uncertainty; do not claim pronunciation evidence from text.",
+            "de": "Bewältige den einfachen Austausch mit einer langsam sprechenden, helfenden Person. Halte Hilfen und Unsicherheit fest; behaupte keine Aussprachebelege aus Text."
+          }
+        }
+      ],
+      "tasks": {
+        "practice": {
+          "en": "Practise this unit’s words and sentence patterns in short exercises. Reuse earlier language; explain any essential new words.",
+          "de": "Übe Wörter und Satzmuster dieser Einheit in kurzen Aufgaben. Nutze bekannte Sprache; nötige neue Wörter werden erklärt."
+        },
+        "reading": {
+          "en": "Find a person’s name and greeting in a short introduction. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Finde Name und Gruß in einer kurzen Vorstellung. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "writing": {
+          "en": "Write a greeting, a fictional name and a question about another person’s name. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Schreibe einen Gruß, einen erfundenen Namen und eine Frage nach dem Namen. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "listening": {
+          "en": "Listen to the short exchange in Voice, without reading the script first. Ask for repetition if needed, then answer the detail questions. For a challenge, ask for a fresh equivalent exchange using only this unit’s language.",
+          "de": "Höre den kurzen Austausch in Voice, ohne vorher das Skript zu lesen. Bitte bei Bedarf um Wiederholung und beantworte die Fragen. Für eine Challenge nutze einen neuen gleichwertigen Austausch mit der Sprache dieser Einheit."
+        },
+        "speaking": {
+          "en": "Greet a partner, introduce yourself and spell a fictional name. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Begrüße eine Person, stelle dich vor und buchstabiere einen erfundenen Namen. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        }
+      },
+      "listeningScript": "Hallo! Ich bin Ana. Mein Name ist Ana Ruiz. Bitte sagen Sie Ihren Namen langsam. Danke!",
+      "listeningQuestions": [
+        {
+          "en": "What is her first name?",
+          "de": "Wie heißt sie mit Vornamen?"
+        },
+        {
+          "en": "What does she ask the other person to do?",
+          "de": "Was soll die andere Person tun?"
+        }
+      ],
+      "listeningAnswers": [
+        {
+          "en": "Ana.",
+          "de": "Ana."
+        },
+        {
+          "en": "Say their name slowly / den Namen langsam sagen.",
+          "de": "den Namen langsam sagen."
+        }
+      ],
+      "sourceIds": ["cefr-levels", "goethe-a1-scope", "goethe-a1-practice"],
+      "curriculumTopicIds": ["curriculum-topic_0000000000000001"]
+    },
+    {
+      "id": "personal-details",
+      "stage": "a1-1",
+      "title": {
+        "en": "Exchange personal details",
+        "de": "Persönliche Angaben austauschen"
+      },
+      "prerequisites": ["introductions"],
+      "grammar": {
+        "en": "Present-tense endings, wohnen/kommen/heißen, question words, numbers and contact details.",
+        "de": "Präsensendungen, wohnen/kommen/heißen, Fragewörter, Zahlen und Kontaktdaten."
+      },
+      "explanation": {
+        "en": "For many present-tense verbs, remove -en and add an ending: wohnen → ich wohne, du wohnst, er/sie wohnt, wir wohnen, ihr wohnt, sie/Sie wohnen. Some forms change spelling: du heißt. Ask Wo wohnen Sie? for a place and Woher kommen Sie? for origin. Use in with a city and aus with an origin: Ich wohne in Bonn. Ich komme aus Peru. Learn common country names with their articles separately rather than assuming every country behaves alike. Ask Wie alt bist du? and answer Ich bin zwanzig Jahre alt. Learn 0–20 first; from 21 the units precede the tens: einundzwanzig, zweiunddreißig. For telephone numbers, speaking one digit at a time is useful. In a form distinguish Vorname, Nachname, Straße, Hausnummer and Postleitzahl. Practice with fictional details, not your private address or telephone number.\n\nNumber bank: 0 null, 1 eins, 2 zwei, 3 drei, 4 vier, 5 fünf, 6 sechs, 7 sieben, 8 acht, 9 neun, 10 zehn, 11 elf, 12 zwölf, 13 dreizehn, 14 vierzehn, 15 fünfzehn, 16 sechzehn, 17 siebzehn, 18 achtzehn, 19 neunzehn, 20 zwanzig. Tens: dreißig, vierzig, fünfzig, sechzig, siebzig, achtzig, neunzig; 100 (ein)hundert, 1000 (ein)tausend. 21 is einundzwanzig, not einsundzwanzig. Country phrases include aus Deutschland, aus der Schweiz and aus der Türkei. Learn their articles with the phrases.",
+        "de": "Bei vielen Verben entfernst du -en und ergänzt eine Endung: wohnen → ich wohne, du wohnst, er/sie wohnt, wir wohnen, ihr wohnt, sie/Sie wohnen. Manche Formen brauchen besondere Schreibweisen: du heißt. Wo fragt nach einem Ort, woher nach der Herkunft: Ich wohne in Bonn. Ich komme aus Peru. Ländernamen mit Artikel lernst du als eigene Wendungen. Auf Wie alt bist du? antwortest du zum Beispiel: Ich bin zwanzig Jahre alt. Lerne zunächst die Zahlen 0–20. Ab 21 steht die Einerzahl vor der Zehnerzahl: einundzwanzig, zweiunddreißig. Telefonnummern kannst du Ziffer für Ziffer sagen. Unterscheide in Formularen Vorname, Nachname, Straße, Hausnummer und Postleitzahl. Übe mit erfundenen Angaben.\n\nZahlen: 0 null, 1 eins, 2 zwei, 3 drei, 4 vier, 5 fünf, 6 sechs, 7 sieben, 8 acht, 9 neun, 10 zehn, 11 elf, 12 zwölf, 13 dreizehn, 14 vierzehn, 15 fünfzehn, 16 sechzehn, 17 siebzehn, 18 achtzehn, 19 neunzehn, 20 zwanzig. Zehner: dreißig, vierzig, fünfzig, sechzig, siebzig, achtzig, neunzig; 100 (ein)hundert, 1000 (ein)tausend. Es heißt einundzwanzig, nicht einsundzwanzig. Lerne Länder mit passenden Wendungen: aus Deutschland, aus der Schweiz, aus der Türkei."
+      },
+      "examples": [
+        {
+          "german": "Ich wohne in Bonn.",
+          "meaning": {
+            "en": "I live in Bonn.",
+            "de": "Mein Wohnort ist Bonn."
+          }
+        },
+        {
+          "german": "Woher kommen Sie?",
+          "meaning": {
+            "en": "Where are you from?",
+            "de": "Ich frage nach der Herkunft."
+          }
+        },
+        {
+          "german": "Meine Nummer ist null, zwei, acht, eins.",
+          "meaning": {
+            "en": "My number is zero, two, eight, one.",
+            "de": "Ich nenne die Ziffern einzeln."
+          }
+        }
+      ],
+      "vocabulary": [
+        {
+          "german": "wohnen",
+          "meaning": {
+            "en": "to live",
+            "de": "an einem Ort leben"
+          }
+        },
+        {
+          "german": "kommen",
+          "meaning": {
+            "en": "to come",
+            "de": "hierhergehen oder eine Herkunft haben"
+          }
+        },
+        {
+          "german": "wo",
+          "meaning": {
+            "en": "where",
+            "de": "Frage nach einem Ort"
+          }
+        },
+        {
+          "german": "woher",
+          "meaning": {
+            "en": "where from",
+            "de": "Frage nach der Herkunft"
+          }
+        },
+        {
+          "german": "die Nummer",
+          "meaning": {
+            "en": "number",
+            "de": "Folge von Ziffern"
+          }
+        },
+        {
+          "german": "die Straße",
+          "meaning": {
+            "en": "street",
+            "de": "Weg in einer Stadt mit Häusern"
+          }
+        },
+        {
+          "german": "die Stadt",
+          "meaning": {
+            "en": "city",
+            "de": "größerer Ort"
+          }
+        },
+        {
+          "german": "das Land",
+          "meaning": {
+            "en": "country",
+            "de": "zum Beispiel Peru oder Deutschland"
+          }
+        },
+        {
+          "german": "das Alter",
+          "meaning": {
+            "en": "age",
+            "de": "Zahl der Lebensjahre"
+          }
+        },
+        {
+          "german": "die Adresse",
+          "meaning": {
+            "en": "address",
+            "de": "Angabe von Straße, Hausnummer und Ort"
+          }
+        },
+        {
+          "german": "der Vorname",
+          "meaning": {
+            "en": "first name",
+            "de": "zum Beispiel Ana"
+          }
+        },
+        {
+          "german": "der Nachname",
+          "meaning": {
+            "en": "surname",
+            "de": "zum Beispiel Sommer"
+          }
+        },
+        {
+          "german": "die Hausnummer",
+          "meaning": {
+            "en": "house number",
+            "de": "Nummer eines Hauses"
+          }
+        },
+        {
+          "german": "die Postleitzahl",
+          "meaning": {
+            "en": "postcode",
+            "de": "Zahlen für einen Postbezirk"
+          }
+        },
+        {
+          "german": "das Jahr, die Jahre",
+          "meaning": {
+            "en": "year, years",
+            "de": "zwölf Monate"
+          }
+        }
+      ],
+      "objectives": [
+        {
+          "id": "personal-details-reading",
+          "skill": "reading",
+          "description": {
+            "en": "Read a simple contact form and find name, city, age and number.",
+            "de": "Lies ein einfaches Kontaktformular und finde Name, Stadt, Alter und Nummer."
+          },
+          "criterion": {
+            "en": "Identify the relevant people, action and stated details from the supplied text; do not require inference beyond A1.",
+            "de": "Erkenne relevante Personen, Handlung und ausdrücklich genannte Angaben; verlange keine über A1 hinausgehenden Schlussfolgerungen."
+          }
+        },
+        {
+          "id": "personal-details-writing",
+          "skill": "writing",
+          "description": {
+            "en": "Fill a short form with a fictional name, city, age and telephone number.",
+            "de": "Fülle ein kurzes Formular mit erfundenem Namen, Ort, Alter und Telefonnummer aus."
+          },
+          "criterion": {
+            "en": "Convey the requested details in short understandable sentences. Accept meaningful A1 errors; distinguish missing meaning from minor spelling.",
+            "de": "Vermittle die gefragten Angaben in kurzen verständlichen Sätzen. Akzeptiere typische A1-Fehler; unterscheide fehlende Bedeutung von kleinen Schreibfehlern."
+          }
+        },
+        {
+          "id": "personal-details-listening",
+          "skill": "listening",
+          "description": {
+            "en": "Listen to the short, slowly spoken text and find the details: Where does Ben live? How old is he?",
+            "de": "Höre den kurzen, langsam gesprochenen Text und finde die Angaben: Wo wohnt Ben? Wie alt ist er?"
+          },
+          "criterion": {
+            "en": "Identify the key details after slow delivery and repetition on request. Record repetitions and support; do not infer pronunciation from listening answers.",
+            "de": "Erkenne die wichtigen Angaben bei langsamem Sprechen und Wiederholung auf Wunsch. Halte Hilfen fest; leite aus Hörantworten keine Aussprachebewertung ab."
+          }
+        },
+        {
+          "id": "personal-details-speaking",
+          "skill": "speaking",
+          "description": {
+            "en": "Ask and answer questions about name, origin, home city and age.",
+            "de": "Frage nach Name, Herkunft, Wohnort und Alter und antworte."
+          },
+          "criterion": {
+            "en": "Complete the simple exchange with an interlocutor who speaks slowly and helps. Record actual support and uncertainty; do not claim pronunciation evidence from text.",
+            "de": "Bewältige den einfachen Austausch mit einer langsam sprechenden, helfenden Person. Halte Hilfen und Unsicherheit fest; behaupte keine Aussprachebelege aus Text."
+          }
+        }
+      ],
+      "tasks": {
+        "practice": {
+          "en": "Practise this unit’s words and sentence patterns in short exercises. Reuse earlier language; explain any essential new words.",
+          "de": "Übe Wörter und Satzmuster dieser Einheit in kurzen Aufgaben. Nutze bekannte Sprache; nötige neue Wörter werden erklärt."
+        },
+        "reading": {
+          "en": "Read a simple contact form and find name, city, age and number. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Lies ein einfaches Kontaktformular und finde Name, Stadt, Alter und Nummer. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "writing": {
+          "en": "Fill a short form with a fictional name, city, age and telephone number. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Fülle ein kurzes Formular mit erfundenem Namen, Ort, Alter und Telefonnummer aus. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "listening": {
+          "en": "Listen to the short exchange in Voice, without reading the script first. Ask for repetition if needed, then answer the detail questions. For a challenge, ask for a fresh equivalent exchange using only this unit’s language.",
+          "de": "Höre den kurzen Austausch in Voice, ohne vorher das Skript zu lesen. Bitte bei Bedarf um Wiederholung und beantworte die Fragen. Für eine Challenge nutze einen neuen gleichwertigen Austausch mit der Sprache dieser Einheit."
+        },
+        "speaking": {
+          "en": "Ask and answer questions about name, origin, home city and age. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Frage nach Name, Herkunft, Wohnort und Alter und antworte. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        }
+      },
+      "listeningScript": "Ich heiße Ben Sommer. Ich wohne in Köln. Ich bin dreißig Jahre alt. Meine Telefonnummer ist null, eins, zwei, drei, vier. Das ist eine Übungsnummer.",
+      "listeningQuestions": [
+        {
+          "en": "Where does Ben live?",
+          "de": "Wo wohnt Ben?"
+        },
+        {
+          "en": "How old is he?",
+          "de": "Wie alt ist er?"
+        }
+      ],
+      "listeningAnswers": [
+        {
+          "en": "Köln.",
+          "de": "Köln."
+        },
+        {
+          "en": "30 / dreißig.",
+          "de": "dreißig."
+        }
+      ],
+      "sourceIds": ["cefr-levels", "goethe-a1-scope", "goethe-a1-practice"],
+      "curriculumTopicIds": ["curriculum-topic_0000000000000001"]
+    },
+    {
+      "id": "people",
+      "stage": "a1-1",
+      "title": {
+        "en": "Describe family and people",
+        "de": "Familie und Personen beschreiben"
+      },
+      "prerequisites": ["personal-details"],
+      "grammar": {
+        "en": "Articles, noun gender and plural, haben, possessives mein/dein, simple descriptions.",
+        "de": "Artikel, Genus und Plural, haben, mein/dein und einfache Beschreibungen."
+      },
+      "explanation": {
+        "en": "Learn a noun together with its article and plural: der Bruder – die Brüder; die Schwester – die Schwestern; das Kind – die Kinder. Grammatical gender is part of the word and cannot always be guessed. In the plural the definite article is die. Use ein/eine to introduce one person or thing: Das ist ein Kind. Ein has no ordinary plural: Das sind Kinder. Possessives follow a similar pattern: mein Bruder, meine Schwester, mein Kind, meine Kinder. Learn haben: ich habe, du hast, er/sie/es hat, wir haben, ihr habt, sie/Sie haben. For a simple description put an adjective after sein without an ending: Meine Schwester ist freundlich. Use er for der Bruder, sie for die Schwester and es for das Kind. To avoid assuming family circumstances, you can describe friends or fictional people instead.\n\nDein follows mein: dein Bruder, deine Schwester. Sein Bruder means his brother; ihr Bruder means her brother. Here ihr has a small i; formal Ihr will come later. In this unit use haben with plural nouns (Ich habe zwei Brüder); the next unit explains masculine singular objects (einen Bruder).",
+        "de": "Lerne Nomen mit Artikel und Plural: der Bruder – die Brüder; die Schwester – die Schwestern; das Kind – die Kinder. Das grammatische Geschlecht gehört zum Wort und ist nicht immer vorhersehbar. Im Plural heißt der bestimmte Artikel die. Mit ein/eine führst du eine Person oder Sache ein: Das ist ein Kind. Im Plural steht hier kein ein: Das sind Kinder. Possessivartikel folgen einem ähnlichen Muster: mein Bruder, meine Schwester, mein Kind, meine Kinder. Lerne haben: ich habe, du hast, er/sie/es hat, wir haben, ihr habt, sie/Sie haben. Nach sein bleibt ein Adjektiv ohne Endung: Meine Schwester ist freundlich. Du kannst statt deiner Familie auch Freunde oder erfundene Personen beschreiben.\n\nDein folgt dem Muster von mein: dein Bruder, deine Schwester. Sein Bruder bedeutet der Bruder von ihm; ihr Bruder der Bruder von ihr. Hier schreibt man ihr klein. Die höfliche Form Ihr kommt später. Übe haben hier mit Pluralformen: Ich habe zwei Brüder. Einen Bruder lernst du in der nächsten Einheit."
+      },
+      "examples": [
+        {
+          "german": "Das ist meine Schwester.",
+          "meaning": {
+            "en": "This is my sister.",
+            "de": "Ich stelle meine Schwester vor."
+          }
+        },
+        {
+          "german": "Wir haben zwei Kinder.",
+          "meaning": {
+            "en": "We have two children.",
+            "de": "Ich nenne die Zahl der Kinder."
+          }
+        },
+        {
+          "german": "Mein Freund ist freundlich.",
+          "meaning": {
+            "en": "My friend is friendly.",
+            "de": "Freundlich beschreibt die Person."
+          }
+        }
+      ],
+      "vocabulary": [
+        {
+          "german": "die Familie",
+          "meaning": {
+            "en": "family",
+            "de": "zum Beispiel Eltern und Kinder"
+          }
+        },
+        {
+          "german": "der Bruder",
+          "meaning": {
+            "en": "brother",
+            "de": "männliches Geschwister"
+          }
+        },
+        {
+          "german": "die Schwester",
+          "meaning": {
+            "en": "sister",
+            "de": "weibliches Geschwister"
+          }
+        },
+        {
+          "german": "das Kind",
+          "meaning": {
+            "en": "child",
+            "de": "junger Mensch"
+          }
+        },
+        {
+          "german": "die Eltern",
+          "meaning": {
+            "en": "parents",
+            "de": "Mutter und Vater"
+          }
+        },
+        {
+          "german": "der Freund",
+          "meaning": {
+            "en": "friend (male)",
+            "de": "männliche vertraute Person"
+          }
+        },
+        {
+          "german": "die Freundin",
+          "meaning": {
+            "en": "friend (female)",
+            "de": "weibliche vertraute Person"
+          }
+        },
+        {
+          "german": "haben",
+          "meaning": {
+            "en": "to have",
+            "de": "etwas besitzen"
+          }
+        },
+        {
+          "german": "freundlich",
+          "meaning": {
+            "en": "friendly",
+            "de": "nett zu anderen"
+          }
+        },
+        {
+          "german": "klein",
+          "meaning": {
+            "en": "small",
+            "de": "nicht groß"
+          }
+        }
+      ],
+      "objectives": [
+        {
+          "id": "people-reading",
+          "skill": "reading",
+          "description": {
+            "en": "Identify people and their relationships in a short description.",
+            "de": "Erkenne Personen und ihre Beziehungen in einer kurzen Beschreibung."
+          },
+          "criterion": {
+            "en": "Identify the relevant people, action and stated details from the supplied text; do not require inference beyond A1.",
+            "de": "Erkenne relevante Personen, Handlung und ausdrücklich genannte Angaben; verlange keine über A1 hinausgehenden Schlussfolgerungen."
+          }
+        },
+        {
+          "id": "people-writing",
+          "skill": "writing",
+          "description": {
+            "en": "Describe two fictional people and their relationship in three short sentences.",
+            "de": "Beschreibe zwei erfundene Personen und ihre Beziehung in drei kurzen Sätzen."
+          },
+          "criterion": {
+            "en": "Convey the requested details in short understandable sentences. Accept meaningful A1 errors; distinguish missing meaning from minor spelling.",
+            "de": "Vermittle die gefragten Angaben in kurzen verständlichen Sätzen. Akzeptiere typische A1-Fehler; unterscheide fehlende Bedeutung von kleinen Schreibfehlern."
+          }
+        },
+        {
+          "id": "people-listening",
+          "skill": "listening",
+          "description": {
+            "en": "Listen to the short, slowly spoken text and find the details: What is Sara’s brother called? Who is Mia?",
+            "de": "Höre den kurzen, langsam gesprochenen Text und finde die Angaben: Wie heißt Saras Bruder? Wer ist Mia?"
+          },
+          "criterion": {
+            "en": "Identify the key details after slow delivery and repetition on request. Record repetitions and support; do not infer pronunciation from listening answers.",
+            "de": "Erkenne die wichtigen Angaben bei langsamem Sprechen und Wiederholung auf Wunsch. Halte Hilfen fest; leite aus Hörantworten keine Aussprachebewertung ab."
+          }
+        },
+        {
+          "id": "people-speaking",
+          "skill": "speaking",
+          "description": {
+            "en": "Introduce two fictional people and answer simple questions about them.",
+            "de": "Stelle zwei erfundene Personen vor und beantworte einfache Fragen."
+          },
+          "criterion": {
+            "en": "Complete the simple exchange with an interlocutor who speaks slowly and helps. Record actual support and uncertainty; do not claim pronunciation evidence from text.",
+            "de": "Bewältige den einfachen Austausch mit einer langsam sprechenden, helfenden Person. Halte Hilfen und Unsicherheit fest; behaupte keine Aussprachebelege aus Text."
+          }
+        }
+      ],
+      "tasks": {
+        "practice": {
+          "en": "Practise this unit’s words and sentence patterns in short exercises. Reuse earlier language; explain any essential new words.",
+          "de": "Übe Wörter und Satzmuster dieser Einheit in kurzen Aufgaben. Nutze bekannte Sprache; nötige neue Wörter werden erklärt."
+        },
+        "reading": {
+          "en": "Identify people and their relationships in a short description. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Erkenne Personen und ihre Beziehungen in einer kurzen Beschreibung. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "writing": {
+          "en": "Describe two fictional people and their relationship in three short sentences. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Beschreibe zwei erfundene Personen und ihre Beziehung in drei kurzen Sätzen. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "listening": {
+          "en": "Listen to the short exchange in Voice, without reading the script first. Ask for repetition if needed, then answer the detail questions. For a challenge, ask for a fresh equivalent exchange using only this unit’s language.",
+          "de": "Höre den kurzen Austausch in Voice, ohne vorher das Skript zu lesen. Bitte bei Bedarf um Wiederholung und beantworte die Fragen. Für eine Challenge nutze einen neuen gleichwertigen Austausch mit der Sprache dieser Einheit."
+        },
+        "speaking": {
+          "en": "Introduce two fictional people and answer simple questions about them. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Stelle zwei erfundene Personen vor und beantworte einfache Fragen. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        }
+      },
+      "listeningScript": "Das ist meine Freundin Sara. Sie wohnt in Berlin. Ihr Bruder heißt Leo. Leo ist freundlich. Sara und Leo haben eine Schwester. Sie heißt Mia.",
+      "listeningQuestions": [
+        {
+          "en": "What is Sara’s brother called?",
+          "de": "Wie heißt Saras Bruder?"
+        },
+        {
+          "en": "Who is Mia?",
+          "de": "Wer ist Mia?"
+        }
+      ],
+      "listeningAnswers": [
+        {
+          "en": "Leo.",
+          "de": "Leo."
+        },
+        {
+          "en": "Their sister / ihre Schwester.",
+          "de": "ihre Schwester."
+        }
+      ],
+      "sourceIds": ["cefr-levels", "goethe-a1-scope", "goethe-a1-practice"],
+      "curriculumTopicIds": ["curriculum-topic_0000000000000001"]
+    },
+    {
+      "id": "shopping",
+      "stage": "a1-1",
+      "title": {
+        "en": "Buy everyday things",
+        "de": "Alltägliche Dinge kaufen"
+      },
+      "prerequisites": ["people"],
+      "grammar": {
+        "en": "Accusative objects, ein/einen, kein/keinen, quantities, prices and plural nouns.",
+        "de": "Akkusativobjekte, ein/einen, kein/keinen, Mengen, Preise und Pluralformen."
+      },
+      "explanation": {
+        "en": "A direct object tells us what someone buys, needs or has. Compare Das ist ein Apfel with Ich kaufe einen Apfel. Masculine articles change in the accusative: der → den, ein → einen, kein → keinen. Feminine and neuter forms remain die/eine and das/ein. Plural die remains die. Use kein to negate a noun with an indefinite article or no article: Ich brauche keinen Apfel. Wir haben keine Milch. Use nicht for a verb or adjective: Ich kaufe das nicht. Das ist nicht teuer. Ask Was kostet das? for one item and Was kosten die Tomaten? for several. Learn quantities as phrases: ein Kilo Tomaten, eine Flasche Wasser. Prices use Euro and Cent: zwei Euro fünfzig. Compare your shopping list with a short label and ask for clarification before buying.\n\nUseful plurals: der Apfel – die Äpfel, die Tomate – die Tomaten, die Flasche – die Flaschen. Compare ein Euro, zwei Euro and fünfzig Cent. A price label 2,50 € reads zwei Euro fünfzig. Ask Wie viel kostet das? or Wie viele Äpfel möchten Sie?",
+        "de": "Das direkte Objekt sagt, was jemand kauft, braucht oder hat. Vergleiche: Das ist ein Apfel. Ich kaufe einen Apfel. Im Akkusativ ändern sich die maskulinen Artikel: der → den, ein → einen, kein → keinen. Feminine und neutrale Formen bleiben die/eine und das/ein. Im Plural bleibt die. Mit kein verneinst du ein Nomen: Ich brauche keinen Apfel. Wir haben keine Milch. Nicht verneint zum Beispiel ein Verb oder Adjektiv: Ich kaufe das nicht. Das ist nicht teuer. Frage bei einer Sache Was kostet das? und bei mehreren Was kosten die Tomaten? Lerne Mengen als Wendungen: ein Kilo Tomaten, eine Flasche Wasser. Zwei Euro fünfzig bedeutet 2,50 Euro.\n\nNützliche Plurale: der Apfel – die Äpfel, die Tomate – die Tomaten, die Flasche – die Flaschen. Es heißt ein Euro, zwei Euro und fünfzig Cent. Ein Preisschild mit 2,50 € liest du zwei Euro fünfzig. Frage Wie viel kostet das? oder Wie viele Äpfel möchten Sie?"
+      },
+      "examples": [
+        {
+          "german": "Ich brauche einen Apfel.",
+          "meaning": {
+            "en": "I need an apple.",
+            "de": "Apfel ist maskulin und steht hier im Akkusativ."
+          }
+        },
+        {
+          "german": "Wir haben keine Milch.",
+          "meaning": {
+            "en": "We have no milk.",
+            "de": "Keine verneint Milch."
+          }
+        },
+        {
+          "german": "Was kostet eine Flasche Wasser?",
+          "meaning": {
+            "en": "How much is a bottle of water?",
+            "de": "Ich frage nach dem Preis."
+          }
+        }
+      ],
+      "vocabulary": [
+        {
+          "german": "kaufen",
+          "meaning": {
+            "en": "to buy",
+            "de": "etwas gegen Geld bekommen"
+          }
+        },
+        {
+          "german": "brauchen",
+          "meaning": {
+            "en": "to need",
+            "de": "etwas benötigen"
+          }
+        },
+        {
+          "german": "kosten",
+          "meaning": {
+            "en": "to cost",
+            "de": "einen Preis haben"
+          }
+        },
+        {
+          "german": "der Apfel",
+          "meaning": {
+            "en": "apple",
+            "de": "Obst, zum Beispiel rot oder grün"
+          }
+        },
+        {
+          "german": "die Milch",
+          "meaning": {
+            "en": "milk",
+            "de": "weißes Getränk"
+          }
+        },
+        {
+          "german": "das Wasser",
+          "meaning": {
+            "en": "water",
+            "de": "Getränk ohne Farbe"
+          }
+        },
+        {
+          "german": "die Flasche",
+          "meaning": {
+            "en": "bottle",
+            "de": "Behälter für Getränke"
+          }
+        },
+        {
+          "german": "das Kilo",
+          "meaning": {
+            "en": "kilogram",
+            "de": "tausend Gramm"
+          }
+        },
+        {
+          "german": "billig",
+          "meaning": {
+            "en": "cheap",
+            "de": "mit niedrigem Preis"
+          }
+        },
+        {
+          "german": "teuer",
+          "meaning": {
+            "en": "expensive",
+            "de": "mit hohem Preis"
+          }
+        },
+        {
+          "german": "der Euro",
+          "meaning": {
+            "en": "euro",
+            "de": "Geldeinheit"
+          }
+        },
+        {
+          "german": "der Cent",
+          "meaning": {
+            "en": "cent",
+            "de": "ein Hundertstel Euro"
+          }
+        },
+        {
+          "german": "zusammen",
+          "meaning": {
+            "en": "altogether",
+            "de": "alles gemeinsam"
+          }
+        }
+      ],
+      "objectives": [
+        {
+          "id": "shopping-reading",
+          "skill": "reading",
+          "description": {
+            "en": "Match a shopping list to quantities and prices on labels.",
+            "de": "Ordne einer Einkaufsliste Mengen und Preise auf Schildern zu."
+          },
+          "criterion": {
+            "en": "Identify the relevant people, action and stated details from the supplied text; do not require inference beyond A1.",
+            "de": "Erkenne relevante Personen, Handlung und ausdrücklich genannte Angaben; verlange keine über A1 hinausgehenden Schlussfolgerungen."
+          }
+        },
+        {
+          "id": "shopping-writing",
+          "skill": "writing",
+          "description": {
+            "en": "Write a shopping list with three items and their quantities.",
+            "de": "Schreibe eine Einkaufsliste mit drei Waren und Mengen."
+          },
+          "criterion": {
+            "en": "Convey the requested details in short understandable sentences. Accept meaningful A1 errors; distinguish missing meaning from minor spelling.",
+            "de": "Vermittle die gefragten Angaben in kurzen verständlichen Sätzen. Akzeptiere typische A1-Fehler; unterscheide fehlende Bedeutung von kleinen Schreibfehlern."
+          }
+        },
+        {
+          "id": "shopping-listening",
+          "skill": "listening",
+          "description": {
+            "en": "Listen to the short, slowly spoken text and find the details: How many apples does the person buy? What is the total price?",
+            "de": "Höre den kurzen, langsam gesprochenen Text und finde die Angaben: Wie viele Äpfel kauft die Person? Wie hoch ist der Gesamtpreis?"
+          },
+          "criterion": {
+            "en": "Identify the key details after slow delivery and repetition on request. Record repetitions and support; do not infer pronunciation from listening answers.",
+            "de": "Erkenne die wichtigen Angaben bei langsamem Sprechen und Wiederholung auf Wunsch. Halte Hilfen fest; leite aus Hörantworten keine Aussprachebewertung ab."
+          }
+        },
+        {
+          "id": "shopping-speaking",
+          "skill": "speaking",
+          "description": {
+            "en": "Ask for two items, ask the price and say what you do not need.",
+            "de": "Bitte um zwei Waren, frage nach dem Preis und sage, was du nicht brauchst."
+          },
+          "criterion": {
+            "en": "Complete the simple exchange with an interlocutor who speaks slowly and helps. Record actual support and uncertainty; do not claim pronunciation evidence from text.",
+            "de": "Bewältige den einfachen Austausch mit einer langsam sprechenden, helfenden Person. Halte Hilfen und Unsicherheit fest; behaupte keine Aussprachebelege aus Text."
+          }
+        }
+      ],
+      "tasks": {
+        "practice": {
+          "en": "Practise this unit’s words and sentence patterns in short exercises. Reuse earlier language; explain any essential new words.",
+          "de": "Übe Wörter und Satzmuster dieser Einheit in kurzen Aufgaben. Nutze bekannte Sprache; nötige neue Wörter werden erklärt."
+        },
+        "reading": {
+          "en": "Match a shopping list to quantities and prices on labels. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Ordne einer Einkaufsliste Mengen und Preise auf Schildern zu. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "writing": {
+          "en": "Write a shopping list with three items and their quantities. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Schreibe eine Einkaufsliste mit drei Waren und Mengen. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "listening": {
+          "en": "Listen to the short exchange in Voice, without reading the script first. Ask for repetition if needed, then answer the detail questions. For a challenge, ask for a fresh equivalent exchange using only this unit’s language.",
+          "de": "Höre den kurzen Austausch in Voice, ohne vorher das Skript zu lesen. Bitte bei Bedarf um Wiederholung und beantworte die Fragen. Für eine Challenge nutze einen neuen gleichwertigen Austausch mit der Sprache dieser Einheit."
+        },
+        "speaking": {
+          "en": "Ask for two items, ask the price and say what you do not need. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Bitte um zwei Waren, frage nach dem Preis und sage, was du nicht brauchst. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        }
+      },
+      "listeningScript": "Guten Tag! Ich brauche zwei Äpfel und eine Flasche Wasser. Die Äpfel kosten einen Euro. Das Wasser kostet zwei Euro. Zusammen sind das drei Euro.",
+      "listeningQuestions": [
+        {
+          "en": "How many apples does the person buy?",
+          "de": "Wie viele Äpfel kauft die Person?"
+        },
+        {
+          "en": "What is the total price?",
+          "de": "Wie hoch ist der Gesamtpreis?"
+        }
+      ],
+      "listeningAnswers": [
+        {
+          "en": "Two / zwei.",
+          "de": "zwei."
+        },
+        {
+          "en": "Three euros / drei Euro.",
+          "de": "drei Euro."
+        }
+      ],
+      "sourceIds": ["cefr-levels", "goethe-a1-scope", "goethe-a1-practice"],
+      "curriculumTopicIds": ["curriculum-topic_0000000000000003"]
+    },
+    {
+      "id": "food",
+      "stage": "a1-1",
+      "title": {
+        "en": "Order food and drinks",
+        "de": "Essen und Getränke bestellen"
+      },
+      "prerequisites": ["shopping"],
+      "grammar": {
+        "en": "Möchte as a polite request, gern, mögen, yes/no questions and negation.",
+        "de": "Möchte als höfliche Bitte, gern, mögen, Ja/Nein-Fragen und Verneinung."
+      },
+      "explanation": {
+        "en": "Use ich möchte for a polite wish: Ich möchte einen Tee. With another verb, put the infinitive at the end: Ich möchte etwas essen. Useful forms are ich möchte, du möchtest, er/sie möchte, wir möchten, ihr möchtet, sie/Sie möchten. Gern goes with an activity: Ich trinke gern Tee. Mögen takes something you like: Ich mag Tee. Learn ich mag, du magst, er/sie mag as common forms. A yes/no question starts with the verb: Möchten Sie Wasser? You can answer Ja, bitte or Nein, danke. State a simple preference with ohne: einen Kaffee ohne Milch. Use und to add another item, oder for a choice and aber for a contrast: Ich möchte Tee, aber keinen Kaffee. Ask Die Rechnung, bitte when you want to pay. Do not translate English word order directly into a sentence with two verbs.\n\nEssen changes in the singular: ich esse, du isst, er/sie isst; wir essen, ihr esst, sie/Sie essen. Trinken follows the regular endings. Use the accusative after ohne: ohne einen Löffel. Practise a preference question: Was isst du gern?",
+        "de": "Ich möchte formuliert einen höflichen Wunsch: Ich möchte einen Tee. Bei einem zweiten Verb steht der Infinitiv am Ende: Ich möchte etwas essen. Die Formen sind ich möchte, du möchtest, er/sie möchte, wir möchten, ihr möchtet, sie/Sie möchten. Gern gehört zu einer Tätigkeit: Ich trinke gern Tee. Mögen steht bei einer Sache: Ich mag Tee. Häufige Formen sind ich mag, du magst und er/sie mag. Eine Ja/Nein-Frage beginnt mit dem Verb: Möchten Sie Wasser? Antworte zum Beispiel Ja, bitte oder Nein, danke. Mit ohne formulierst du einen einfachen Wunsch: einen Kaffee ohne Milch. Und verbindet, oder bietet eine Auswahl, aber zeigt einen Gegensatz. Zum Bezahlen passt Die Rechnung, bitte.\n\nEssen verändert sich im Singular: ich esse, du isst, er/sie isst; wir essen, ihr esst, sie/Sie essen. Trinken folgt den regelmäßigen Endungen. Nach ohne steht Akkusativ: ohne einen Löffel. Frage nach Vorlieben: Was isst du gern?"
+      },
+      "examples": [
+        {
+          "german": "Ich möchte einen Tee, bitte.",
+          "meaning": {
+            "en": "I would like a tea, please.",
+            "de": "Eine höfliche Bestellung."
+          }
+        },
+        {
+          "german": "Ich esse gern Suppe.",
+          "meaning": {
+            "en": "I like eating soup.",
+            "de": "Gern beschreibt eine Vorliebe."
+          }
+        },
+        {
+          "german": "Die Rechnung, bitte.",
+          "meaning": {
+            "en": "The bill, please.",
+            "de": "Ich möchte bezahlen."
+          }
+        }
+      ],
+      "vocabulary": [
+        {
+          "german": "der Tee",
+          "meaning": {
+            "en": "tea",
+            "de": "heißes Getränk aus Blättern"
+          }
+        },
+        {
+          "german": "der Kaffee",
+          "meaning": {
+            "en": "coffee",
+            "de": "heißes Getränk aus Kaffeebohnen"
+          }
+        },
+        {
+          "german": "die Suppe",
+          "meaning": {
+            "en": "soup",
+            "de": "flüssiges Essen"
+          }
+        },
+        {
+          "german": "das Brot",
+          "meaning": {
+            "en": "bread",
+            "de": "Lebensmittel aus Mehl"
+          }
+        },
+        {
+          "german": "essen",
+          "meaning": {
+            "en": "to eat",
+            "de": "Nahrung zu sich nehmen"
+          }
+        },
+        {
+          "german": "trinken",
+          "meaning": {
+            "en": "to drink",
+            "de": "ein Getränk zu sich nehmen"
+          }
+        },
+        {
+          "german": "gern",
+          "meaning": {
+            "en": "gladly / like to",
+            "de": "mit Freude"
+          }
+        },
+        {
+          "german": "ohne",
+          "meaning": {
+            "en": "without",
+            "de": "etwas ist nicht dabei"
+          }
+        },
+        {
+          "german": "die Rechnung",
+          "meaning": {
+            "en": "bill",
+            "de": "Aufstellung der Kosten"
+          }
+        },
+        {
+          "german": "bezahlen",
+          "meaning": {
+            "en": "to pay",
+            "de": "Geld für etwas geben"
+          }
+        }
+      ],
+      "objectives": [
+        {
+          "id": "food-reading",
+          "skill": "reading",
+          "description": {
+            "en": "Read a short menu and identify food, drink and price.",
+            "de": "Lies eine kurze Speisekarte und finde Essen, Getränk und Preis."
+          },
+          "criterion": {
+            "en": "Identify the relevant people, action and stated details from the supplied text; do not require inference beyond A1.",
+            "de": "Erkenne relevante Personen, Handlung und ausdrücklich genannte Angaben; verlange keine über A1 hinausgehenden Schlussfolgerungen."
+          }
+        },
+        {
+          "id": "food-writing",
+          "skill": "writing",
+          "description": {
+            "en": "Write a short café order and one food preference.",
+            "de": "Schreibe eine kurze Cafébestellung und eine Vorliebe beim Essen."
+          },
+          "criterion": {
+            "en": "Convey the requested details in short understandable sentences. Accept meaningful A1 errors; distinguish missing meaning from minor spelling.",
+            "de": "Vermittle die gefragten Angaben in kurzen verständlichen Sätzen. Akzeptiere typische A1-Fehler; unterscheide fehlende Bedeutung von kleinen Schreibfehlern."
+          }
+        },
+        {
+          "id": "food-listening",
+          "skill": "listening",
+          "description": {
+            "en": "Listen to the short, slowly spoken text and find the details: What food is ordered? Does the person want bread?",
+            "de": "Höre den kurzen, langsam gesprochenen Text und finde die Angaben: Welches Essen wird bestellt? Möchte die Person Brot?"
+          },
+          "criterion": {
+            "en": "Identify the key details after slow delivery and repetition on request. Record repetitions and support; do not infer pronunciation from listening answers.",
+            "de": "Erkenne die wichtigen Angaben bei langsamem Sprechen und Wiederholung auf Wunsch. Halte Hilfen fest; leite aus Hörantworten keine Aussprachebewertung ab."
+          }
+        },
+        {
+          "id": "food-speaking",
+          "skill": "speaking",
+          "description": {
+            "en": "Order a drink and food, state a preference and ask for the bill.",
+            "de": "Bestelle ein Getränk und Essen, nenne einen Wunsch und bitte um die Rechnung."
+          },
+          "criterion": {
+            "en": "Complete the simple exchange with an interlocutor who speaks slowly and helps. Record actual support and uncertainty; do not claim pronunciation evidence from text.",
+            "de": "Bewältige den einfachen Austausch mit einer langsam sprechenden, helfenden Person. Halte Hilfen und Unsicherheit fest; behaupte keine Aussprachebelege aus Text."
+          }
+        }
+      ],
+      "tasks": {
+        "practice": {
+          "en": "Practise this unit’s words and sentence patterns in short exercises. Reuse earlier language; explain any essential new words.",
+          "de": "Übe Wörter und Satzmuster dieser Einheit in kurzen Aufgaben. Nutze bekannte Sprache; nötige neue Wörter werden erklärt."
+        },
+        "reading": {
+          "en": "Read a short menu and identify food, drink and price. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Lies eine kurze Speisekarte und finde Essen, Getränk und Preis. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "writing": {
+          "en": "Write a short café order and one food preference. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Schreibe eine kurze Cafébestellung und eine Vorliebe beim Essen. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "listening": {
+          "en": "Listen to the short exchange in Voice, without reading the script first. Ask for repetition if needed, then answer the detail questions. For a challenge, ask for a fresh equivalent exchange using only this unit’s language.",
+          "de": "Höre den kurzen Austausch in Voice, ohne vorher das Skript zu lesen. Bitte bei Bedarf um Wiederholung und beantworte die Fragen. Für eine Challenge nutze einen neuen gleichwertigen Austausch mit der Sprache dieser Einheit."
+        },
+        "speaking": {
+          "en": "Order a drink and food, state a preference and ask for the bill. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Bestelle ein Getränk und Essen, nenne einen Wunsch und bitte um die Rechnung. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        }
+      },
+      "listeningScript": "Guten Tag. Ich möchte eine Suppe und einen Tee, bitte. Ohne Milch? Ja, bitte, ohne Milch. Möchten Sie auch Brot? Nein, danke.",
+      "listeningQuestions": [
+        {
+          "en": "What food is ordered?",
+          "de": "Welches Essen wird bestellt?"
+        },
+        {
+          "en": "Does the person want bread?",
+          "de": "Möchte die Person Brot?"
+        }
+      ],
+      "listeningAnswers": [
+        {
+          "en": "Soup / Suppe.",
+          "de": "Suppe."
+        },
+        {
+          "en": "No / nein.",
+          "de": "nein."
+        }
+      ],
+      "sourceIds": ["cefr-levels", "goethe-a1-scope", "goethe-a1-practice"],
+      "curriculumTopicIds": ["curriculum-topic_0000000000000004"]
+    },
+    {
+      "id": "daily-life",
+      "stage": "a1-1",
+      "title": {
+        "en": "Describe your day and arrange a meeting",
+        "de": "Den Tag beschreiben und ein Treffen vereinbaren"
+      },
+      "prerequisites": ["food"],
+      "grammar": {
+        "en": "Time, weekdays, am/um, separable verbs, verb-second order and invitations.",
+        "de": "Uhrzeit, Wochentage, am/um, trennbare Verben, Verbzweitstellung und Einladungen."
+      },
+      "explanation": {
+        "en": "Use um for a clock time and am for a day: um neun Uhr, am Montag. Halb zehn means 9:30, halfway to ten; use neun Uhr dreißig if you want an unambiguous formal time. A separable verb places its prefix at the end in a simple statement: aufstehen → Ich stehe um sieben Uhr auf. With a time phrase first, the verb stays in second position and the subject follows: Am Montag arbeite ich. One position can contain several words. Learn the regular extra -e- in du arbeitest (arbeiten has a stem ending in -t) and the vowel change in du liest. Ask Wann hast du Zeit? Offer a time with Hast du am Dienstag Zeit? and accept with Ja, gern or decline politely: Leider nicht. A brief invitation should include the activity, day, time and place. Reuse greetings, names, numbers and food vocabulary from previous units.\n\nDays: Montag, Dienstag, Mittwoch, Donnerstag, Freitag, Samstag, Sonntag. Clock phrases: Viertel nach neun = 9:15; halb zehn = 9:30; Viertel vor zehn = 9:45. For clarity use the 24-hour clock in appointments: vierzehn Uhr dreißig = 14:30. Im Café means in the café; learn it as a place phrase. Hobbies: Ich lese gern. Ich spiele gern Fußball. Was machst du am Wochenende?",
+        "de": "Um steht vor einer Uhrzeit, am vor einem Tag: um neun Uhr, am Montag. Halb zehn bedeutet 9:30. Neun Uhr dreißig ist eine eindeutige formelle Angabe. Bei einem trennbaren Verb steht die Vorsilbe im einfachen Aussagesatz am Ende: aufstehen → Ich stehe um sieben Uhr auf. Beginnt der Satz mit einer Zeitangabe, bleibt das Verb an zweiter Stelle: Am Montag arbeite ich. Eine Satzposition kann mehrere Wörter enthalten. Lerne häufige besondere Formen wie du arbeitest und du liest als Wendungen. Frage Wann hast du Zeit? oder Hast du am Dienstag Zeit? Mit Ja, gern sagst du zu; mit Leider nicht sagst du höflich ab. Eine kurze Einladung nennt Aktivität, Tag, Uhrzeit und Ort.\n\nWochentage: Montag, Dienstag, Mittwoch, Donnerstag, Freitag, Samstag, Sonntag. Uhrzeiten: Viertel nach neun = 9:15; halb zehn = 9:30; Viertel vor zehn = 9:45. Für Termine sind 24-Stunden-Angaben eindeutig: vierzehn Uhr dreißig = 14:30. Lerne im Café als Ortsangabe. Hobbys: Ich lese gern. Ich spiele gern Fußball. Was machst du am Wochenende?"
+      },
+      "examples": [
+        {
+          "german": "Ich stehe um sieben Uhr auf.",
+          "meaning": {
+            "en": "I get up at seven.",
+            "de": "Auf steht am Satzende."
+          }
+        },
+        {
+          "german": "Am Montag arbeite ich.",
+          "meaning": {
+            "en": "I work on Monday.",
+            "de": "Das Verb bleibt an zweiter Stelle."
+          }
+        },
+        {
+          "german": "Hast du am Dienstag um zehn Uhr Zeit?",
+          "meaning": {
+            "en": "Are you free on Tuesday at ten?",
+            "de": "Ich schlage einen Termin vor."
+          }
+        }
+      ],
+      "vocabulary": [
+        {
+          "german": "aufstehen",
+          "meaning": {
+            "en": "to get up",
+            "de": "das Bett verlassen"
+          }
+        },
+        {
+          "german": "arbeiten",
+          "meaning": {
+            "en": "to work",
+            "de": "eine Tätigkeit im Beruf ausüben"
+          }
+        },
+        {
+          "german": "lesen",
+          "meaning": {
+            "en": "to read",
+            "de": "geschriebene Wörter verstehen"
+          }
+        },
+        {
+          "german": "heute",
+          "meaning": {
+            "en": "today",
+            "de": "an diesem Tag"
+          }
+        },
+        {
+          "german": "morgen",
+          "meaning": {
+            "en": "tomorrow",
+            "de": "am nächsten Tag"
+          }
+        },
+        {
+          "german": "der Montag",
+          "meaning": {
+            "en": "Monday",
+            "de": "Tag nach Sonntag"
+          }
+        },
+        {
+          "german": "der Dienstag",
+          "meaning": {
+            "en": "Tuesday",
+            "de": "Tag nach Montag"
+          }
+        },
+        {
+          "german": "die Uhr",
+          "meaning": {
+            "en": "clock / o’clock",
+            "de": "zeigt die Zeit"
+          }
+        },
+        {
+          "german": "die Zeit",
+          "meaning": {
+            "en": "time",
+            "de": "zum Beispiel eine Stunde"
+          }
+        },
+        {
+          "german": "leider",
+          "meaning": {
+            "en": "unfortunately",
+            "de": "drückt Bedauern aus"
+          }
+        },
+        {
+          "german": "das Wochenende",
+          "meaning": {
+            "en": "weekend",
+            "de": "Samstag und Sonntag"
+          }
+        },
+        {
+          "german": "spielen",
+          "meaning": {
+            "en": "to play",
+            "de": "zum Beispiel Fußball spielen"
+          }
+        },
+        {
+          "german": "die Einladung",
+          "meaning": {
+            "en": "invitation",
+            "de": "Bitte zu kommen"
+          }
+        }
+      ],
+      "objectives": [
+        {
+          "id": "daily-life-reading",
+          "skill": "reading",
+          "description": {
+            "en": "Find activity, day, time and place in a short invitation.",
+            "de": "Finde Aktivität, Tag, Uhrzeit und Ort in einer kurzen Einladung."
+          },
+          "criterion": {
+            "en": "Identify the relevant people, action and stated details from the supplied text; do not require inference beyond A1.",
+            "de": "Erkenne relevante Personen, Handlung und ausdrücklich genannte Angaben; verlange keine über A1 hinausgehenden Schlussfolgerungen."
+          }
+        },
+        {
+          "id": "daily-life-writing",
+          "skill": "writing",
+          "description": {
+            "en": "Write an invitation with day, time, place and activity; write a brief reply.",
+            "de": "Schreibe eine Einladung mit Tag, Zeit, Ort und Aktivität und eine kurze Antwort."
+          },
+          "criterion": {
+            "en": "Convey the requested details in short understandable sentences. Accept meaningful A1 errors; distinguish missing meaning from minor spelling.",
+            "de": "Vermittle die gefragten Angaben in kurzen verständlichen Sätzen. Akzeptiere typische A1-Fehler; unterscheide fehlende Bedeutung von kleinen Schreibfehlern."
+          }
+        },
+        {
+          "id": "daily-life-listening",
+          "skill": "listening",
+          "description": {
+            "en": "Listen to the short, slowly spoken text and find the details: On which day is the meeting? At what time?",
+            "de": "Höre den kurzen, langsam gesprochenen Text und finde die Angaben: An welchem Tag ist das Treffen? Um wie viel Uhr?"
+          },
+          "criterion": {
+            "en": "Identify the key details after slow delivery and repetition on request. Record repetitions and support; do not infer pronunciation from listening answers.",
+            "de": "Erkenne die wichtigen Angaben bei langsamem Sprechen und Wiederholung auf Wunsch. Halte Hilfen fest; leite aus Hörantworten keine Aussprachebewertung ab."
+          }
+        },
+        {
+          "id": "daily-life-speaking",
+          "skill": "speaking",
+          "description": {
+            "en": "Describe your morning and arrange a café visit or hobby with a partner.",
+            "de": "Beschreibe deinen Morgen und verabrede dich zum Cafébesuch oder zu einem Hobby."
+          },
+          "criterion": {
+            "en": "Complete the simple exchange with an interlocutor who speaks slowly and helps. Record actual support and uncertainty; do not claim pronunciation evidence from text.",
+            "de": "Bewältige den einfachen Austausch mit einer langsam sprechenden, helfenden Person. Halte Hilfen und Unsicherheit fest; behaupte keine Aussprachebelege aus Text."
+          }
+        }
+      ],
+      "tasks": {
+        "practice": {
+          "en": "Practise this unit’s words and sentence patterns in short exercises. Reuse earlier language; explain any essential new words.",
+          "de": "Übe Wörter und Satzmuster dieser Einheit in kurzen Aufgaben. Nutze bekannte Sprache; nötige neue Wörter werden erklärt."
+        },
+        "reading": {
+          "en": "Find activity, day, time and place in a short invitation. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Finde Aktivität, Tag, Uhrzeit und Ort in einer kurzen Einladung. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "writing": {
+          "en": "Write an invitation with day, time, place and activity; write a brief reply. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Schreibe eine Einladung mit Tag, Zeit, Ort und Aktivität und eine kurze Antwort. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "listening": {
+          "en": "Listen to the short exchange in Voice, without reading the script first. Ask for repetition if needed, then answer the detail questions. For a challenge, ask for a fresh equivalent exchange using only this unit’s language.",
+          "de": "Höre den kurzen Austausch in Voice, ohne vorher das Skript zu lesen. Bitte bei Bedarf um Wiederholung und beantworte die Fragen. Für eine Challenge nutze einen neuen gleichwertigen Austausch mit der Sprache dieser Einheit."
+        },
+        "speaking": {
+          "en": "Describe your morning and arrange a café visit or hobby with a partner. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Beschreibe deinen Morgen und verabrede dich zum Cafébesuch oder zu einem Hobby. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        }
+      },
+      "listeningScript": "Hallo Ana! Hast du am Dienstag Zeit? Wir trinken um halb zehn Kaffee im Café am Markt. Das ist um neun Uhr dreißig. Kommst du? Viele Grüße, Ben.",
+      "listeningQuestions": [
+        {
+          "en": "On which day is the meeting?",
+          "de": "An welchem Tag ist das Treffen?"
+        },
+        {
+          "en": "At what time?",
+          "de": "Um wie viel Uhr?"
+        }
+      ],
+      "listeningAnswers": [
+        {
+          "en": "Tuesday / Dienstag.",
+          "de": "Dienstag."
+        },
+        {
+          "en": "9:30 / neun Uhr dreißig.",
+          "de": "neun Uhr dreißig."
+        }
+      ],
+      "sourceIds": ["cefr-levels", "goethe-a1-scope", "goethe-a1-practice"],
+      "curriculumTopicIds": [
+        "curriculum-topic_0000000000000001",
+        "curriculum-topic_0000000000000007"
+      ]
+    },
+    {
+      "id": "home",
+      "stage": "a1-2",
+      "title": {
+        "en": "Describe your home",
+        "de": "Die Wohnung beschreiben"
+      },
+      "prerequisites": ["daily-life"],
+      "grammar": {
+        "en": "Es gibt + accusative, rooms and furniture, location chunks im/in der, descriptions.",
+        "de": "Es gibt mit Akkusativ, Räume und Möbel, Ortsangaben mit im/in der und Beschreibungen."
+      },
+      "explanation": {
+        "en": "Use Es gibt to say what exists: In meiner Wohnung gibt es einen Tisch. The noun after es gibt is an accusative object: einen Tisch, eine Küche, ein Bad. Use sein to say where something is: Der Tisch ist in der Küche. For fixed locations learn in dem → im with masculine or neuter nouns and in der with feminine nouns: im Wohnzimmer, in der Küche. These are dative forms; learn the useful phrases before trying to apply every two-way preposition. Distinguish an object's location from movement toward a place. Put adjectives after sein without endings: Das Zimmer ist hell und ruhig. Ask Wie groß ist die Wohnung? or Wie viele Zimmer hat sie? Compare a simple advertisement with what you need. Descriptions of fictional flats let you practice without sharing your real address.\n\nIn meiner Wohnung is the feminine location pattern in der Wohnung with mein replacing der. Plurals: das Zimmer – die Zimmer, der Tisch – die Tische, der Stuhl – die Stühle. In an advert, 45 m² means fünfundvierzig Quadratmeter; 600 € im Monat means sechshundert Euro pro Monat. These are fictional prices for language practice.",
+        "de": "Es gibt sagt, was vorhanden ist: In meiner Wohnung gibt es einen Tisch. Danach steht der Akkusativ: einen Tisch, eine Küche, ein Bad. Mit sein beschreibst du einen Ort: Der Tisch ist in der Küche. Lerne feste Ortsangaben: in dem wird zu im, zum Beispiel im Wohnzimmer; bei femininen Nomen steht in der, zum Beispiel in der Küche. Das sind Dativformen. Unterscheide den festen Ort einer Sache von einer Bewegung zu einem Ort. Nach sein hat das Adjektiv keine Endung: Das Zimmer ist hell und ruhig. Frage Wie groß ist die Wohnung? oder Wie viele Zimmer hat sie? Vergleiche eine einfache Anzeige mit deinen Wünschen. Nutze erfundene Wohnungen und Adressen.\n\nIn meiner Wohnung folgt dem Ortsmuster in der Wohnung; mein ersetzt dabei den bestimmten Artikel. Plurale: das Zimmer – die Zimmer, der Tisch – die Tische, der Stuhl – die Stühle. In einer Anzeige bedeutet 45 m² fünfundvierzig Quadratmeter; 600 € im Monat bedeutet sechshundert Euro pro Monat. Diese Preise sind erfundene Übungsangaben."
+      },
+      "examples": [
+        {
+          "german": "Es gibt einen Tisch.",
+          "meaning": {
+            "en": "There is a table.",
+            "de": "Nach es gibt steht Akkusativ."
+          }
+        },
+        {
+          "german": "Der Tisch ist in der Küche.",
+          "meaning": {
+            "en": "The table is in the kitchen.",
+            "de": "Ich beschreibe den festen Ort."
+          }
+        },
+        {
+          "german": "Das Zimmer ist hell.",
+          "meaning": {
+            "en": "The room is bright.",
+            "de": "Hell beschreibt das Zimmer."
+          }
+        }
+      ],
+      "vocabulary": [
+        {
+          "german": "die Wohnung",
+          "meaning": {
+            "en": "flat",
+            "de": "Räume, in denen jemand wohnt"
+          }
+        },
+        {
+          "german": "das Zimmer",
+          "meaning": {
+            "en": "room",
+            "de": "Teil einer Wohnung"
+          }
+        },
+        {
+          "german": "die Küche",
+          "meaning": {
+            "en": "kitchen",
+            "de": "Raum zum Kochen"
+          }
+        },
+        {
+          "german": "das Bad",
+          "meaning": {
+            "en": "bathroom",
+            "de": "Raum zum Waschen"
+          }
+        },
+        {
+          "german": "der Tisch",
+          "meaning": {
+            "en": "table",
+            "de": "Möbel zum Essen oder Arbeiten"
+          }
+        },
+        {
+          "german": "der Stuhl",
+          "meaning": {
+            "en": "chair",
+            "de": "Möbel zum Sitzen"
+          }
+        },
+        {
+          "german": "das Bett",
+          "meaning": {
+            "en": "bed",
+            "de": "Möbel zum Schlafen"
+          }
+        },
+        {
+          "german": "hell",
+          "meaning": {
+            "en": "bright",
+            "de": "mit viel Licht"
+          }
+        },
+        {
+          "german": "ruhig",
+          "meaning": {
+            "en": "quiet",
+            "de": "ohne viel Lärm"
+          }
+        },
+        {
+          "german": "groß",
+          "meaning": {
+            "en": "big",
+            "de": "nicht klein"
+          }
+        },
+        {
+          "german": "das Wohnzimmer",
+          "meaning": {
+            "en": "living room",
+            "de": "Zimmer zum Sitzen und Zusammensein"
+          }
+        },
+        {
+          "german": "das Schlafzimmer",
+          "meaning": {
+            "en": "bedroom",
+            "de": "Zimmer zum Schlafen"
+          }
+        },
+        {
+          "german": "die Miete",
+          "meaning": {
+            "en": "rent",
+            "de": "Geld für eine Wohnung"
+          }
+        },
+        {
+          "german": "der Monat",
+          "meaning": {
+            "en": "month",
+            "de": "zum Beispiel Januar"
+          }
+        }
+      ],
+      "objectives": [
+        {
+          "id": "home-reading",
+          "skill": "reading",
+          "description": {
+            "en": "Find rooms, size and rent in a short fictional flat advert.",
+            "de": "Finde Zimmer, Größe und Miete in einer kurzen erfundenen Wohnungsanzeige."
+          },
+          "criterion": {
+            "en": "Identify the relevant people, action and stated details from the supplied text; do not require inference beyond A1.",
+            "de": "Erkenne relevante Personen, Handlung und ausdrücklich genannte Angaben; verlange keine über A1 hinausgehenden Schlussfolgerungen."
+          }
+        },
+        {
+          "id": "home-writing",
+          "skill": "writing",
+          "description": {
+            "en": "Describe rooms and furniture in a fictional flat in three short sentences.",
+            "de": "Beschreibe Zimmer und Möbel in einer erfundenen Wohnung in drei kurzen Sätzen."
+          },
+          "criterion": {
+            "en": "Convey the requested details in short understandable sentences. Accept meaningful A1 errors; distinguish missing meaning from minor spelling.",
+            "de": "Vermittle die gefragten Angaben in kurzen verständlichen Sätzen. Akzeptiere typische A1-Fehler; unterscheide fehlende Bedeutung von kleinen Schreibfehlern."
+          }
+        },
+        {
+          "id": "home-listening",
+          "skill": "listening",
+          "description": {
+            "en": "Listen to the short, slowly spoken text and find the details: How many rooms does the flat have? What is in the living room?",
+            "de": "Höre den kurzen, langsam gesprochenen Text und finde die Angaben: Wie viele Zimmer hat die Wohnung? Was gibt es im Wohnzimmer?"
+          },
+          "criterion": {
+            "en": "Identify the key details after slow delivery and repetition on request. Record repetitions and support; do not infer pronunciation from listening answers.",
+            "de": "Erkenne die wichtigen Angaben bei langsamem Sprechen und Wiederholung auf Wunsch. Halte Hilfen fest; leite aus Hörantworten keine Aussprachebewertung ab."
+          }
+        },
+        {
+          "id": "home-speaking",
+          "skill": "speaking",
+          "description": {
+            "en": "Ask about a flat and say where two pieces of furniture are.",
+            "de": "Frage nach einer Wohnung und sage, wo zwei Möbel stehen."
+          },
+          "criterion": {
+            "en": "Complete the simple exchange with an interlocutor who speaks slowly and helps. Record actual support and uncertainty; do not claim pronunciation evidence from text.",
+            "de": "Bewältige den einfachen Austausch mit einer langsam sprechenden, helfenden Person. Halte Hilfen und Unsicherheit fest; behaupte keine Aussprachebelege aus Text."
+          }
+        }
+      ],
+      "tasks": {
+        "practice": {
+          "en": "Practise this unit’s words and sentence patterns in short exercises. Reuse earlier language; explain any essential new words.",
+          "de": "Übe Wörter und Satzmuster dieser Einheit in kurzen Aufgaben. Nutze bekannte Sprache; nötige neue Wörter werden erklärt."
+        },
+        "reading": {
+          "en": "Find rooms, size and rent in a short fictional flat advert. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Finde Zimmer, Größe und Miete in einer kurzen erfundenen Wohnungsanzeige. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "writing": {
+          "en": "Describe rooms and furniture in a fictional flat in three short sentences. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Beschreibe Zimmer und Möbel in einer erfundenen Wohnung in drei kurzen Sätzen. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "listening": {
+          "en": "Listen to the short exchange in Voice, without reading the script first. Ask for repetition if needed, then answer the detail questions. For a challenge, ask for a fresh equivalent exchange using only this unit’s language.",
+          "de": "Höre den kurzen Austausch in Voice, ohne vorher das Skript zu lesen. Bitte bei Bedarf um Wiederholung und beantworte die Fragen. Für eine Challenge nutze einen neuen gleichwertigen Austausch mit der Sprache dieser Einheit."
+        },
+        "speaking": {
+          "en": "Ask about a flat and say where two pieces of furniture are. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Frage nach einer Wohnung und sage, wo zwei Möbel stehen. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        }
+      },
+      "listeningScript": "Meine Wohnung hat zwei Zimmer. Die Küche ist klein. Im Wohnzimmer gibt es einen Tisch und zwei Stühle. Das Schlafzimmer ist hell und ruhig.",
+      "listeningQuestions": [
+        {
+          "en": "How many rooms does the flat have?",
+          "de": "Wie viele Zimmer hat die Wohnung?"
+        },
+        {
+          "en": "What is in the living room?",
+          "de": "Was gibt es im Wohnzimmer?"
+        }
+      ],
+      "listeningAnswers": [
+        {
+          "en": "Two / zwei.",
+          "de": "zwei."
+        },
+        {
+          "en": "A table and two chairs / einen Tisch und zwei Stühle.",
+          "de": "einen Tisch und zwei Stühle."
+        }
+      ],
+      "sourceIds": ["cefr-levels", "goethe-a1-scope", "goethe-a1-practice"],
+      "curriculumTopicIds": ["curriculum-topic_0000000000000002"]
+    },
+    {
+      "id": "directions",
+      "stage": "a1-2",
+      "title": {
+        "en": "Find your way around town",
+        "de": "Sich in der Stadt orientieren"
+      },
+      "prerequisites": ["home"],
+      "grammar": {
+        "en": "Wo/wohin, polite directions, zum/zur, mit + dative and transport.",
+        "de": "Wo/wohin, höfliche Wegbeschreibungen, zum/zur, mit und Dativ sowie Verkehrsmittel."
+      },
+      "explanation": {
+        "en": "Wo asks where something is; wohin asks about a destination. Use useful destination phrases: zum Bahnhof and zur Apotheke. Zum combines zu dem, zur combines zu der. Zu takes the dative. For transport, mit also takes the dative: mit dem Bus, mit der Bahn, mit dem Fahrrad. Ask Entschuldigung, wo ist der Bahnhof? or Wie komme ich zum Bahnhof? A polite instruction uses the infinitive-shaped verb followed by Sie: Gehen Sie geradeaus. Biegen Sie links ab uses a separable verb with ab at the end. Learn links, rechts, geradeaus and hier as direction words. A short route is easier to follow one step at a time; ask Können Sie das bitte wiederholen? if you lose a step. Practice with fictional maps and schedules, not live travel information.\n\nNeben der Apotheke means next to the pharmacy: it describes a fixed location with the dative, like in der Küche. Learn fahren: ich fahre, du fährst, er/sie fährt; wir fahren, ihr fahrt, sie/Sie fahren. Use nach with a city destination: nach Bonn. The polite request Können Sie das bitte wiederholen? is a fixed phrase here; the next unit teaches können.",
+        "de": "Wo fragt nach einem Ort, wohin nach einem Ziel. Nützliche Wendungen sind zum Bahnhof und zur Apotheke. Zum verbindet zu dem, zur verbindet zu der. Zu steht mit dem Dativ. Auch mit verlangt den Dativ: mit dem Bus, mit der Bahn, mit dem Fahrrad. Frage Entschuldigung, wo ist der Bahnhof? oder Wie komme ich zum Bahnhof? Eine höfliche Anweisung lautet Gehen Sie geradeaus. Bei Biegen Sie links ab steht die trennbare Vorsilbe ab am Ende. Lerne links, rechts, geradeaus und hier. Wenn du einen Schritt nicht verstehst, frage Können Sie das bitte wiederholen? Übe mit erfundenen Karten und Fahrplänen.\n\nNeben der Apotheke nennt einen festen Ort im Dativ, wie in der Küche. Lerne fahren: ich fahre, du fährst, er/sie fährt; wir fahren, ihr fahrt, sie/Sie fahren. Nach steht vor einem Städtenamen als Ziel: nach Bonn. Können Sie das bitte wiederholen? lernst du hier als feste Bitte; können folgt in der nächsten Einheit."
+      },
+      "examples": [
+        {
+          "german": "Wie komme ich zum Bahnhof?",
+          "meaning": {
+            "en": "How do I get to the station?",
+            "de": "Ich frage nach dem Weg."
+          }
+        },
+        {
+          "german": "Gehen Sie geradeaus.",
+          "meaning": {
+            "en": "Go straight ahead.",
+            "de": "Eine höfliche Wegbeschreibung."
+          }
+        },
+        {
+          "german": "Ich fahre mit dem Bus.",
+          "meaning": {
+            "en": "I travel by bus.",
+            "de": "Mit steht mit dem Dativ."
+          }
+        }
+      ],
+      "vocabulary": [
+        {
+          "german": "der Bahnhof",
+          "meaning": {
+            "en": "station",
+            "de": "Ort, an dem Züge halten"
+          }
+        },
+        {
+          "german": "die Apotheke",
+          "meaning": {
+            "en": "pharmacy",
+            "de": "Geschäft für Medikamente"
+          }
+        },
+        {
+          "german": "der Bus",
+          "meaning": {
+            "en": "bus",
+            "de": "großes Fahrzeug für viele Personen"
+          }
+        },
+        {
+          "german": "die Bahn",
+          "meaning": {
+            "en": "railway",
+            "de": "Zugverkehr"
+          }
+        },
+        {
+          "german": "das Fahrrad",
+          "meaning": {
+            "en": "bicycle",
+            "de": "Fahrzeug mit zwei Rädern und Pedalen"
+          }
+        },
+        {
+          "german": "links",
+          "meaning": {
+            "en": "left",
+            "de": "Richtung auf der linken Seite"
+          }
+        },
+        {
+          "german": "rechts",
+          "meaning": {
+            "en": "right",
+            "de": "Richtung auf der rechten Seite"
+          }
+        },
+        {
+          "german": "geradeaus",
+          "meaning": {
+            "en": "straight ahead",
+            "de": "ohne nach links oder rechts zu gehen"
+          }
+        },
+        {
+          "german": "gehen",
+          "meaning": {
+            "en": "to go on foot",
+            "de": "sich zu Fuß bewegen"
+          }
+        },
+        {
+          "german": "fahren",
+          "meaning": {
+            "en": "to travel / drive",
+            "de": "ein Fahrzeug benutzen"
+          }
+        },
+        {
+          "german": "neben",
+          "meaning": {
+            "en": "next to",
+            "de": "an der Seite von"
+          }
+        },
+        {
+          "german": "weit",
+          "meaning": {
+            "en": "far",
+            "de": "nicht nah"
+          }
+        },
+        {
+          "german": "die Fahrkarte",
+          "meaning": {
+            "en": "ticket",
+            "de": "Ticket für Bus oder Bahn"
+          }
+        }
+      ],
+      "objectives": [
+        {
+          "id": "directions-reading",
+          "skill": "reading",
+          "description": {
+            "en": "Follow a short written route and find a departure time in a simple timetable.",
+            "de": "Folge einer kurzen Wegbeschreibung und finde eine Abfahrtszeit im Fahrplan."
+          },
+          "criterion": {
+            "en": "Identify the relevant people, action and stated details from the supplied text; do not require inference beyond A1.",
+            "de": "Erkenne relevante Personen, Handlung und ausdrücklich genannte Angaben; verlange keine über A1 hinausgehenden Schlussfolgerungen."
+          }
+        },
+        {
+          "id": "directions-writing",
+          "skill": "writing",
+          "description": {
+            "en": "Write two or three simple directions to a fictional station.",
+            "de": "Schreibe zwei oder drei einfache Wegangaben zu einem erfundenen Bahnhof."
+          },
+          "criterion": {
+            "en": "Convey the requested details in short understandable sentences. Accept meaningful A1 errors; distinguish missing meaning from minor spelling.",
+            "de": "Vermittle die gefragten Angaben in kurzen verständlichen Sätzen. Akzeptiere typische A1-Fehler; unterscheide fehlende Bedeutung von kleinen Schreibfehlern."
+          }
+        },
+        {
+          "id": "directions-listening",
+          "skill": "listening",
+          "description": {
+            "en": "Listen to the short, slowly spoken text and find the details: Which turn comes after going straight ahead? What is next to the station?",
+            "de": "Höre den kurzen, langsam gesprochenen Text und finde die Angaben: In welche Richtung geht man nach dem Geradeausgehen? Was ist neben dem Bahnhof?"
+          },
+          "criterion": {
+            "en": "Identify the key details after slow delivery and repetition on request. Record repetitions and support; do not infer pronunciation from listening answers.",
+            "de": "Erkenne die wichtigen Angaben bei langsamem Sprechen und Wiederholung auf Wunsch. Halte Hilfen fest; leite aus Hörantworten keine Aussprachebewertung ab."
+          }
+        },
+        {
+          "id": "directions-speaking",
+          "skill": "speaking",
+          "description": {
+            "en": "Ask for directions, repeat the route and name a means of transport.",
+            "de": "Frage nach dem Weg, wiederhole ihn und nenne ein Verkehrsmittel."
+          },
+          "criterion": {
+            "en": "Complete the simple exchange with an interlocutor who speaks slowly and helps. Record actual support and uncertainty; do not claim pronunciation evidence from text.",
+            "de": "Bewältige den einfachen Austausch mit einer langsam sprechenden, helfenden Person. Halte Hilfen und Unsicherheit fest; behaupte keine Aussprachebelege aus Text."
+          }
+        }
+      ],
+      "tasks": {
+        "practice": {
+          "en": "Practise this unit’s words and sentence patterns in short exercises. Reuse earlier language; explain any essential new words.",
+          "de": "Übe Wörter und Satzmuster dieser Einheit in kurzen Aufgaben. Nutze bekannte Sprache; nötige neue Wörter werden erklärt."
+        },
+        "reading": {
+          "en": "Follow a short written route and find a departure time in a simple timetable. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Folge einer kurzen Wegbeschreibung und finde eine Abfahrtszeit im Fahrplan. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "writing": {
+          "en": "Write two or three simple directions to a fictional station. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Schreibe zwei oder drei einfache Wegangaben zu einem erfundenen Bahnhof. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "listening": {
+          "en": "Listen to the short exchange in Voice, without reading the script first. Ask for repetition if needed, then answer the detail questions. For a challenge, ask for a fresh equivalent exchange using only this unit’s language.",
+          "de": "Höre den kurzen Austausch in Voice, ohne vorher das Skript zu lesen. Bitte bei Bedarf um Wiederholung und beantworte die Fragen. Für eine Challenge nutze einen neuen gleichwertigen Austausch mit der Sprache dieser Einheit."
+        },
+        "speaking": {
+          "en": "Ask for directions, repeat the route and name a means of transport. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Frage nach dem Weg, wiederhole ihn und nenne ein Verkehrsmittel. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        }
+      },
+      "listeningScript": "Der Bahnhof ist nicht weit. Gehen Sie geradeaus und dann rechts. Dort ist eine Apotheke. Der Bahnhof ist links neben der Apotheke.",
+      "listeningQuestions": [
+        {
+          "en": "Which turn comes after going straight ahead?",
+          "de": "In welche Richtung geht man nach dem Geradeausgehen?"
+        },
+        {
+          "en": "What is next to the station?",
+          "de": "Was ist neben dem Bahnhof?"
+        }
+      ],
+      "listeningAnswers": [
+        {
+          "en": "Right / rechts.",
+          "de": "rechts."
+        },
+        {
+          "en": "A pharmacy / eine Apotheke.",
+          "de": "eine Apotheke."
+        }
+      ],
+      "sourceIds": ["cefr-levels", "goethe-a1-scope", "goethe-a1-practice"],
+      "curriculumTopicIds": ["curriculum-topic_0000000000000005"]
+    },
+    {
+      "id": "appointments",
+      "stage": "a1-2",
+      "title": {
+        "en": "Arrange appointments and request help",
+        "de": "Termine vereinbaren und um Hilfe bitten"
+      },
+      "prerequisites": ["directions"],
+      "grammar": {
+        "en": "Können/müssen, modal verb brackets, dates and polite requests.",
+        "de": "Können/müssen, Satzklammer, Datumsangaben und höfliche Bitten."
+      },
+      "explanation": {
+        "en": "A modal verb is conjugated and the other verb stays in the infinitive at the end: Ich kann am Freitag kommen. Ich muss arbeiten. Learn können: ich kann, du kannst, er/sie kann, wir können, ihr könnt, sie/Sie können. Müssen follows ich muss, du musst, er/sie muss, wir müssen, ihr müsst, sie/Sie müssen. Ask Können Sie mir helfen? as a useful polite phrase; mir means to me here. For an appointment, give the purpose briefly and ask for a day and time. Dates after am use an ordinal ending: am ersten Mai, am dritten Juni. Initially learn the dates you need as whole phrases. If you cannot attend, say Leider kann ich nicht kommen and ask for another appointment. These are language examples, not instructions about real administrative deadlines or document requirements.\n\nMonths: Januar, Februar, März, April, Mai, Juni, Juli, August, September, Oktober, November, Dezember. Dates as chunks: am ersten, am zweiten, am dritten, am vierten, am siebten, am achten, am zwanzigsten, am einundzwanzigsten Mai. Ask Welches Datum? In the listening task früher means earlier; zehn Minuten früher means ten minutes before the appointment. Anrufen separates: Rufen Sie bitte an.",
+        "de": "Ein Modalverb wird konjugiert; das zweite Verb steht als Infinitiv am Ende: Ich kann am Freitag kommen. Ich muss arbeiten. Lerne können: ich kann, du kannst, er/sie kann, wir können, ihr könnt, sie/Sie können. Müssen lautet ich muss, du musst, er/sie muss, wir müssen, ihr müsst, sie/Sie müssen. Können Sie mir helfen? ist eine nützliche höfliche Bitte. Für einen Termin nennst du kurz den Grund und fragst nach Tag und Uhrzeit. Nach am steht eine Ordnungszahl: am ersten Mai, am dritten Juni. Lerne benötigte Daten zuerst als ganze Wendungen. Mit Leider kann ich nicht kommen sagst du ab. Diese Beispiele üben Sprache und beschreiben keine echten Fristen oder Dokumentenpflichten.\n\nMonate: Januar, Februar, März, April, Mai, Juni, Juli, August, September, Oktober, November, Dezember. Daten als Wendungen: am ersten, am zweiten, am dritten, am vierten, am siebten, am achten, am zwanzigsten, am einundzwanzigsten Mai. Frage Welches Datum? Früher bedeutet vor der genannten Zeit; zehn Minuten früher heißt zehn Minuten vor dem Termin. Anrufen ist trennbar: Rufen Sie bitte an."
+      },
+      "examples": [
+        {
+          "german": "Ich kann am Freitag kommen.",
+          "meaning": {
+            "en": "I can come on Friday.",
+            "de": "Kommen steht am Ende."
+          }
+        },
+        {
+          "german": "Können Sie mir helfen?",
+          "meaning": {
+            "en": "Can you help me?",
+            "de": "Eine höfliche Bitte."
+          }
+        },
+        {
+          "german": "Leider muss ich arbeiten.",
+          "meaning": {
+            "en": "Unfortunately I have to work.",
+            "de": "Müssen drückt eine Notwendigkeit aus."
+          }
+        }
+      ],
+      "vocabulary": [
+        {
+          "german": "der Termin",
+          "meaning": {
+            "en": "appointment",
+            "de": "vereinbarte Zeit"
+          }
+        },
+        {
+          "german": "helfen",
+          "meaning": {
+            "en": "to help",
+            "de": "jemanden unterstützen"
+          }
+        },
+        {
+          "german": "können",
+          "meaning": {
+            "en": "can",
+            "de": "die Möglichkeit oder Fähigkeit haben"
+          }
+        },
+        {
+          "german": "müssen",
+          "meaning": {
+            "en": "must / have to",
+            "de": "etwas tun sollen oder notwendig tun"
+          }
+        },
+        {
+          "german": "der Freitag",
+          "meaning": {
+            "en": "Friday",
+            "de": "Tag nach Donnerstag"
+          }
+        },
+        {
+          "german": "das Datum",
+          "meaning": {
+            "en": "date",
+            "de": "Angabe von Tag, Monat und Jahr"
+          }
+        },
+        {
+          "german": "die Frage",
+          "meaning": {
+            "en": "question",
+            "de": "Satz, auf den man eine Antwort möchte"
+          }
+        },
+        {
+          "german": "frei",
+          "meaning": {
+            "en": "free / available",
+            "de": "nicht belegt"
+          }
+        },
+        {
+          "german": "wiederholen",
+          "meaning": {
+            "en": "to repeat",
+            "de": "noch einmal sagen"
+          }
+        },
+        {
+          "german": "absagen",
+          "meaning": {
+            "en": "to cancel",
+            "de": "mitteilen, dass ein Termin nicht stattfindet"
+          }
+        },
+        {
+          "german": "früher",
+          "meaning": {
+            "en": "earlier",
+            "de": "vor der genannten Zeit"
+          }
+        },
+        {
+          "german": "anrufen",
+          "meaning": {
+            "en": "to phone",
+            "de": "mit jemandem telefonieren"
+          }
+        },
+        {
+          "german": "die Minute",
+          "meaning": {
+            "en": "minute",
+            "de": "sechzig Sekunden"
+          }
+        }
+      ],
+      "objectives": [
+        {
+          "id": "appointments-reading",
+          "skill": "reading",
+          "description": {
+            "en": "Find date, time and purpose in a short appointment message.",
+            "de": "Finde Datum, Uhrzeit und Grund in einer kurzen Terminnachricht."
+          },
+          "criterion": {
+            "en": "Identify the relevant people, action and stated details from the supplied text; do not require inference beyond A1.",
+            "de": "Erkenne relevante Personen, Handlung und ausdrücklich genannte Angaben; verlange keine über A1 hinausgehenden Schlussfolgerungen."
+          }
+        },
+        {
+          "id": "appointments-writing",
+          "skill": "writing",
+          "description": {
+            "en": "Write a short appointment request or cancellation with a new proposed date.",
+            "de": "Schreibe eine kurze Terminanfrage oder Absage mit einem neuen Terminvorschlag."
+          },
+          "criterion": {
+            "en": "Convey the requested details in short understandable sentences. Accept meaningful A1 errors; distinguish missing meaning from minor spelling.",
+            "de": "Vermittle die gefragten Angaben in kurzen verständlichen Sätzen. Akzeptiere typische A1-Fehler; unterscheide fehlende Bedeutung von kleinen Schreibfehlern."
+          }
+        },
+        {
+          "id": "appointments-listening",
+          "skill": "listening",
+          "description": {
+            "en": "Listen to the short, slowly spoken text and find the details: When is the appointment? How much earlier should the person arrive?",
+            "de": "Höre den kurzen, langsam gesprochenen Text und finde die Angaben: Wann ist der Termin? Wie viel früher soll die Person kommen?"
+          },
+          "criterion": {
+            "en": "Identify the key details after slow delivery and repetition on request. Record repetitions and support; do not infer pronunciation from listening answers.",
+            "de": "Erkenne die wichtigen Angaben bei langsamem Sprechen und Wiederholung auf Wunsch. Halte Hilfen fest; leite aus Hörantworten keine Aussprachebewertung ab."
+          }
+        },
+        {
+          "id": "appointments-speaking",
+          "skill": "speaking",
+          "description": {
+            "en": "Ask for an appointment, say when you can come and confirm the time.",
+            "de": "Bitte um einen Termin, sage, wann du kommen kannst, und bestätige die Uhrzeit."
+          },
+          "criterion": {
+            "en": "Complete the simple exchange with an interlocutor who speaks slowly and helps. Record actual support and uncertainty; do not claim pronunciation evidence from text.",
+            "de": "Bewältige den einfachen Austausch mit einer langsam sprechenden, helfenden Person. Halte Hilfen und Unsicherheit fest; behaupte keine Aussprachebelege aus Text."
+          }
+        }
+      ],
+      "tasks": {
+        "practice": {
+          "en": "Practise this unit’s words and sentence patterns in short exercises. Reuse earlier language; explain any essential new words.",
+          "de": "Übe Wörter und Satzmuster dieser Einheit in kurzen Aufgaben. Nutze bekannte Sprache; nötige neue Wörter werden erklärt."
+        },
+        "reading": {
+          "en": "Find date, time and purpose in a short appointment message. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Finde Datum, Uhrzeit und Grund in einer kurzen Terminnachricht. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "writing": {
+          "en": "Write a short appointment request or cancellation with a new proposed date. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Schreibe eine kurze Terminanfrage oder Absage mit einem neuen Terminvorschlag. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "listening": {
+          "en": "Listen to the short exchange in Voice, without reading the script first. Ask for repetition if needed, then answer the detail questions. For a challenge, ask for a fresh equivalent exchange using only this unit’s language.",
+          "de": "Höre den kurzen Austausch in Voice, ohne vorher das Skript zu lesen. Bitte bei Bedarf um Wiederholung und beantworte die Fragen. Für eine Challenge nutze einen neuen gleichwertigen Austausch mit der Sprache dieser Einheit."
+        },
+        "speaking": {
+          "en": "Ask for an appointment, say when you can come and confirm the time. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Bitte um einen Termin, sage, wann du kommen kannst, und bestätige die Uhrzeit. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        }
+      },
+      "listeningScript": "Guten Tag. Ihr Termin ist am Freitag um elf Uhr. Bitte kommen Sie zehn Minuten früher. Sie können nicht kommen? Rufen Sie bitte an.",
+      "listeningQuestions": [
+        {
+          "en": "When is the appointment?",
+          "de": "Wann ist der Termin?"
+        },
+        {
+          "en": "How much earlier should the person arrive?",
+          "de": "Wie viel früher soll die Person kommen?"
+        }
+      ],
+      "listeningAnswers": [
+        {
+          "en": "Friday at eleven / Freitag um elf Uhr.",
+          "de": "Freitag um elf Uhr."
+        },
+        {
+          "en": "Ten minutes / zehn Minuten.",
+          "de": "zehn Minuten."
+        }
+      ],
+      "sourceIds": ["cefr-levels", "goethe-a1-scope", "goethe-a1-practice"],
+      "curriculumTopicIds": [
+        "curriculum-topic_0000000000000009",
+        "curriculum-topic_0000000000000006"
+      ]
+    },
+    {
+      "id": "health",
+      "stage": "a1-2",
+      "title": {
+        "en": "Explain simple health needs",
+        "de": "Einfache gesundheitliche Bedürfnisse erklären"
+      },
+      "prerequisites": ["appointments"],
+      "grammar": {
+        "en": "Body vocabulary, haben/sein, wehtun as a phrase, imperatives and seit phrases.",
+        "de": "Körperwortschatz, haben/sein, wehtun als Wendung, Imperativ und seit-Wendungen."
+      },
+      "explanation": {
+        "en": "Learn common symptom phrases: Ich habe Kopfschmerzen. Ich bin müde. Mein Hals tut weh. Wehtun separates in a simple sentence: tut ... weh. With plural body parts use tun: Meine Füße tun weh. Use seit gestern or seit zwei Tagen to say when a continuing symptom began; German normally uses the present tense here. Describe the symptom, how long it has lasted and the help you want. A polite instruction uses Sie: Warten Sie bitte hier. Informal instructions often use the verb stem: Warte bitte! Common forms may differ, such as Nimm from nehmen, so learn them with an example. For this unit, interpret simple appointment and waiting-room language. Do not use generated language exercises as medical advice or as a substitute for seeking help in a real emergency.\n\nBody words and plurals: der Kopf – die Köpfe, der Hals – die Hälse, der Fuß – die Füße. Kopfschmerzen and Halsschmerzen are usually plural. In seit zwei Tagen, Tagen is a dative plural; learn this duration as a phrase. Hilfe, bitte! is a simple request for help; ask Wo sind Sie? and give a fictional location in practice.",
+        "de": "Lerne häufige Wendungen: Ich habe Kopfschmerzen. Ich bin müde. Mein Hals tut weh. Wehtun ist trennbar: tut ... weh. Bei mehreren Körperteilen heißt es tun: Meine Füße tun weh. Seit gestern und seit zwei Tagen nennen den Beginn eines andauernden Zustands. Dafür steht im Deutschen normalerweise das Präsens. Beschreibe das Problem, die Dauer und die gewünschte Hilfe. Eine höfliche Anweisung lautet Warten Sie bitte hier. Informell heißt es Warte bitte! Manche Formen sind unregelmäßig, zum Beispiel Nimm von nehmen. Hier übst du einfache Sprache für Termine und Wartezimmer. Sprachübungen sind keine medizinische Beratung.\n\nKörperteile und Plurale: der Kopf – die Köpfe, der Hals – die Hälse, der Fuß – die Füße. Kopfschmerzen und Halsschmerzen stehen gewöhnlich im Plural. In seit zwei Tagen steht Tagen im Dativ Plural; lerne die Dauer zunächst als Wendung. Hilfe, bitte! ist ein einfacher Hilferuf. Frage Wo sind Sie? und nenne beim Üben einen erfundenen Ort."
+      },
+      "examples": [
+        {
+          "german": "Ich habe seit gestern Kopfschmerzen.",
+          "meaning": {
+            "en": "I have had a headache since yesterday.",
+            "de": "Seit gestern nennt den Beginn."
+          }
+        },
+        {
+          "german": "Mein Hals tut weh.",
+          "meaning": {
+            "en": "My throat hurts.",
+            "de": "Tut ... weh beschreibt Schmerzen."
+          }
+        },
+        {
+          "german": "Warten Sie bitte hier.",
+          "meaning": {
+            "en": "Please wait here.",
+            "de": "Eine höfliche Anweisung."
+          }
+        }
+      ],
+      "vocabulary": [
+        {
+          "german": "der Kopf",
+          "meaning": {
+            "en": "head",
+            "de": "Körperteil über dem Hals"
+          }
+        },
+        {
+          "german": "der Hals",
+          "meaning": {
+            "en": "throat / neck",
+            "de": "Körperteil zwischen Kopf und Oberkörper"
+          }
+        },
+        {
+          "german": "der Fuß",
+          "meaning": {
+            "en": "foot",
+            "de": "Körperteil zum Stehen"
+          }
+        },
+        {
+          "german": "die Schmerzen",
+          "meaning": {
+            "en": "pain",
+            "de": "unangenehmes körperliches Gefühl"
+          }
+        },
+        {
+          "german": "müde",
+          "meaning": {
+            "en": "tired",
+            "de": "man braucht Ruhe oder Schlaf"
+          }
+        },
+        {
+          "german": "krank",
+          "meaning": {
+            "en": "ill",
+            "de": "nicht gesund"
+          }
+        },
+        {
+          "german": "seit",
+          "meaning": {
+            "en": "since / for",
+            "de": "nennt den Beginn eines Zustands"
+          }
+        },
+        {
+          "german": "gestern",
+          "meaning": {
+            "en": "yesterday",
+            "de": "am Tag vor heute"
+          }
+        },
+        {
+          "german": "warten",
+          "meaning": {
+            "en": "to wait",
+            "de": "an einem Ort bleiben, bis etwas passiert"
+          }
+        },
+        {
+          "german": "die Hilfe",
+          "meaning": {
+            "en": "help",
+            "de": "Unterstützung"
+          }
+        },
+        {
+          "german": "die Kopfschmerzen",
+          "meaning": {
+            "en": "headache",
+            "de": "Schmerzen im Kopf"
+          }
+        },
+        {
+          "german": "die Halsschmerzen",
+          "meaning": {
+            "en": "sore throat",
+            "de": "Schmerzen im Hals"
+          }
+        }
+      ],
+      "objectives": [
+        {
+          "id": "health-reading",
+          "skill": "reading",
+          "description": {
+            "en": "Understand a short appointment reply and a simple waiting-room instruction.",
+            "de": "Verstehe eine kurze Terminantwort und eine einfache Anweisung im Wartezimmer."
+          },
+          "criterion": {
+            "en": "Identify the relevant people, action and stated details from the supplied text; do not require inference beyond A1.",
+            "de": "Erkenne relevante Personen, Handlung und ausdrücklich genannte Angaben; verlange keine über A1 hinausgehenden Schlussfolgerungen."
+          }
+        },
+        {
+          "id": "health-writing",
+          "skill": "writing",
+          "description": {
+            "en": "Write a fictional symptom, its duration and a request for an appointment.",
+            "de": "Schreibe ein erfundenes Symptom, seine Dauer und eine Bitte um einen Termin."
+          },
+          "criterion": {
+            "en": "Convey the requested details in short understandable sentences. Accept meaningful A1 errors; distinguish missing meaning from minor spelling.",
+            "de": "Vermittle die gefragten Angaben in kurzen verständlichen Sätzen. Akzeptiere typische A1-Fehler; unterscheide fehlende Bedeutung von kleinen Schreibfehlern."
+          }
+        },
+        {
+          "id": "health-listening",
+          "skill": "listening",
+          "description": {
+            "en": "Listen to the short, slowly spoken text and find the details: Since when has Mia had a sore throat? What time is the appointment?",
+            "de": "Höre den kurzen, langsam gesprochenen Text und finde die Angaben: Seit wann hat Mia Halsschmerzen? Um wie viel Uhr ist der Termin?"
+          },
+          "criterion": {
+            "en": "Identify the key details after slow delivery and repetition on request. Record repetitions and support; do not infer pronunciation from listening answers.",
+            "de": "Erkenne die wichtigen Angaben bei langsamem Sprechen und Wiederholung auf Wunsch. Halte Hilfen fest; leite aus Hörantworten keine Aussprachebewertung ab."
+          }
+        },
+        {
+          "id": "health-speaking",
+          "skill": "speaking",
+          "description": {
+            "en": "Describe a fictional symptom and its duration and ask for an appointment.",
+            "de": "Beschreibe ein erfundenes Symptom und seine Dauer und bitte um einen Termin."
+          },
+          "criterion": {
+            "en": "Complete the simple exchange with an interlocutor who speaks slowly and helps. Record actual support and uncertainty; do not claim pronunciation evidence from text.",
+            "de": "Bewältige den einfachen Austausch mit einer langsam sprechenden, helfenden Person. Halte Hilfen und Unsicherheit fest; behaupte keine Aussprachebelege aus Text."
+          }
+        }
+      ],
+      "tasks": {
+        "practice": {
+          "en": "Practise this unit’s words and sentence patterns in short exercises. Reuse earlier language; explain any essential new words.",
+          "de": "Übe Wörter und Satzmuster dieser Einheit in kurzen Aufgaben. Nutze bekannte Sprache; nötige neue Wörter werden erklärt."
+        },
+        "reading": {
+          "en": "Understand a short appointment reply and a simple waiting-room instruction. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Verstehe eine kurze Terminantwort und eine einfache Anweisung im Wartezimmer. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "writing": {
+          "en": "Write a fictional symptom, its duration and a request for an appointment. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Schreibe ein erfundenes Symptom, seine Dauer und eine Bitte um einen Termin. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "listening": {
+          "en": "Listen to the short exchange in Voice, without reading the script first. Ask for repetition if needed, then answer the detail questions. For a challenge, ask for a fresh equivalent exchange using only this unit’s language.",
+          "de": "Höre den kurzen Austausch in Voice, ohne vorher das Skript zu lesen. Bitte bei Bedarf um Wiederholung und beantworte die Fragen. Für eine Challenge nutze einen neuen gleichwertigen Austausch mit der Sprache dieser Einheit."
+        },
+        "speaking": {
+          "en": "Describe a fictional symptom and its duration and ask for an appointment. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Beschreibe ein erfundenes Symptom und seine Dauer und bitte um einen Termin. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        }
+      },
+      "listeningScript": "Guten Tag. Ich heiße Mia. Ich habe seit gestern Halsschmerzen. Haben Sie heute einen Termin frei? Ja, um vierzehn Uhr. Danke, ich komme um vierzehn Uhr.",
+      "listeningQuestions": [
+        {
+          "en": "Since when has Mia had a sore throat?",
+          "de": "Seit wann hat Mia Halsschmerzen?"
+        },
+        {
+          "en": "What time is the appointment?",
+          "de": "Um wie viel Uhr ist der Termin?"
+        }
+      ],
+      "listeningAnswers": [
+        {
+          "en": "Since yesterday / seit gestern.",
+          "de": "seit gestern."
+        },
+        {
+          "en": "14:00 / vierzehn Uhr.",
+          "de": "vierzehn Uhr."
+        }
+      ],
+      "sourceIds": ["cefr-levels", "goethe-a1-scope", "goethe-a1-practice"],
+      "curriculumTopicIds": ["curriculum-topic_0000000000000006"]
+    },
+    {
+      "id": "work-study",
+      "stage": "a1-2",
+      "title": {
+        "en": "Communicate at work or in a course",
+        "de": "Bei der Arbeit oder im Kurs kommunizieren"
+      },
+      "prerequisites": ["health"],
+      "grammar": {
+        "en": "Everyday requests, möchten/können, possessives Ihr/Ihre, und/aber/denn.",
+        "de": "Alltägliche Bitten, möchten/können, Ihr/Ihre, und/aber/denn."
+      },
+      "explanation": {
+        "en": "Use the familiar polite request pattern in a course or at work: Können Sie das bitte erklären? Ich möchte eine Frage stellen. Distinguish a question from a statement by verb position: Beginnt der Kurs um neun? Der Kurs beginnt um neun. Formal possessives are capitalized: Ihr Name, Ihre E-Mail. A short message needs a greeting, the reason for writing, the request and a closing. Connect simple clauses with und, aber or denn. These connectors do not send the following verb to the end: Ich komme später, denn ich habe einen Termin. Learn what you need to communicate clearly before adding complex subordinate clauses. When reading a timetable or brief message, identify who, what, when and where. Use a request to check information instead of pretending you understood.\n\nUnser Deutschkurs means our German course. Mitbringen separates like aufstehen: Ich bringe ein Heft mit. The polite instruction is Bitte bringen Sie ein Heft mit. Useful message: Guten Tag, Frau Sommer. Ich kann morgen nicht kommen. Können Sie mir bitte die Aufgabe schicken? Vielen Dank. Viele Grüße, Ana. Schicken means send.",
+        "de": "Nutze bekannte höfliche Bitten im Kurs und bei der Arbeit: Können Sie das bitte erklären? Ich möchte eine Frage stellen. Frage und Aussage unterscheiden sich durch die Verbposition: Beginnt der Kurs um neun? Der Kurs beginnt um neun. Höfliche Possessivartikel schreibt man groß: Ihr Name, Ihre E-Mail. Eine kurze Nachricht enthält Begrüßung, Grund, Bitte und Gruß. Und, aber und denn verbinden einfache Sätze. Das Verb wird dadurch nicht ans Ende verschoben: Ich komme später, denn ich habe einen Termin. Suche in kurzen Nachrichten nach wer, was, wann und wo. Frage nach, wenn du etwas nicht verstanden hast.\n\nUnser Deutschkurs bedeutet der Deutschkurs von uns. Mitbringen ist trennbar wie aufstehen: Ich bringe ein Heft mit. Die höfliche Aufforderung lautet Bitte bringen Sie ein Heft mit. Eine kurze Nachricht: Guten Tag, Frau Sommer. Ich kann morgen nicht kommen. Können Sie mir bitte die Aufgabe schicken? Vielen Dank. Viele Grüße, Ana. Schicken heißt senden."
+      },
+      "examples": [
+        {
+          "german": "Können Sie das bitte erklären?",
+          "meaning": {
+            "en": "Could you explain that, please?",
+            "de": "Ich bitte um eine Erklärung."
+          }
+        },
+        {
+          "german": "Ich komme später, denn ich habe einen Termin.",
+          "meaning": {
+            "en": "I will come later because I have an appointment.",
+            "de": "Nach denn bleibt die normale Satzstellung."
+          }
+        },
+        {
+          "german": "Ist das Ihre E-Mail?",
+          "meaning": {
+            "en": "Is that your email?",
+            "de": "Ihre ist die höfliche Form."
+          }
+        }
+      ],
+      "vocabulary": [
+        {
+          "german": "der Kurs",
+          "meaning": {
+            "en": "course",
+            "de": "Unterrichtsangebot"
+          }
+        },
+        {
+          "german": "die Arbeit",
+          "meaning": {
+            "en": "work",
+            "de": "berufliche Tätigkeit"
+          }
+        },
+        {
+          "german": "beginnen",
+          "meaning": {
+            "en": "to begin",
+            "de": "starten"
+          }
+        },
+        {
+          "german": "erklären",
+          "meaning": {
+            "en": "to explain",
+            "de": "etwas verständlich machen"
+          }
+        },
+        {
+          "german": "verstehen",
+          "meaning": {
+            "en": "to understand",
+            "de": "die Bedeutung erkennen"
+          }
+        },
+        {
+          "german": "die Nachricht",
+          "meaning": {
+            "en": "message",
+            "de": "kurze Mitteilung"
+          }
+        },
+        {
+          "german": "später",
+          "meaning": {
+            "en": "later",
+            "de": "nicht jetzt, sondern danach"
+          }
+        },
+        {
+          "german": "der Raum",
+          "meaning": {
+            "en": "room",
+            "de": "Zimmer"
+          }
+        },
+        {
+          "german": "die Aufgabe",
+          "meaning": {
+            "en": "task",
+            "de": "etwas, das man bearbeiten soll"
+          }
+        },
+        {
+          "german": "denn",
+          "meaning": {
+            "en": "because",
+            "de": "verbindet einen Satz mit einer Begründung"
+          }
+        },
+        {
+          "german": "das Heft",
+          "meaning": {
+            "en": "notebook",
+            "de": "Buch zum Schreiben"
+          }
+        },
+        {
+          "german": "mitbringen",
+          "meaning": {
+            "en": "to bring along",
+            "de": "etwas zum Zielort bringen"
+          }
+        },
+        {
+          "german": "schicken",
+          "meaning": {
+            "en": "to send",
+            "de": "senden"
+          }
+        }
+      ],
+      "objectives": [
+        {
+          "id": "work-study-reading",
+          "skill": "reading",
+          "description": {
+            "en": "Find time, room and required item in a short course or work message.",
+            "de": "Finde Uhrzeit, Raum und benötigten Gegenstand in einer kurzen Kurs- oder Arbeitsnachricht."
+          },
+          "criterion": {
+            "en": "Identify the relevant people, action and stated details from the supplied text; do not require inference beyond A1.",
+            "de": "Erkenne relevante Personen, Handlung und ausdrücklich genannte Angaben; verlange keine über A1 hinausgehenden Schlussfolgerungen."
+          }
+        },
+        {
+          "id": "work-study-writing",
+          "skill": "writing",
+          "description": {
+            "en": "Write a greeting, a simple request, a reason with denn and a closing.",
+            "de": "Schreibe Gruß, einfache Bitte, Grund mit denn und Schlussgruß."
+          },
+          "criterion": {
+            "en": "Convey the requested details in short understandable sentences. Accept meaningful A1 errors; distinguish missing meaning from minor spelling.",
+            "de": "Vermittle die gefragten Angaben in kurzen verständlichen Sätzen. Akzeptiere typische A1-Fehler; unterscheide fehlende Bedeutung von kleinen Schreibfehlern."
+          }
+        },
+        {
+          "id": "work-study-listening",
+          "skill": "listening",
+          "description": {
+            "en": "Listen to the short, slowly spoken text and find the details: When does the course begin? What should learners bring?",
+            "de": "Höre den kurzen, langsam gesprochenen Text und finde die Angaben: Wann beginnt der Kurs? Was sollen die Lernenden mitbringen?"
+          },
+          "criterion": {
+            "en": "Identify the key details after slow delivery and repetition on request. Record repetitions and support; do not infer pronunciation from listening answers.",
+            "de": "Erkenne die wichtigen Angaben bei langsamem Sprechen und Wiederholung auf Wunsch. Halte Hilfen fest; leite aus Hörantworten keine Aussprachebewertung ab."
+          }
+        },
+        {
+          "id": "work-study-speaking",
+          "skill": "speaking",
+          "description": {
+            "en": "Ask a colleague or teacher to explain a task and confirm time and place.",
+            "de": "Bitte eine Person im Kurs oder bei der Arbeit, eine Aufgabe zu erklären, und bestätige Zeit und Ort."
+          },
+          "criterion": {
+            "en": "Complete the simple exchange with an interlocutor who speaks slowly and helps. Record actual support and uncertainty; do not claim pronunciation evidence from text.",
+            "de": "Bewältige den einfachen Austausch mit einer langsam sprechenden, helfenden Person. Halte Hilfen und Unsicherheit fest; behaupte keine Aussprachebelege aus Text."
+          }
+        }
+      ],
+      "tasks": {
+        "practice": {
+          "en": "Practise this unit’s words and sentence patterns in short exercises. Reuse earlier language; explain any essential new words.",
+          "de": "Übe Wörter und Satzmuster dieser Einheit in kurzen Aufgaben. Nutze bekannte Sprache; nötige neue Wörter werden erklärt."
+        },
+        "reading": {
+          "en": "Find time, room and required item in a short course or work message. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Finde Uhrzeit, Raum und benötigten Gegenstand in einer kurzen Kurs- oder Arbeitsnachricht. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "writing": {
+          "en": "Write a greeting, a simple request, a reason with denn and a closing. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Schreibe Gruß, einfache Bitte, Grund mit denn und Schlussgruß. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "listening": {
+          "en": "Listen to the short exchange in Voice, without reading the script first. Ask for repetition if needed, then answer the detail questions. For a challenge, ask for a fresh equivalent exchange using only this unit’s language.",
+          "de": "Höre den kurzen Austausch in Voice, ohne vorher das Skript zu lesen. Bitte bei Bedarf um Wiederholung und beantworte die Fragen. Für eine Challenge nutze einen neuen gleichwertigen Austausch mit der Sprache dieser Einheit."
+        },
+        "speaking": {
+          "en": "Ask a colleague or teacher to explain a task and confirm time and place. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Bitte eine Person im Kurs oder bei der Arbeit, eine Aufgabe zu erklären, und bestätige Zeit und Ort. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        }
+      },
+      "listeningScript": "Hallo zusammen! Unser Deutschkurs beginnt morgen um neun Uhr in Raum drei. Bitte bringen Sie ein Heft mit. Fragen? Schreiben Sie bitte eine kurze Nachricht.",
+      "listeningQuestions": [
+        {
+          "en": "When does the course begin?",
+          "de": "Wann beginnt der Kurs?"
+        },
+        {
+          "en": "What should learners bring?",
+          "de": "Was sollen die Lernenden mitbringen?"
+        }
+      ],
+      "listeningAnswers": [
+        {
+          "en": "Tomorrow at nine / morgen um neun Uhr.",
+          "de": "morgen um neun Uhr."
+        },
+        {
+          "en": "A notebook / ein Heft.",
+          "de": "ein Heft."
+        }
+      ],
+      "sourceIds": ["cefr-levels", "goethe-a1-scope", "goethe-a1-practice"],
+      "curriculumTopicIds": [
+        "curriculum-topic_0000000000000007",
+        "curriculum-topic_0000000000000008"
+      ]
+    },
+    {
+      "id": "travel-experiences",
+      "stage": "a1-2",
+      "title": {
+        "en": "Plan a trip and describe recent experiences",
+        "de": "Eine Reise planen und von Erlebnissen erzählen"
+      },
+      "prerequisites": ["work-study"],
+      "grammar": {
+        "en": "Travel and weather, war/hatte, introductory Perfekt with haben/sein.",
+        "de": "Reise und Wetter, war/hatte und erstes Perfekt mit haben/sein."
+      },
+      "explanation": {
+        "en": "For simple past descriptions, learn ich war and ich hatte: Gestern war ich in Bonn. Ich hatte Zeit. To report a completed event, German conversation often uses the Perfekt: Ich habe Kaffee getrunken. The conjugated auxiliary comes second and the participle goes at the end. Many regular participles use ge- and -t: machen → gemacht. Other participles must be learned: trinken → getrunken, fahren → gefahren. Common movement verbs use sein: Ich bin nach Bonn gefahren. Learn each new verb with its useful past form rather than guessing the auxiliary. Use zuerst and dann to organize two events: Zuerst habe ich gegessen. Dann bin ich nach Hause gegangen. For a future trip the present tense with a time phrase is sufficient: Morgen fahre ich nach Köln. Reuse prices, times, directions and polite requests to compare simple travel options.\n\nThese past forms are a small introduction, not the whole Perfekt system. Learn besuchen → hat besucht (no ge- after be-), essen → hat gegessen, gehen → ist gegangen, fahren → ist gefahren. Place contrast: nach Hause = homeward; zu Hause = at home. Weather: Es regnet. Die Sonne scheint. Ask for a hotel room: Haben Sie ein Zimmer frei? Was kostet eine Nacht? Compare two fictional offers by place, price and breakfast; you do not need comparative adjective endings.",
+        "de": "Für einfache Beschreibungen der Vergangenheit lernst du ich war und ich hatte: Gestern war ich in Bonn. Ich hatte Zeit. Über abgeschlossene Ereignisse spricht man häufig im Perfekt: Ich habe Kaffee getrunken. Das konjugierte Hilfsverb steht an zweiter Stelle, das Partizip am Ende. Viele regelmäßige Partizipien haben ge- und -t: machen → gemacht. Andere Formen lernst du einzeln: trinken → getrunken, fahren → gefahren. Häufige Bewegungsverben stehen mit sein: Ich bin nach Bonn gefahren. Lerne Verben mit ihrer passenden Vergangenheitsform. Zuerst und dann ordnen Ereignisse: Zuerst habe ich gegessen. Dann bin ich nach Hause gegangen. Für eine geplante Reise reicht Präsens mit Zeitangabe: Morgen fahre ich nach Köln.\n\nDiese Formen sind eine kleine Einführung, nicht das ganze Perfekt-System. Lerne besuchen → hat besucht (ohne ge- nach be-), essen → hat gegessen, gehen → ist gegangen, fahren → ist gefahren. Nach Hause nennt das Ziel; zu Hause den Ort. Wetter: Es regnet. Die Sonne scheint. Im Hotel: Haben Sie ein Zimmer frei? Was kostet eine Nacht? Vergleiche zwei erfundene Angebote nach Ort, Preis und Frühstück; dafür brauchst du keine Komparativendungen."
+      },
+      "examples": [
+        {
+          "german": "Gestern war ich in Bonn.",
+          "meaning": {
+            "en": "Yesterday I was in Bonn.",
+            "de": "War ist eine Vergangenheitsform von sein."
+          }
+        },
+        {
+          "german": "Ich habe Kaffee getrunken.",
+          "meaning": {
+            "en": "I drank coffee.",
+            "de": "Habe und getrunken bilden das Perfekt."
+          }
+        },
+        {
+          "german": "Ich bin mit dem Zug gefahren.",
+          "meaning": {
+            "en": "I travelled by train.",
+            "de": "Fahren steht hier mit sein."
+          }
+        }
+      ],
+      "vocabulary": [
+        {
+          "german": "die Reise",
+          "meaning": {
+            "en": "trip",
+            "de": "Fahrt zu einem anderen Ort"
+          }
+        },
+        {
+          "german": "der Zug",
+          "meaning": {
+            "en": "train",
+            "de": "Fahrzeug auf Schienen"
+          }
+        },
+        {
+          "german": "das Hotel",
+          "meaning": {
+            "en": "hotel",
+            "de": "Haus mit Zimmern für Gäste"
+          }
+        },
+        {
+          "german": "das Wetter",
+          "meaning": {
+            "en": "weather",
+            "de": "zum Beispiel Sonne, Regen oder Kälte"
+          }
+        },
+        {
+          "german": "warm",
+          "meaning": {
+            "en": "warm",
+            "de": "nicht kalt"
+          }
+        },
+        {
+          "german": "kalt",
+          "meaning": {
+            "en": "cold",
+            "de": "nicht warm"
+          }
+        },
+        {
+          "german": "zuerst",
+          "meaning": {
+            "en": "first",
+            "de": "als Erstes"
+          }
+        },
+        {
+          "german": "dann",
+          "meaning": {
+            "en": "then",
+            "de": "danach"
+          }
+        },
+        {
+          "german": "gemacht",
+          "meaning": {
+            "en": "done / made",
+            "de": "Partizip von machen"
+          }
+        },
+        {
+          "german": "getrunken",
+          "meaning": {
+            "en": "drunk",
+            "de": "Partizip von trinken"
+          }
+        },
+        {
+          "german": "besucht",
+          "meaning": {
+            "en": "visited",
+            "de": "Partizip von besuchen"
+          }
+        },
+        {
+          "german": "gegangen",
+          "meaning": {
+            "en": "gone / walked",
+            "de": "Partizip von gehen"
+          }
+        },
+        {
+          "german": "die Nacht",
+          "meaning": {
+            "en": "night",
+            "de": "Zeit zwischen Abend und Morgen"
+          }
+        },
+        {
+          "german": "das Frühstück",
+          "meaning": {
+            "en": "breakfast",
+            "de": "Essen am Morgen"
+          }
+        },
+        {
+          "german": "regnen",
+          "meaning": {
+            "en": "to rain",
+            "de": "Regen fällt"
+          }
+        },
+        {
+          "german": "gefahren",
+          "meaning": {
+            "en": "travelled",
+            "de": "Partizip von fahren"
+          }
+        },
+        {
+          "german": "gegessen",
+          "meaning": {
+            "en": "eaten",
+            "de": "Partizip von essen"
+          }
+        }
+      ],
+      "objectives": [
+        {
+          "id": "travel-experiences-reading",
+          "skill": "reading",
+          "description": {
+            "en": "Compare two brief fictional hotel adverts and follow two events in a travel message.",
+            "de": "Vergleiche zwei kurze erfundene Hotelanzeigen und erkenne zwei Ereignisse in einer Reisenachricht."
+          },
+          "criterion": {
+            "en": "Identify the relevant people, action and stated details from the supplied text; do not require inference beyond A1.",
+            "de": "Erkenne relevante Personen, Handlung und ausdrücklich genannte Angaben; verlange keine über A1 hinausgehenden Schlussfolgerungen."
+          }
+        },
+        {
+          "id": "travel-experiences-writing",
+          "skill": "writing",
+          "description": {
+            "en": "Write a simple trip plan and two past events using familiar Perfekt forms.",
+            "de": "Schreibe einen einfachen Reiseplan und zwei vergangene Ereignisse mit bekannten Perfektformen."
+          },
+          "criterion": {
+            "en": "Convey the requested details in short understandable sentences. Accept meaningful A1 errors; distinguish missing meaning from minor spelling.",
+            "de": "Vermittle die gefragten Angaben in kurzen verständlichen Sätzen. Akzeptiere typische A1-Fehler; unterscheide fehlende Bedeutung von kleinen Schreibfehlern."
+          }
+        },
+        {
+          "id": "travel-experiences-listening",
+          "skill": "listening",
+          "description": {
+            "en": "Listen to the short, slowly spoken text and find the details: How did the person travel? What happened after the coffee?",
+            "de": "Höre den kurzen, langsam gesprochenen Text und finde die Angaben: Wie ist die Person gefahren? Was ist nach dem Kaffee passiert?"
+          },
+          "criterion": {
+            "en": "Identify the key details after slow delivery and repetition on request. Record repetitions and support; do not infer pronunciation from listening answers.",
+            "de": "Erkenne die wichtigen Angaben bei langsamem Sprechen und Wiederholung auf Wunsch. Halte Hilfen fest; leite aus Hörantworten keine Aussprachebewertung ab."
+          }
+        },
+        {
+          "id": "travel-experiences-speaking",
+          "skill": "speaking",
+          "description": {
+            "en": "Ask about a room, plan a journey and tell a partner about two recent events.",
+            "de": "Frage nach einem Zimmer, plane eine Reise und erzähle von zwei vergangenen Ereignissen."
+          },
+          "criterion": {
+            "en": "Complete the simple exchange with an interlocutor who speaks slowly and helps. Record actual support and uncertainty; do not claim pronunciation evidence from text.",
+            "de": "Bewältige den einfachen Austausch mit einer langsam sprechenden, helfenden Person. Halte Hilfen und Unsicherheit fest; behaupte keine Aussprachebelege aus Text."
+          }
+        }
+      ],
+      "tasks": {
+        "practice": {
+          "en": "Practise this unit’s words and sentence patterns in short exercises. Reuse earlier language; explain any essential new words.",
+          "de": "Übe Wörter und Satzmuster dieser Einheit in kurzen Aufgaben. Nutze bekannte Sprache; nötige neue Wörter werden erklärt."
+        },
+        "reading": {
+          "en": "Compare two brief fictional hotel adverts and follow two events in a travel message. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Vergleiche zwei kurze erfundene Hotelanzeigen und erkenne zwei Ereignisse in einer Reisenachricht. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "writing": {
+          "en": "Write a simple trip plan and two past events using familiar Perfekt forms. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Schreibe einen einfachen Reiseplan und zwei vergangene Ereignisse mit bekannten Perfektformen. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        },
+        "listening": {
+          "en": "Listen to the short exchange in Voice, without reading the script first. Ask for repetition if needed, then answer the detail questions. For a challenge, ask for a fresh equivalent exchange using only this unit’s language.",
+          "de": "Höre den kurzen Austausch in Voice, ohne vorher das Skript zu lesen. Bitte bei Bedarf um Wiederholung und beantworte die Fragen. Für eine Challenge nutze einen neuen gleichwertigen Austausch mit der Sprache dieser Einheit."
+        },
+        "speaking": {
+          "en": "Ask about a room, plan a journey and tell a partner about two recent events. Use only this unit and earlier language; give a gloss for essential new words. Use fictional details.",
+          "de": "Frage nach einem Zimmer, plane eine Reise und erzähle von zwei vergangenen Ereignissen. Nutze die Sprache dieser und früherer Einheiten; nötige neue Wörter werden erklärt. Verwende erfundene Angaben."
+        }
+      },
+      "listeningScript": "Gestern bin ich mit dem Zug nach Bonn gefahren. Das Wetter war warm. Zuerst habe ich einen Kaffee getrunken. Dann habe ich meine Freundin besucht. Heute bin ich wieder zu Hause.",
+      "listeningQuestions": [
+        {
+          "en": "How did the person travel?",
+          "de": "Wie ist die Person gefahren?"
+        },
+        {
+          "en": "What happened after the coffee?",
+          "de": "Was ist nach dem Kaffee passiert?"
+        }
+      ],
+      "listeningAnswers": [
+        {
+          "en": "By train / mit dem Zug.",
+          "de": "mit dem Zug."
+        },
+        {
+          "en": "They visited a friend / die Person hat eine Freundin besucht.",
+          "de": "die Person hat eine Freundin besucht."
+        }
+      ],
+      "sourceIds": ["cefr-levels", "goethe-a1-scope", "goethe-a1-practice"],
+      "curriculumTopicIds": [
+        "curriculum-topic_0000000000000005",
+        "curriculum-topic_0000000000000011"
+      ]
+    }
+  ]
+}

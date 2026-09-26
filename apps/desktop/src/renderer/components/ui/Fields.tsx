@@ -11,10 +11,10 @@ import styles from "./Fields.module.css";
 type FieldFrameProps = Readonly<{
   id: string;
   label: string;
-  description?: string;
-  error?: string;
+  description?: string | undefined;
+  error?: string | undefined;
   children: ReactNode;
-  className?: string;
+  className?: string | undefined;
 }>;
 
 function FieldFrame(props: FieldFrameProps) {
@@ -38,9 +38,9 @@ function describedBy(id: string, description?: string, error?: string) {
 
 type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "id"> & {
   label: string;
-  description?: string;
-  error?: string;
-  className?: string;
+  description?: string | undefined;
+  error?: string | undefined;
+  className?: string | undefined;
 };
 
 export function TextField({ label, description, error, className, ...inputProps }: TextFieldProps) {
@@ -54,9 +54,9 @@ export function TextField({ label, description, error, className, ...inputProps 
 
 type TextAreaFieldProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "id"> & {
   label: string;
-  description?: string;
-  error?: string;
-  className?: string;
+  description?: string | undefined;
+  error?: string | undefined;
+  className?: string | undefined;
 };
 
 export function TextAreaField({ label, description, error, className, ...textareaProps }: TextAreaFieldProps) {
@@ -70,9 +70,9 @@ export function TextAreaField({ label, description, error, className, ...textare
 
 type SelectFieldProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, "id"> & {
   label: string;
-  description?: string;
-  error?: string;
-  className?: string;
+  description?: string | undefined;
+  error?: string | undefined;
+  className?: string | undefined;
   children: ReactNode;
 };
 

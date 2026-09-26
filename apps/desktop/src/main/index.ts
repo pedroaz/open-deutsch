@@ -95,7 +95,7 @@ async function verifyPackagedResources(): Promise<void> {
     packaged: app.isPackaged,
     dataRootResolved: selectedRoot === expectedRoot,
     curriculumReadOnlySnapshot: (await readFile(curriculum, "utf8")).includes(
-      "# Reviewed curriculum",
+      "# Curriculum",
     ),
     noticesPresent: true,
     pluginName: plugin["name"],
@@ -263,15 +263,18 @@ if (!app.requestSingleInstanceLock()) {
         });
       },
       processOptions: {
+        ...(process.env["OPEN_DEUTSCH_CODEX_EXECUTABLE"] === undefined ? {} : { executable: process.env["OPEN_DEUTSCH_CODEX_EXECUTABLE"] }),
         log,
         runId,
         sessionId,
       },
     });
     backend = new DesktopBackend({
+      curriculumRoot: app.isPackaged ? path.join(process.resourcesPath, "curriculum") : fileURLToPath(new URL("../../../../content/curriculum/", import.meta.url)),
       bootstrapFile,
       knownInstallRoots,
       appServer,
+      openExternal: (url) => shell.openExternal(url),
       log,
       emitEvent: (event) => {
         const safeEvent = desktopIpcEventSchema.parse(event);

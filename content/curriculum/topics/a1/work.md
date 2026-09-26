@@ -5,25 +5,16 @@ slug: work
 band: a1
 domain: work
 title: "A1: Work"
-status: foundation-ready
+
 communicativeGoals:
   [
     "Handle a practical work interaction at A1 level.",
     "Understand and respond to the most useful work language.",
   ]
 prerequisiteTopicIds: []
-grammarFoundations:
-  - key: a1-core-structures
-    description: "Use A1-appropriate sentence structure, questions, and connectives for work."
-vocabularyFoundations:
-  - key: work-foundations
-    description: "Use high-frequency words and phrases for work."
-lessonFoundation:
-  explanation: "A reviewed A1 foundation for work, with reusable examples and a clear progression from the previous band."
-  examples: ["Ich brauche Hilfe bei work.", "Können Sie das bitte erklären?"]
-exerciseConcepts:
-  - key: a1-work-role-play
-    description: "Role-play a bounded work exchange and report what was understood."
+grammarFoundations: []
+vocabularyFoundations: []
+exerciseConcepts: []
 sourceIds: [curriculum-source_0000000000000001]
 coverage:
   reception:
@@ -42,8 +33,6 @@ coverage:
 
 # A1: Work
 
-This reviewed A1 foundation connects practical work communication to the prior learning band and the Open Deutsch exercise blueprints.
+This topic records intended learning scope. See learning-path.json for available course lessons linked to this topic.
 
-Use the lesson foundation for explanation, the vocabulary foundation for reusable language, and the exercise concept for a bounded practice activity. Research staging may propose refinements, but this canonical snapshot changes only through explicit review.
-
-Sources: curriculum-source_0000000000000001.
+The framework citations support scope; they do not provide a lesson. Author original explanations, examples and activities with source, language and level checks.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Open Deutsch Desktop UI"
+  short_description: "Build and review the Electron interface"
+  default_prompt: "Use $open-deutsch-desktop-ui to improve this screen and inspect its behavior in the real app."

@@ -1,6 +1,6 @@
 # Open Deutsch third-party notices
 
-This inventory covers the 375 package versions installed from the pinned pnpm lockfile at notice-generation time. Each dependency remains under its own license; consult the package metadata and upstream repository for the complete license text. This file is regenerated with `pnpm run generate:third-party-notices`.
+This inventory covers the 374 package versions installed from the pinned pnpm lockfile at notice-generation time. Each dependency remains under its own license; consult the package metadata and upstream repository for the complete license text. This file is regenerated with `pnpm run generate:third-party-notices`.
 
 ## Application and assets
 
@@ -58,7 +58,6 @@ This inventory covers the 375 package versions installed from the pinned pnpm lo
 | `@peculiar/json-schema` | `1.1.12` | MIT | [upstream](https://github.com/PeculiarVentures/json-schema#readme) |
 | `@peculiar/utils` | `2.0.3` | MIT | [upstream](https://github.com/PeculiarVentures/pvtsutils#readme) |
 | `@peculiar/webcrypto` | `1.7.1` | MIT | [upstream](https://github.com/PeculiarVentures/webcrypto#readme) |
-| `@playwright/test` | `1.62.1` | Apache-2.0 | [upstream](https://playwright.dev) |
 | `@react-types/shared` | `3.36.1` | Apache-2.0 | — |
 | `@rolldown/binding-linux-x64-gnu` | `1.2.4` | MIT | [upstream](https://rolldown.rs/) |
 | `@rolldown/pluginutils` | `1.0.1` | MIT | [upstream](https://github.com/rolldown/plugins/tree/main/packages/pluginutils#readme) |

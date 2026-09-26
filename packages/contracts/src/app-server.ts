@@ -1,3 +1,4 @@
+import { courseReferenceSchema, courseTeachingContextSchema } from "./learning-path.js";
 import {
   activityIdSchema,
   calendarDateSchema,
@@ -27,7 +28,7 @@ const runtimeId = (maximum = 200) => text(maximum).regex(/^[A-Za-z0-9][A-Za-z0-9
 
 export const supportedCodexVersionSchema = z
   .string()
-  .regex(/^0\.146\.0$/u)
+  .regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u)
   .brand<"SupportedCodexVersion">();
 
 export const codexExecutableStateSchema = z.discriminatedUnion("status", [
@@ -39,7 +40,7 @@ export const codexExecutableStateSchema = z.discriminatedUnion("status", [
   z.strictObject({
     status: z.literal("compatible"),
     version: supportedCodexVersionSchema,
-    source: z.enum(["path", "configured-absolute-path"]),
+    source: z.enum(["desktop-bundled", "configured-absolute-path"]),
   }),
 ]);
 
@@ -70,7 +71,6 @@ export const appServerWorkloadKinds = [
   "contextual-help",
   "exercise-generation",
   "exercise-feedback",
-  "weekly-plan-generation",
 ] as const;
 export const appServerWorkloadKindSchema = z.enum(appServerWorkloadKinds);
 
@@ -80,7 +80,6 @@ export const appServerOutputSchemaIds = {
   "contextual-help": "open-deutsch/contextual-help@1",
   "exercise-generation": "open-deutsch/exercise-generation@1",
   "exercise-feedback": "open-deutsch/exercise-feedback@1",
-  "weekly-plan-generation": "open-deutsch/weekly-plan@1",
 } as const;
 export const appServerOutputSchemaIdSchema = z.enum(Object.values(appServerOutputSchemaIds));
 
@@ -279,6 +278,10 @@ const generatedExerciseContentSchema = z.discriminatedUnion("kind", [
 ]);
 
 export const exerciseGenerationCandidateSchema = strictBoundaryObject({
+  readingMaterial: z
+    .strictObject({ title: text(160), passage: text(12_000) })
+    .nullable()
+    .default(null),
   lesson: z
     .strictObject({
       title: text(160),
@@ -325,49 +328,12 @@ export const exerciseFeedbackCandidateSchema = strictBoundaryObject({
   caveats: outputCaveatsSchema,
 });
 
-export const weeklyPlanCandidateSchema = strictBoundaryObject({
-  role: z.literal("advisory"),
-  goals: z
-    .array(
-      z.strictObject({
-        title: text(160),
-        outcome: text(500),
-        suggestedActivities: z
-          .array(
-            z.strictObject({
-              kind: z.enum([
-                "writing",
-                "grammar",
-                "vocabulary-review",
-                "reading",
-                "codex-listening",
-                "voice-speaking",
-                "placement",
-                "custom-lesson",
-              ]),
-              title: text(160),
-              rationale: text(800),
-              naturalRequest: text(1_000),
-              estimatedMinutes: z.int().min(5).max(180),
-            }),
-          )
-          .min(1)
-          .max(12),
-      }),
-    )
-    .min(1)
-    .max(10),
-  uncertainty: outputUncertaintySchema,
-  caveats: outputCaveatsSchema,
-});
-
 export const appServerCandidateOutputSchemas = Object.freeze({
   "writing-prompt": writingPromptCandidateSchema,
   "writing-correction": writingCorrectionCandidateSchema,
   "contextual-help": contextualHelpCandidateSchema,
   "exercise-generation": exerciseGenerationCandidateSchema,
   "exercise-feedback": exerciseFeedbackCandidateSchema,
-  "weekly-plan-generation": weeklyPlanCandidateSchema,
 });
 
 export const appServerCandidateOutputJsonSchemas = Object.freeze({
@@ -376,8 +342,28 @@ export const appServerCandidateOutputJsonSchemas = Object.freeze({
   "contextual-help": toStructuredOutputJsonSchema(contextualHelpCandidateSchema),
   "exercise-generation": toStructuredOutputJsonSchema(exerciseGenerationCandidateSchema),
   "exercise-feedback": toStructuredOutputJsonSchema(exerciseFeedbackCandidateSchema),
-  "weekly-plan-generation": toStructuredOutputJsonSchema(weeklyPlanCandidateSchema),
 });
+
+/** Bind model generation to the same request constraints checked after generation. */
+export function appServerOutputJsonSchemaForInput(input: AppServerWorkloadInput): unknown {
+  if (input.kind !== "exercise-generation") {
+    return appServerCandidateOutputJsonSchemas[input.kind];
+  }
+  const exercises = generatedExerciseContentSchema.options.map((schema) =>
+    schema.extend({
+      cefrBand: z.literal(input.calibration.approximateLevel),
+      ...(input.courseTeaching?.objective
+        ? { objectives: z.array(z.literal(input.courseTeaching.objective.description)).length(1) }
+        : {}),
+    }),
+  );
+  return toStructuredOutputJsonSchema(
+    strictBoundaryObject({
+      ...exerciseGenerationCandidateSchema.shape,
+      exercises: z.array(z.union(exercises)).length(input.requestedExerciseCount),
+    }),
+  );
+}
 
 export const appServerWorkloadPolicySchema = strictBoundaryObject({
   policyVersion: z.literal(1),
@@ -474,6 +460,21 @@ const correctionMistakeSampleSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 
+const learningContextFields = {
+  relevantMistakes: z.array(correctionMistakeSampleSchema).max(6).default([]),
+  vocabularyToReview: z
+    .array(
+      z.strictObject({
+        vocabularyId: vocabularyIdSchema,
+        lemma: text(160),
+        meaning: text(500),
+        example: text(500).optional(),
+      }),
+    )
+    .max(12)
+    .default([]),
+} as const;
+
 export const appServerWorkloadInputSchema = z.discriminatedUnion("kind", [
   z.strictObject({
     kind: z.literal("writing-prompt"),
@@ -516,8 +517,15 @@ export const appServerWorkloadInputSchema = z.discriminatedUnion("kind", [
   }),
   z.strictObject({
     kind: z.literal("exercise-generation"),
+    learningPath: courseReferenceSchema.optional(),
+    courseTeaching: courseTeachingContextSchema.optional(),
+    ...learningContextFields,
+    everydayLifeGoal: text(500).optional(),
+    interests: z.array(text(80)).max(8).default([]),
+    preferredTopics: z.array(text(120)).max(8).default([]),
     naturalRequest: text(2_000),
     requestedExerciseCount: z.int().min(3).max(10),
+    reading: z.strictObject({ passage: text(12_000).nullable() }).optional(),
     calibration: learnerCalibrationSchema,
     curriculumTopicIds: z.array(curriculumTopicIdSchema).max(20),
     relevantMistakeIds: z.array(mistakeIdSchema).max(12),
@@ -552,6 +560,8 @@ export const appServerWorkloadInputSchema = z.discriminatedUnion("kind", [
   }),
   z.strictObject({
     kind: z.literal("exercise-feedback"),
+    courseCriterion: text(1000).optional(),
+    readingPassage: text(12_000).optional(),
     exercise: z.discriminatedUnion("kind", [
       z.strictObject({
         kind: z.literal("free-writing"),
@@ -578,16 +588,6 @@ export const appServerWorkloadInputSchema = z.discriminatedUnion("kind", [
       }),
     ]),
     calibration: learnerCalibrationSchema,
-  }),
-  z.strictObject({
-    kind: z.literal("weekly-plan-generation"),
-    naturalRequest: text(1_000).optional(),
-    calibration: learnerCalibrationSchema,
-    everydayLifeGoal: text(500),
-    availableMinutesPerWeek: z.int().min(15).max(2_100),
-    relevantMistakeIds: z.array(mistakeIdSchema).max(12),
-    dueVocabularyIds: z.array(vocabularyIdSchema).max(24),
-    curriculumTopicIds: z.array(curriculumTopicIdSchema).max(20),
   }),
 ]);
 
@@ -754,6 +754,7 @@ export const appServerEventSchema = boundaryUnion([
     submissionId: correlationIdSchema,
     kind: appServerWorkloadKindSchema,
     stage: z.enum(["queued", "starting", "running", "validating", "cancelling"]),
+    attempt: z.union([z.literal(1), z.literal(2)]),
   }),
   ...operationFinishedEvents,
 ]);
@@ -774,7 +775,6 @@ export type AppServerCandidateOutputMap = {
   readonly "contextual-help": z.infer<typeof contextualHelpCandidateSchema>;
   readonly "exercise-generation": z.infer<typeof exerciseGenerationCandidateSchema>;
   readonly "exercise-feedback": z.infer<typeof exerciseFeedbackCandidateSchema>;
-  readonly "weekly-plan-generation": z.infer<typeof weeklyPlanCandidateSchema>;
 };
 export type AppServerOutputMap = AppServerCandidateOutputMap;
 export type AppServerOperationFor<Kind extends AppServerWorkloadKind> = Omit<
@@ -816,6 +816,7 @@ export interface OpenDeutschAppServerAdapter<
     submissionId: z.output<typeof correlationIdSchema>;
   }): Promise<AppServerValidatedOperationResult<Kind, Outputs>>;
   cancelOperation(operationId: z.output<typeof correlationIdSchema>): Promise<void>;
+  releaseOperation(operationId: z.output<typeof correlationIdSchema>): void;
   shutdown(): Promise<void>;
   subscribe(listener: (event: AppServerEvent) => void): () => void;
 }

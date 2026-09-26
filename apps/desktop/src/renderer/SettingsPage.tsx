@@ -9,7 +9,18 @@ import {
 } from "@open-deutsch/domain";
 import { RotateCcw, Save, UserRound } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Card, DiagnosticCode, Button, Feedback, FieldGroup, LoadingState, ItemList, Muted } from "./components/ui/index.js";
+import {
+  Card,
+  Disclosure,
+  InfoHint,
+  DiagnosticCode,
+  Button,
+  Feedback,
+  FieldGroup,
+  LoadingState,
+  ItemList,
+  Muted,
+} from "./components/ui/index.js";
 import { ActionGroup, Page, FormGrid } from "./components/layout/index.js";
 
 import styles from "./SettingsPage.module.css";
@@ -317,7 +328,10 @@ export function SettingsPage({
   const setEffort = (workload: ModelWorkload, value: string) => {
     if (!draft) return;
     const current = draft.modelPreferences[workload];
-    const effort = { mode: "exact" as const, effortId: value };
+    const effort =
+      value === "semantic:fast" || value === "semantic:balanced" || value === "semantic:deep"
+        ? { mode: "semantic" as const, effort: value.slice(9) as "fast" | "balanced" | "deep" }
+        : { mode: "exact" as const, effortId: value };
     setProfile(
       "modelPreferences",
       replaceWorkloadPreference(draft.modelPreferences, workload, { ...current, effort }),
@@ -327,169 +341,26 @@ export function SettingsPage({
   return (
     <Page
       className={styles.settingsPage}
-      description={t("settings.intro")}
-      eyebrow={t("settings.eyebrow")}
+
       title={t("settings.title")}
     >
       {loading && <LoadingState live>{t("settings.loading")}</LoadingState>}
       {error && <SettingsError error={error} />}
-      {notice && <Feedback live="polite" tone="success">{notice}</Feedback>}
+      {notice && (
+        <Feedback live="polite" tone="success">
+          {notice}
+        </Feedback>
+      )}
 
-      <FormGrid>
-        <Card as="section" aria-labelledby="settings-data-title">
-          <h2 id="settings-data-title">{t("settings.dataTitle")}</h2>
-          {readiness.dataRoot.status === "ready" && (
-            <dl className={styles.detailList}>
-              <div>
-                <dt>{t("settings.dataFolder")}</dt>
-                <dd>{readiness.dataRoot.displayName}</dd>
-              </div>
-              <div>
-                <dt>{t("settings.generation")}</dt>
-                <dd>{readiness.dataRoot.generation}</dd>
-              </div>
-            </dl>
-          )}
-          {!dataRootSelection ? (
-            <Button
-
-              isDisabled={busy}
-              onPress={() => void chooseDataRoot()}
-            >
-              {t("settings.dataSwitch")}
-            </Button>
-          ) : (
-            <div
-              className={styles.switchConfirmation}
-              role="group"
-              aria-label={t("settings.dataSwitchConfirmTitle")}
-            >
-              <p>
-                {t("settings.dataSwitchConfirm", {
-                  name: dataRootSelection.displayName,
-                  generation: dataRootSelection.generation,
-                })}
-              </p>
-              {dataRootSelection.warnings.length > 0 && (
-                <ItemList>
-                  {dataRootSelection.warnings.map((warning) => (
-                    <li key={warning}>{t(dataRootWarningKeys[warning])}</li>
-                  ))}
-                </ItemList>
-              )}
-              <ActionGroup>
-                <Button
-                  variant="primary"
-                  isDisabled={busy}
-                  onPress={() => void confirmDataRoot()}
-                >
-                  {t("settings.dataSwitchConfirmAction")}
-                </Button>
-                <Button
-
-                  isDisabled={busy}
-                  onPress={() => {
-                    setDataRootSelection(undefined);
-                  }}
-                >
-                  {t("actions.cancel")}
-                </Button>
-              </ActionGroup>
-            </div>
-          )}
-        </Card>
-
-        <Card as="section" aria-labelledby="settings-account-title">
-          <h2 id="settings-account-title">{t("settings.accountTitle")}</h2>
-          <p>{account ? t(`settings.account.${account.status}`) : t("settings.notReported")}</p>
-          {account?.status === "signed-in" && account.planType && (
-            <p>{t("settings.plan", { plan: account.planType })}</p>
-          )}
-          <ActionGroup>
-            {account?.status === "signed-in" ? (
-              <Button isDisabled={busy} onPress={() => void logout()}>
-                {t("settings.logout")}
-              </Button>
-            ) : (
-              <Button
-                variant="primary"
-                isDisabled={busy || readiness.codex.status !== "available"}
-                onPress={() => void login()}
-              >
-                <UserRound aria-hidden="true" />
-                {t("settings.login")}
-              </Button>
-            )}
-          </ActionGroup>
-          <p>
-            {integration.status === "available"
-              ? t("settings.codexVersion", { version: integration.codexVersion })
-              : t("settings.codexUnavailable")}
-          </p>
-          {integration.status === "available" && (
-            <>
-              <p>{t(`settings.plugin.${integration.plugin}`)}</p>
-              <ActionGroup>
-                {integration.plugin === "not-installed" && (
-                  <Button
-                    variant="primary"
-                    isDisabled={busy}
-                    onPress={() => void manageIntegration("install")}
-                  >
-                    {t("settings.plugin.actions.install")}
-                  </Button>
-                )}
-                {integration.plugin === "refresh-required" && (
-                  <Button
-                    variant="primary"
-                    isDisabled={busy}
-                    onPress={() => void manageIntegration("refresh")}
-                  >
-                    {t("settings.plugin.actions.refresh")}
-                  </Button>
-                )}
-                {integration.plugin === "installed" && (
-                  <Button
-
-                    isDisabled={busy}
-                    onPress={() => void manageIntegration("uninstall")}
-                  >
-                    {t("settings.plugin.actions.uninstall")}
-                  </Button>
-                )}
-              </ActionGroup>
-            </>
-          )}
-        </Card>
-
-        <Card as="section" aria-labelledby="settings-limits-title">
-          <h2 id="settings-limits-title">{t("settings.limitsTitle")}</h2>
-          {limits && (limits.status === "available" || limits.status === "limited") ? (
-            <ItemList>
-              {limits.buckets.map((bucket) => (
-                <li key={bucket.limitId}>
-                  <strong>{bucket.limitId}</strong>
-                  {bucket.primary?.usedPercent == null
-                    ? ""
-                    : ` · ${String(bucket.primary.usedPercent)}%`}
-                </li>
-              ))}
-            </ItemList>
-          ) : (
-            <Muted as="p">{t("settings.notReported")}</Muted>
-          )}
-        </Card>
-
-        <Card as="section" aria-labelledby="settings-privacy-title">
-          <h2 id="settings-privacy-title">{t("settings.privacyTitle")}</h2>
-          <p>
-            <strong>{t("folder.privacyTitle")}</strong> — {t("folder.privacyBody")}
-          </p>
-          <p>
-            <strong>{t("folder.cloudTitle")}</strong> — {t("folder.cloudBody")}
-          </p>
-        </Card>
-      </FormGrid>
+      <nav className={styles.sectionNav} aria-label={t("settings.title")}>
+        {["profile", "models", "account", "data", "limits", "privacy", "diagnostics"].map(
+          (section) => (
+            <a key={section} href={`#settings-${section}-title`}>
+              {t(`settings.${section}Title`)}
+            </a>
+          ),
+        )}
+      </nav>
 
       <Card as="section" aria-labelledby="settings-profile-title">
         <h2 id="settings-profile-title">{t("settings.profileTitle")}</h2>
@@ -526,18 +397,7 @@ export function SettingsPage({
                 }}
               />
             </FieldGroup>
-            <FieldGroup>
-              <span>{t("onboarding.time")}</span>
-              <input
-                type="number"
-                min={15}
-                max={10080}
-                value={draft.availableStudyMinutesPerWeek}
-                onChange={(event) => {
-                  setProfile("availableStudyMinutesPerWeek", Number(event.currentTarget.value));
-                }}
-              />
-            </FieldGroup>
+
             <FieldGroup>
               <span>{t("settings.teachingProfile")}</span>
               <select
@@ -603,6 +463,17 @@ export function SettingsPage({
               modelResolution && modelResolution.resolution.status !== "unavailable"
                 ? modelResolution.resolution.effectiveModelId
                 : undefined;
+            const automaticResolution = catalog
+              ? resolveModelPreference(
+                  workload,
+                  { ...preference, model: { mode: "automatic" } },
+                  catalog,
+                ).resolution
+              : undefined;
+            const automaticModel =
+              automaticResolution && automaticResolution.status !== "unavailable"
+                ? catalog?.models.find(({ id }) => id === automaticResolution.effectiveModelId)
+                : undefined;
             const selectedModel = effectiveModelId
               ? catalog?.models.find(({ id }) => id === effectiveModelId)
               : undefined;
@@ -622,7 +493,14 @@ export function SettingsPage({
                 ? savedEffortId
                 : undefined;
             return (
-              <fieldset className={styles.modelRow} key={workload}>
+              <fieldset
+                className={styles.modelRow}
+                key={workload}
+                data-workload={workload}
+                data-effective-model={effectiveModelId}
+                data-effective-effort={resolvedEffortId}
+                data-default-effort={selectedModel?.defaultReasoningEffort}
+              >
                 <legend>{t(`settings.workloads.${workload}`)}</legend>
                 <FieldGroup>
                   <span>{t("settings.model")}</span>
@@ -632,7 +510,11 @@ export function SettingsPage({
                       setModel(workload, event.currentTarget.value);
                     }}
                   >
-                    <option value="automatic">{t("settings.automatic")}</option>
+                    <option value="automatic">
+                      {t("modelControl.automatic", {
+                        model: automaticModel?.displayName ?? t("settings.notReported"),
+                      })}
+                    </option>
                     {unavailableModelId ? (
                       <option value={`exact:${unavailableModelId}`}>
                         {t("settings.unavailableSavedModel", { model: unavailableModelId })}
@@ -648,12 +530,25 @@ export function SettingsPage({
                 <FieldGroup>
                   <span>{t("settings.effort")}</span>
                   <select
-                    value={resolvedEffortId ?? ""}
+                    value={
+                      preference.effort.mode === "semantic"
+                        ? `semantic:${preference.effort.effort}`
+                        : preference.effort.effortId
+                    }
                     onChange={(event) => {
                       setEffort(workload, event.currentTarget.value);
                     }}
                   >
-                    {!resolvedEffortId && <option value="">{t("settings.notReported")}</option>}
+                    {(["fast", "balanced", "deep"] as const).map((effort) => (
+                      <option key={effort} value={`semantic:${effort}`}>
+                        {t(`settings.semanticEfforts.${effort}`)}
+                      </option>
+                    ))}
+                    {unavailableEffortId && (
+                      <option value={unavailableEffortId}>
+                        {t("settings.unavailableSavedEffort", { effort: unavailableEffortId })}
+                      </option>
+                    )}
                     {efforts.map((effort) => (
                       <option key={effort} value={effort}>
                         {t(`settings.exactEfforts.${effort}`, { defaultValue: effort })}
@@ -661,8 +556,20 @@ export function SettingsPage({
                     ))}
                   </select>
                 </FieldGroup>
+                {modelResolution &&
+                  modelResolution.resolution.status !== "unavailable" &&
+                  modelResolution.resolution.unavailableAutomaticModelId && (
+                    <Feedback live="off" tone="warning">
+                      {t("settings.automaticFallback", {
+                        model: modelResolution.resolution.unavailableAutomaticModelId,
+                        effective: selectedModel?.displayName,
+                      })}
+                    </Feedback>
+                  )}
                 {unavailableModelId || unavailableEffortId ? (
-                  <Feedback live="off" tone="warning">{t("settings.savedModelFallback")}</Feedback>
+                  <Feedback live="off" tone="warning">
+                    {t("settings.savedModelFallback")}
+                  </Feedback>
                 ) : null}
               </fieldset>
             );
@@ -670,54 +577,188 @@ export function SettingsPage({
         )}
       </Card>
 
-      <Card as="section" aria-labelledby="settings-diagnostics-title">
-        <h2 id="settings-diagnostics-title">{t("settings.diagnosticsTitle")}</h2>
-        <Muted as="p">{t("settings.diagnosticsPrivacy")}</Muted>
-        {diagnostics && (
-          <dl className={styles.detailList}>
-            <div>
-              <dt>{t("settings.diagnosticsGeneration")}</dt>
-              <dd>{diagnostics.dataRootGeneration}</dd>
+      <FormGrid>
+        <Card as="section" aria-labelledby="settings-data-title">
+          <h2 id="settings-data-title">{t("settings.dataTitle")}</h2>
+          {readiness.dataRoot.status === "ready" && (
+            <dl className={styles.detailList}>
+              <div>
+                <dt>{t("settings.dataFolder")}</dt>
+                <dd>{readiness.dataRoot.displayName}</dd>
+              </div>
+            </dl>
+          )}
+          {!dataRootSelection ? (
+            <Button isDisabled={busy} onPress={() => void chooseDataRoot()}>
+              {t("settings.dataSwitch")}
+            </Button>
+          ) : (
+            <div
+              className={styles.switchConfirmation}
+              role="group"
+              aria-label={t("settings.dataSwitchConfirmTitle")}
+            >
+              <p>
+                {t("settings.dataSwitchConfirm", {
+                  name: dataRootSelection.displayName,
+                  generation: dataRootSelection.generation,
+                })}
+              </p>
+              {dataRootSelection.warnings.length > 0 && (
+                <ItemList>
+                  {dataRootSelection.warnings.map((warning) => (
+                    <li key={warning}>{t(dataRootWarningKeys[warning])}</li>
+                  ))}
+                </ItemList>
+              )}
+              <ActionGroup>
+                <Button variant="primary" isDisabled={busy} onPress={() => void confirmDataRoot()}>
+                  {t("settings.dataSwitchConfirmAction")}
+                </Button>
+                <Button
+                  variant="secondary"
+                  isDisabled={busy}
+                  onPress={() => {
+                    setDataRootSelection(undefined);
+                  }}
+                >
+                  {t("actions.cancel")}
+                </Button>
+              </ActionGroup>
             </div>
-            <div>
-              <dt>{t("settings.diagnosticsSchema")}</dt>
-              <dd>{diagnostics.databaseSchemaVersion}</dd>
-            </div>
-            <div>
-              <dt>{t("settings.diagnosticsDatabase")}</dt>
-              <dd>{diagnostics.journalMode.toUpperCase()}</dd>
-            </div>
-            <div>
-              <dt>{t("settings.diagnosticsLogs")}</dt>
-              <dd>{diagnostics.logFileCount}</dd>
-            </div>
-          </dl>
-        )}
-        <ActionGroup>
-          <Button
+          )}
+        </Card>
 
-            isDisabled={busy}
-            onPress={() => void readDiagnostics()}
-          >
-            {t("settings.runDiagnostics")}
-          </Button>
-          <Button
+        <Card as="section" aria-labelledby="settings-account-title">
+          <h2 id="settings-account-title">{t("settings.accountTitle")}</h2>
+          <p>{account ? t(`settings.account.${account.status}`) : t("settings.notReported")}</p>
+          {account?.status === "signed-in" && account.planType && (
+            <p>{t("settings.plan", { plan: account.planType })}</p>
+          )}
+          <ActionGroup>
+            {account?.status === "signed-in" ? (
+              <Button isDisabled={busy} onPress={() => void logout()}>
+                {t("settings.logout")}
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                isDisabled={busy || readiness.codex.status !== "available"}
+                onPress={() => void login()}
+              >
+                <UserRound aria-hidden="true" />
+                {t("settings.login")}
+              </Button>
+            )}
+          </ActionGroup>
+          <p>
+            {integration.status === "available"
+              ? t("settings.codexVersion", { version: integration.codexVersion })
+              : t("settings.codexUnavailable")}
+          </p>
+          {integration.status === "available" && (
+            <>
+              <p>{t(`settings.plugin.${integration.plugin}`)}</p>
+              <ActionGroup>
+                {integration.plugin === "not-installed" && (
+                  <Button
+                    variant="primary"
+                    isDisabled={busy}
+                    onPress={() => void manageIntegration("install")}
+                  >
+                    {t("settings.plugin.actions.install")}
+                  </Button>
+                )}
+                {integration.plugin === "refresh-required" && (
+                  <Button
+                    variant="primary"
+                    isDisabled={busy}
+                    onPress={() => void manageIntegration("refresh")}
+                  >
+                    {t("settings.plugin.actions.refresh")}
+                  </Button>
+                )}
+                {integration.plugin === "installed" && (
+                  <Button isDisabled={busy} onPress={() => void manageIntegration("uninstall")}>
+                    {t("settings.plugin.actions.uninstall")}
+                  </Button>
+                )}
+              </ActionGroup>
+            </>
+          )}
+        </Card>
 
-            isDisabled={busy}
-            onPress={() => void exportDiagnostics()}
-          >
-            {t("settings.exportDiagnostics")}
-          </Button>
-          <Button isDisabled={busy} onPress={() => void clearLogs()}>
-            {t("settings.clearLogs")}
-          </Button>
-        </ActionGroup>
-      </Card>
+        <Card as="section" aria-labelledby="settings-limits-title">
+          <h2 id="settings-limits-title">{t("settings.limitsTitle")}</h2>
+          {limits && (limits.status === "available" || limits.status === "limited") ? (
+            <ItemList>
+              {limits.buckets.map((bucket) => (
+                <li key={bucket.limitId}>
+                  <strong>{bucket.limitId}</strong>
+                  {bucket.primary?.usedPercent == null
+                    ? ""
+                    : ` · ${String(bucket.primary.usedPercent)}%`}
+                </li>
+              ))}
+            </ItemList>
+          ) : (
+            <Muted as="p">{t("settings.notReported")}</Muted>
+          )}
+        </Card>
+
+        <Card as="section" aria-labelledby="settings-privacy-title">
+          <h2 id="settings-privacy-title">{t("settings.privacyTitle")}</h2>
+          <p>
+            <strong>{t("folder.privacyTitle")}</strong> — {t("folder.privacyBody")}
+          </p>
+          <p>
+            <strong>{t("folder.cloudTitle")}</strong> — {t("folder.cloudBody")}
+          </p>
+        </Card>
+      </FormGrid>
+
+      <section id="settings-diagnostics-title">
+        <Disclosure label={t("settings.diagnosticsTitle")}>
+          <InfoHint label={t("settings.diagnosticsTitle")}>
+            {t("settings.diagnosticsPrivacy")}
+          </InfoHint>
+          {diagnostics && (
+            <dl className={styles.detailList}>
+              <div>
+                <dt>{t("settings.diagnosticsGeneration")}</dt>
+                <dd>{diagnostics.dataRootGeneration}</dd>
+              </div>
+              <div>
+                <dt>{t("settings.diagnosticsSchema")}</dt>
+                <dd>{diagnostics.databaseSchemaVersion}</dd>
+              </div>
+              <div>
+                <dt>{t("settings.diagnosticsDatabase")}</dt>
+                <dd>{diagnostics.journalMode.toUpperCase()}</dd>
+              </div>
+              <div>
+                <dt>{t("settings.diagnosticsLogs")}</dt>
+                <dd>{diagnostics.logFileCount}</dd>
+              </div>
+            </dl>
+          )}
+          <ActionGroup>
+            <Button isDisabled={busy} onPress={() => void readDiagnostics()}>
+              {t("settings.runDiagnostics")}
+            </Button>
+            <Button isDisabled={busy} onPress={() => void exportDiagnostics()}>
+              {t("settings.exportDiagnostics")}
+            </Button>
+            <Button isDisabled={busy} onPress={() => void clearLogs()}>
+              {t("settings.clearLogs")}
+            </Button>
+          </ActionGroup>
+        </Disclosure>
+      </section>
 
       {draft && (
         <div className={styles.settingsActions}>
           <Button
-
             isDisabled={busy}
             onPress={() => {
               setProfile("modelPreferences", defaultModelPreferences);
@@ -727,7 +768,6 @@ export function SettingsPage({
             {t("settings.restoreModels")}
           </Button>
           <Button
-
             isDisabled={busy || !persisted}
             onPress={() => {
               if (persisted) setDraft(persisted.settings);
@@ -735,11 +775,7 @@ export function SettingsPage({
           >
             {t("settings.discard")}
           </Button>
-          <Button
-            variant="primary"
-            isDisabled={busy || !dirty}
-            onPress={() => void save()}
-          >
+          <Button variant="primary" isDisabled={busy || !dirty} onPress={() => void save()}>
             <Save aria-hidden="true" />
             {t("settings.save")}
           </Button>

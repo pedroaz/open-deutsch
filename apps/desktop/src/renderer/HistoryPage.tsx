@@ -1,13 +1,26 @@
+import { useOperationProgress } from "./useOperationProgress.js";
+import { OperationProgress } from "./OperationProgress.js";
 import type {
   DesktopIpcRequest,
   DesktopIpcResponse,
   OpenDeutschError,
 } from "@open-deutsch/contracts";
 import { calendarDateSchema, curriculumTopicIdSchema } from "@open-deutsch/contracts";
-import { History, RefreshCw, Repeat2, Sparkles, Square } from "lucide-react";
+import { History, RefreshCw, Repeat2, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { DiagnosticCode, Button, ConfirmDialog, EmptyState, Feedback, Card, FieldGroup, Muted, ItemList } from "./components/ui/index.js";
+import {
+  DiagnosticCode,
+  Button,
+  Disclosure,
+  ConfirmDialog,
+  EmptyState,
+  Feedback,
+  Card,
+  FieldGroup,
+  Muted,
+  ItemList,
+} from "./components/ui/index.js";
 import { ActionGroup, FilterBar, Page } from "./components/layout/index.js";
 
 import styles from "./HistoryPage.module.css";
@@ -34,7 +47,6 @@ const activityTypes: readonly ActivityType[] = [
   "voice-speaking",
   "placement",
   "custom-lesson",
-  "plan-generation",
 ];
 
 export type HistoryPracticeSeed =
@@ -67,12 +79,16 @@ function exerciseAnswerText(detail: Extract<Entry["detail"], { kind: "exercise-a
 
 export function HistoryPage({
   onPracticeAgain,
+  initialHistoryEntryIds,
   requestAiAccess,
 }: {
   onPracticeAgain: (seed: HistoryPracticeSeed) => void;
+  initialHistoryEntryIds?: NonNullable<HistoryPayload["historyEntryIds"]>;
   requestAiAccess: () => Promise<boolean>;
 }) {
   const { i18n, t } = useTranslation();
+  const progress = useOperationProgress();
+  const [entryIds, setEntryIds] = useState(initialHistoryEntryIds);
   const [snapshot, setSnapshot] = useState<Snapshot>();
   const [skill, setSkill] = useState<Skill | "">("");
   const [activityType, setActivityType] = useState<ActivityType | "">("");
@@ -101,6 +117,7 @@ export function HistoryPage({
     try {
       setSnapshot(
         await invokeDesktop("history/read", {
+          ...(entryIds?.length ? { historyEntryIds: entryIds } : {}),
           ...(skill ? { skill } : {}),
           ...(activityType ? { activityType } : {}),
           ...(fromDate ? { fromDate: calendarDateSchema.parse(fromDate) } : {}),
@@ -117,7 +134,7 @@ export function HistoryPage({
     } finally {
       setBusy(false);
     }
-  }, [activityType, curriculumTopicId, fromDate, mistakeCategory, skill, toDate]);
+  }, [entryIds, activityType, curriculumTopicId, fromDate, mistakeCategory, skill, toDate]);
 
   useEffect(() => {
     const initial = window.setTimeout(() => void refresh(), 0);
@@ -130,6 +147,7 @@ export function HistoryPage({
         event.kind === "exercise-generation" &&
         event.submissionId === practiceSubmissionId.current
       ) {
+        practiceOperationId.current = event.operationId;
         setPracticeState((current) =>
           current
             ? { ...current, status: event.stage === "queued" ? "queued" : "running" }
@@ -154,6 +172,7 @@ export function HistoryPage({
               }
             : current,
         );
+        practiceSubmissionId.current = undefined;
         practiceOperationId.current = undefined;
       }
     });
@@ -200,6 +219,7 @@ export function HistoryPage({
     const patternKey = `${pattern.category.kind}:${pattern.category.categoryKey}`;
     const submissionId = createDesktopSubmissionId();
     practiceSubmissionId.current = submissionId;
+    progress.begin(submissionId, "exercise-generation");
     setPracticeState({ patternKey, status: "queued" });
     setError(undefined);
     try {
@@ -210,7 +230,7 @@ export function HistoryPage({
           request: { source: "mistake-pattern", category: pattern.category },
         },
       });
-      practiceOperationId.current = result.operationId;
+      if (practiceSubmissionId.current === submissionId) practiceOperationId.current = result.operationId;
     } catch (cause) {
       setPracticeState({ patternKey, status: "failed" });
       setError(normalizeDesktopError(cause).detail);
@@ -225,6 +245,7 @@ export function HistoryPage({
     const patternKey = `voice:${entry.historyEntryId}`;
     const submissionId = createDesktopSubmissionId();
     practiceSubmissionId.current = submissionId;
+    progress.begin(submissionId, "exercise-generation");
     setPracticeState({ patternKey, status: "queued" });
     setError(undefined);
     try {
@@ -238,7 +259,7 @@ export function HistoryPage({
           },
         },
       });
-      practiceOperationId.current = result.operationId;
+      if (practiceSubmissionId.current === submissionId) practiceOperationId.current = result.operationId;
     } catch (cause) {
       setPracticeState({ patternKey, status: "failed" });
       setError(normalizeDesktopError(cause).detail);
@@ -258,18 +279,21 @@ export function HistoryPage({
   return (
     <Page
       actions={
-        <Button isPending={busy} pendingLabel={t("history.refreshing")} onPress={() => void refresh()}>
+        <Button
+          isPending={busy}
+          pendingLabel={t("history.refreshing")}
+          onPress={() => void refresh()}
+        >
           <RefreshCw aria-hidden="true" />
           {t("history.refresh")}
         </Button>
       }
       className={styles.page}
-      description={t("history.intro")}
-      eyebrow={t("history.eyebrow")}
+
       title={t("history.title")}
       aria-busy={busy}
     >
-
+      {entryIds && <Button onPress={() => setEntryIds(undefined)}>{t("learningPath.allHistory")}</Button>}
       <FilterBar
         as="form"
         columns={3}
@@ -311,51 +335,56 @@ export function HistoryPage({
             ))}
           </select>
         </FieldGroup>
-        <FieldGroup>
-          {t("history.filters.from")}
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(event) => {
-              setFromDate(event.target.value);
-            }}
-          />
-        </FieldGroup>
-        <FieldGroup>
-          {t("history.filters.to")}
-          <input
-            type="date"
-            value={toDate}
-            onChange={(event) => {
-              setToDate(event.target.value);
-            }}
-          />
-        </FieldGroup>
-        <FieldGroup>
-          {t("history.filters.topic")}
-          <input
-            maxLength={96}
-            value={curriculumTopicId}
-            onChange={(event) => {
-              setCurriculumTopicId(event.target.value);
-            }}
-          />
-        </FieldGroup>
-        <FieldGroup>
-          {t("history.filters.mistake")}
-          <input
-            maxLength={120}
-            value={mistakeCategory}
-            onChange={(event) => {
-              setMistakeCategory(event.target.value);
-            }}
-          />
-        </FieldGroup>
         <Button variant="primary" isDisabled={busy} type="submit">
           {t("history.filters.apply")}
         </Button>
+        <Disclosure className={styles.advancedFilters} label={t("ui.moreFilters")}>
+          <div className={styles.advancedGrid}>
+            <FieldGroup>
+              {t("history.filters.from")}
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(event) => {
+                  setFromDate(event.target.value);
+                }}
+              />
+            </FieldGroup>
+            <FieldGroup>
+              {t("history.filters.to")}
+              <input
+                type="date"
+                value={toDate}
+                onChange={(event) => {
+                  setToDate(event.target.value);
+                }}
+              />
+            </FieldGroup>
+            <FieldGroup>
+              {t("history.filters.topic")}
+              <input
+                maxLength={96}
+                value={curriculumTopicId}
+                onChange={(event) => {
+                  setCurriculumTopicId(event.target.value);
+                }}
+              />
+            </FieldGroup>
+            <FieldGroup>
+              {t("history.filters.mistake")}
+              <input
+                maxLength={120}
+                value={mistakeCategory}
+                onChange={(event) => {
+                  setMistakeCategory(event.target.value);
+                }}
+              />
+            </FieldGroup>
+          </div>
+        </Disclosure>
       </FilterBar>
 
+      <OperationProgress progress={practiceState?.status === "queued" || practiceState?.status === "running" ? progress.progress : undefined} onCancel={() => void cancelTargetedPractice()} />
       {error && (
         <Feedback live="assertive" tone="error">
           <span>{t(error.messageKey)}</span>
@@ -366,9 +395,7 @@ export function HistoryPage({
       )}
 
       {snapshot && snapshot.mistakePatterns.length > 0 ? (
-        <section aria-labelledby="mistake-patterns-heading">
-          <h2 id="mistake-patterns-heading">{t("history.patterns.title")}</h2>
-          <Muted as="p">{t("history.patterns.intro")}</Muted>
+        <Disclosure label={t("history.patterns.title")}>
           <div className={styles.historyMistakeGrid}>
             {snapshot.mistakePatterns.map((pattern) => {
               const categoryLabel =
@@ -403,19 +430,10 @@ export function HistoryPage({
                       <Feedback live="off">
                         {t(`history.patterns.practice.${practiceState.status}`)}
                       </Feedback>
-                      <Button
-
-                        onPress={() => void cancelTargetedPractice()}
-                      >
-                        <Square aria-hidden="true" /> {t("history.patterns.practice.cancel")}
-                      </Button>
                     </ActionGroup>
                   ) : (
                     <ActionGroup>
-                      <Button
-
-                        onPress={() => void createTargetedPractice(pattern)}
-                      >
+                      <Button onPress={() => void createTargetedPractice(pattern)}>
                         <Sparkles aria-hidden="true" /> {t("history.patterns.practice.create")}
                       </Button>
                       {practiceState?.patternKey ===
@@ -441,9 +459,7 @@ export function HistoryPage({
                         </blockquote>
                         <p>{occurrence.explanation}</p>
                         {occurrence.classificationSource === "learner-amended" ? (
-                          <Muted as="span">
-                            {t("history.patterns.amendedEvidence")}
-                          </Muted>
+                          <Muted as="span">{t("history.patterns.amendedEvidence")}</Muted>
                         ) : null}
                       </li>
                     ))}
@@ -452,7 +468,7 @@ export function HistoryPage({
               );
             })}
           </div>
-        </section>
+        </Disclosure>
       ) : null}
 
       {snapshot && snapshot.entries.length === 0 ? (
@@ -476,345 +492,113 @@ export function HistoryPage({
                 {dateFormatter.format(new Date(entry.occurredAt))}
               </time>
             </header>
-            {entry.curriculumTopicIds.length > 0 && (
-              <Muted as="p">
-                {t("history.topics")}: {entry.curriculumTopicIds.join(", ")}
-              </Muted>
-            )}
-            {entry.mistakeCategories.length > 0 && (
-              <Muted as="p">
-                {t("history.mistakes")}: {entry.mistakeCategories.join(", ")}
-              </Muted>
-            )}
-            {entry.detail.kind === "writing-correction" ? (
-              <div className={styles.historyDetail}>
-                <div className={styles.correctionGrid}>
-                  <section className={styles.correctionPane}>
-                    <h3>{t("history.learnerOriginal")}</h3>
-                    <p className={styles.correctionText}>{entry.detail.learnerText}</p>
-                  </section>
-                  <section className={styles.correctionPane}>
-                    <h3>{t("history.modelCorrection")}</h3>
-                    <p className={styles.correctionText}>{entry.detail.correctedText}</p>
-                  </section>
-                </div>
-                <section>
-                  <h3>{t("history.feedback")}</h3>
-                  <p>{entry.detail.feedback.summary}</p>
-                  <h4>{t("history.strengths")}</h4>
-                  <ItemList>
-                    {entry.detail.feedback.strengths.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ItemList>
-                  <h4>{t("history.improvements")}</h4>
-                  <ItemList>
-                    {entry.detail.feedback.improvements.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ItemList>
-                </section>
-                {entry.detail.vocabularyCandidates.length > 0 && (
-                  <section>
-                    <h3>{t("history.vocabularyCandidates")}</h3>
-                    <ItemList>
-                      {entry.detail.vocabularyCandidates.map((candidate) => (
-                        <li key={`${candidate.lemma}:${candidate.meaning}`}>
-                          <strong>{candidate.lemma}</strong> — {candidate.meaning}.{" "}
-                          {candidate.rationale}
-                        </li>
-                      ))}
-                    </ItemList>
-                  </section>
-                )}
+            <Disclosure label={t("ui.details")}>
+              {entry.curriculumTopicIds.length > 0 && (
                 <Muted as="p">
-                  {entry.detail.provenance.availability === "reported"
-                    ? t("history.modelProvenance", {
-                        model: entry.detail.provenance.modelId,
-                        effort: entry.detail.provenance.effortId,
-                      })
-                    : t("history.modelNotReported")}
+                  {t("history.topics")}: {entry.curriculumTopicIds.join(", ")}
                 </Muted>
-                <ActionGroup>
-                  <Button
-
-                    onPress={() => {
-                      onPracticeAgain(practiceSeed(entry));
-                    }}
-                  >
-                    <Repeat2 aria-hidden="true" /> {t("history.practiceAgain")}
-                  </Button>
-                  <ConfirmDialog
-                    body={t("history.deleteBody")}
-                    cancel={t("actions.cancel")}
-                    confirm={t("actions.delete")}
-                    onConfirm={() => deleteEntry(entry)}
-                    title={t("history.deleteTitle")}
-                    trigger={t("history.delete")}
-                  />
-                </ActionGroup>
-              </div>
-            ) : entry.detail.kind === "reading" ? (
-              <div className={styles.historyDetail} data-testid="reading-detail">
-                <section>
-                  <h3>{t("history.readingMaterial")}</h3>
-                  <p>{entry.detail.passage}</p>
-                  <Muted as="p">
-                    {t("history.readingSource", {
-                      source: entry.detail.source.label,
-                      kind: entry.detail.source.kind,
-                    })}
-                  </Muted>
-                </section>
-                <section>
-                  <h3>{t("history.readingEvidence")}</h3>
-                  <ItemList>
-                    {entry.detail.exerciseResults.map((exercise) => (
-                      <li key={exercise.kind}>
-                        <strong>{exercise.kind}</strong>: {exercise.evidence}
-                      </li>
-                    ))}
-                  </ItemList>
-                  {entry.detail.difficultWords.length > 0 && (
-                    <p>
-                      {t("history.readingWords", { words: entry.detail.difficultWords.join(", ") })}
-                    </p>
-                  )}
-                </section>
-                <Feedback live="off">{t("history.readingUntrusted")}</Feedback>
-                <ConfirmDialog
-                  body={t("history.deleteBody")}
-                  cancel={t("actions.cancel")}
-                  confirm={t("actions.delete")}
-                  onConfirm={() => deleteEntry(entry)}
-                  title={t("history.deleteTitle")}
-                  trigger={t("history.delete")}
-                />
-              </div>
-            ) : entry.detail.kind === "listening" ? (
-              <div className={styles.historyDetail} data-testid="listening-detail">
-                <section>
-                  <h3>{t("history.listeningSummary")}</h3>
-                  <ItemList>
-                    {entry.detail.exerciseResults.map((exercise) => (
-                      <li key={exercise.kind}>
-                        <strong>{exercise.kind}</strong>: {exercise.outcome} — {exercise.evidence}
-                      </li>
-                    ))}
-                  </ItemList>
-                  {entry.detail.difficultVocabulary.length > 0 && (
-                    <p>
-                      {t("history.listeningWords", {
-                        words: entry.detail.difficultVocabulary.join(", "),
-                      })}
-                    </p>
-                  )}
-                </section>
-                <section>
-                  <h3>{t("history.listeningNextSteps")}</h3>
-                  <ItemList>
-                    {entry.detail.nextSteps.map((step) => (
-                      <li key={step}>{step}</li>
-                    ))}
-                  </ItemList>
-                </section>
-                <Feedback live="off">{t("history.listeningNoAudio")}</Feedback>
-                <ConfirmDialog
-                  body={t("history.deleteBody")}
-                  cancel={t("actions.cancel")}
-                  confirm={t("actions.delete")}
-                  onConfirm={() => deleteEntry(entry)}
-                  title={t("history.deleteTitle")}
-                  trigger={t("history.delete")}
-                />
-              </div>
-            ) : entry.detail.kind === "placement" ? (
-              <div className={styles.historyDetail} data-testid="placement-detail">
-                <section>
-                  <h3>{t("history.placementSummary")}</h3>
-                  <p>
-                    {t("history.placementLevel", {
-                      level: entry.detail.estimatedLevel.toUpperCase(),
-                    })}
-                  </p>
-                  <Feedback live="off" tone="warning">
-                    {entry.detail.uncertainty.level === "none"
-                      ? t("history.placementUncertaintyNone")
-                      : entry.detail.uncertainty.explanation}
-                  </Feedback>
-                </section>
-                <section>
-                  <h3>{t("history.placementEvidence")}</h3>
-                  <ItemList>
-                    {entry.detail.sampleResults.map((sample) => (
-                      <li key={sample.kind}>
-                        <strong>{sample.topic}</strong>:{" "}
-                        {t(`history.placementOutcomes.${sample.outcome}`)} — {sample.evidence}
-                      </li>
-                    ))}
-                  </ItemList>
-                </section>
-                <Feedback live="off" tone="warning">
-                  {entry.detail.voiceCalibration.explanation}
-                </Feedback>
-                <ConfirmDialog
-                  body={t("history.deleteBody")}
-                  cancel={t("actions.cancel")}
-                  confirm={t("actions.delete")}
-                  onConfirm={() => deleteEntry(entry)}
-                  title={t("history.deleteTitle")}
-                  trigger={t("history.delete")}
-                />
-              </div>
-            ) : entry.detail.kind === "voice-summary" ? (
-              <div className={styles.historyDetail} data-testid="voice-summary-detail">
-                <section>
-                  <h3>{t("history.voiceSummary.scenario")}</h3>
-                  <p>
-                    <strong>{entry.detail.scenario.title}</strong> — {entry.detail.scenario.topic}
-                  </p>
-                  <Muted as="p">
-                    {t("history.voiceSummary.level", {
-                      level: entry.detail.scenario.targetLevel.toUpperCase(),
-                    })}
-                    {" · "}
-                    {entry.detail.duration.status === "known"
-                      ? t("history.voiceSummary.duration", {
-                          minutes: Math.max(
-                            1,
-                            Math.round(entry.detail.duration.milliseconds / 60_000),
-                          ),
-                        })
-                      : t("history.voiceSummary.durationUnknown")}
-                  </Muted>
-                </section>
-                <section>
-                  <h3>{t("history.feedback")}</h3>
-                  <p>{entry.detail.feedback.summary}</p>
-                  {entry.detail.feedback.strengths.length > 0 && (
+              )}
+              {entry.mistakeCategories.length > 0 && (
+                <Muted as="p">
+                  {t("history.mistakes")}: {entry.mistakeCategories.join(", ")}
+                </Muted>
+              )}
+              {entry.detail.kind === "writing-correction" ? (
+                <div className={styles.historyDetail}>
+                  <div className={styles.correctionGrid}>
+                    <section className={styles.correctionPane}>
+                      <h3>{t("history.learnerOriginal")}</h3>
+                      <p className={styles.correctionText}>{entry.detail.learnerText}</p>
+                    </section>
+                    <section className={styles.correctionPane}>
+                      <h3>{t("history.modelCorrection")}</h3>
+                      <p className={styles.correctionText}>{entry.detail.correctedText}</p>
+                    </section>
+                  </div>
+                  <section>
+                    <h3>{t("history.feedback")}</h3>
+                    <p>{entry.detail.feedback.summary}</p>
+                    <h4>{t("history.strengths")}</h4>
                     <ItemList>
                       {entry.detail.feedback.strengths.map((item) => (
-                        <li key={`strength:${item}`}>{item}</li>
+                        <li key={item}>{item}</li>
                       ))}
                     </ItemList>
-                  )}
-                  {entry.detail.feedback.priorities.length > 0 && (
+                    <h4>{t("history.improvements")}</h4>
                     <ItemList>
-                      {entry.detail.feedback.priorities.map((item) => (
-                        <li key={`priority:${item}`}>{item}</li>
-                      ))}
-                    </ItemList>
-                  )}
-                </section>
-                {entry.detail.observedIssues.length > 0 && (
-                  <section>
-                    <h3>{t("history.voiceSummary.issues")}</h3>
-                    <ItemList>
-                      {entry.detail.observedIssues.map((issue) => (
-                        <li key={`${issue.category}:${issue.observation}`}>
-                          <strong>{issue.category}</strong>: {issue.observation} — {issue.feedback}
-                        </li>
+                      {entry.detail.feedback.improvements.map((item) => (
+                        <li key={item}>{item}</li>
                       ))}
                     </ItemList>
                   </section>
-                )}
-                {entry.detail.vocabulary.length > 0 && (
-                  <section>
-                    <h3>{t("history.voiceSummary.vocabulary")}</h3>
-                    <ItemList>
-                      {entry.detail.vocabulary.map((item) => (
-                        <li key={`${item.lemma}:${item.meaning}`}>
-                          <strong>{item.lemma}</strong> — {item.meaning}. {item.contextSummary}
-                        </li>
-                      ))}
-                    </ItemList>
-                  </section>
-                )}
-                <section>
-                  <h3>{t("history.voiceSummary.nextSteps")}</h3>
-                  <ItemList>
-                    {entry.detail.nextSteps.map((step) => (
-                      <li key={`${step.title}:${step.naturalRequest}`}>
-                        <strong>{step.title}</strong> — {step.rationale}
-                      </li>
-                    ))}
-                  </ItemList>
+                  {entry.detail.vocabularyCandidates.length > 0 && (
+                    <section>
+                      <h3>{t("history.vocabularyCandidates")}</h3>
+                      <ItemList>
+                        {entry.detail.vocabularyCandidates.map((candidate) => (
+                          <li key={`${candidate.lemma}:${candidate.meaning}`}>
+                            <strong>{candidate.lemma}</strong> — {candidate.meaning}.{" "}
+                            {candidate.rationale}
+                          </li>
+                        ))}
+                      </ItemList>
+                    </section>
+                  )}
+                  <Muted as="p">
+                    {entry.detail.provenance.availability === "reported"
+                      ? t("history.modelProvenance", {
+                          model: entry.detail.provenance.modelId,
+                          effort: entry.detail.provenance.effortId,
+                        })
+                      : t("history.modelNotReported")}
+                  </Muted>
                   <ActionGroup>
-                    {practiceState?.patternKey === `voice:${entry.historyEntryId}` &&
-                    practiceState.status === "created" ? (
-                      <Feedback live="off" tone="success">
-                        {t("history.voiceSummary.practiceCreated")}
-                      </Feedback>
-                    ) : practiceState?.patternKey === `voice:${entry.historyEntryId}` &&
-                      (practiceState.status === "queued" || practiceState.status === "running") ? (
-                      <Feedback live="off">
-                        {practiceState.status === "queued"
-                          ? t("history.voiceSummary.practiceQueued")
-                          : t("history.voiceSummary.practiceRunning")}
-                      </Feedback>
-                    ) : (
-                      <Button
-
-                        onPress={() => void createVoiceFollowUp(entry)}
-                      >
-                        <Sparkles aria-hidden="true" /> {t("history.voiceSummary.practice")}
-                      </Button>
-                    )}
+                    <Button
+                      onPress={() => {
+                        onPracticeAgain(practiceSeed(entry));
+                      }}
+                    >
+                      <Repeat2 aria-hidden="true" /> {t("history.practiceAgain")}
+                    </Button>
+                    <ConfirmDialog
+                      body={t("history.deleteBody")}
+                      cancel={t("actions.cancel")}
+                      confirm={t("actions.delete")}
+                      onConfirm={() => deleteEntry(entry)}
+                      title={t("history.deleteTitle")}
+                      triggerVariant="quiet"
+                      trigger={t("history.delete")}
+                    />
                   </ActionGroup>
-                </section>
-                <Muted as="p">{t("history.voiceSummary.noAudio")}</Muted>
-                <ConfirmDialog
-                  body={t("history.deleteBody")}
-                  cancel={t("actions.cancel")}
-                  confirm={t("actions.delete")}
-                  onConfirm={() => deleteEntry(entry)}
-                  title={t("history.deleteTitle")}
-                  trigger={t("history.delete")}
-                />
-              </div>
-            ) : entry.detail.kind === "exercise-attempt" ? (
-              <div className={styles.historyDetail}>
-                <section>
-                  <h3>{t("history.exercisePrompt")}</h3>
-                  <p>{entry.detail.instructions}</p>
-                  <blockquote>{entry.detail.prompt}</blockquote>
-                </section>
-                <section>
-                  <h3>{t("history.exerciseAnswer")}</h3>
-                  <p className={styles.correctionText}>{exerciseAnswerText(entry.detail)}</p>
-                </section>
-                <section>
-                  <h3>{t("history.feedback")}</h3>
-                  <p>{entry.detail.feedback.summary}</p>
-                  <ItemList>
-                    {entry.detail.objectiveEvaluations.map((evaluation, position) => (
-                      <li key={`${evaluation.outcome}:${String(position)}`}>
-                        <strong>{t(`history.objectiveOutcomes.${evaluation.outcome}`)}</strong>{" "}
-                        {evaluation.evidence}
-                      </li>
-                    ))}
-                  </ItemList>
-                </section>
-                {(entry.detail.suggestedAnswer || entry.detail.acceptedAnswerReveal.length > 0) && (
+                </div>
+              ) : entry.detail.kind === "listening" ? (
+                <div className={styles.historyDetail} data-testid="listening-detail">
                   <section>
-                    <h3>{t("history.acceptedEvidence")}</h3>
-                    <p>
-                      {entry.detail.suggestedAnswer ??
-                        entry.detail.acceptedAnswerReveal.join(" / ")}
-                    </p>
+                    <h3>{t("history.listeningSummary")}</h3>
+                    <ItemList>
+                      {entry.detail.exerciseResults.map((exercise) => (
+                        <li key={exercise.kind}>
+                          <strong>{exercise.kind}</strong>: {exercise.outcome} — {exercise.evidence}
+                        </li>
+                      ))}
+                    </ItemList>
+                    {entry.detail.difficultVocabulary.length > 0 && (
+                      <p>
+                        {t("history.listeningWords", {
+                          words: entry.detail.difficultVocabulary.join(", "),
+                        })}
+                      </p>
+                    )}
                   </section>
-                )}
-                <ActionGroup>
-                  <Button
-
-                    onPress={() => {
-                      if (entry.detail.kind === "exercise-attempt") {
-                        onPracticeAgain({ kind: "exercise", activityId: entry.detail.activityId });
-                      }
-                    }}
-                  >
-                    <Repeat2 aria-hidden="true" /> {t("history.practiceAgain")}
-                  </Button>
+                  <section>
+                    <h3>{t("history.listeningNextSteps")}</h3>
+                    <ItemList>
+                      {entry.detail.nextSteps.map((step) => (
+                        <li key={step}>{step}</li>
+                      ))}
+                    </ItemList>
+                  </section>
+                  <Feedback live="off">{t("history.listeningNoAudio")}</Feedback>
                   <ConfirmDialog
                     body={t("history.deleteBody")}
                     cancel={t("actions.cancel")}
@@ -823,11 +607,218 @@ export function HistoryPage({
                     title={t("history.deleteTitle")}
                     trigger={t("history.delete")}
                   />
-                </ActionGroup>
-              </div>
-            ) : (
-              <Muted as="p">{t("history.referenceOnly")}</Muted>
-            )}
+                </div>
+              ) : entry.detail.kind === "placement" ? (
+                <div className={styles.historyDetail} data-testid="placement-detail">
+                  <section>
+                    <h3>{t("history.placementSummary")}</h3>
+                    <p>
+                      {t("practice.diagnosticFlow.limitedEvidence")}
+                    </p>
+                    <Feedback live="off" tone="warning">
+                      {entry.detail.uncertainty.level === "none"
+                        ? t("history.placementUncertaintyNone")
+                        : entry.detail.uncertainty.explanation}
+                    </Feedback>
+                  </section>
+                  <section>
+                    <h3>{t("history.placementEvidence")}</h3>
+                    <ItemList>
+                      {entry.detail.sampleResults.map((sample) => (
+                        <li key={sample.kind}>
+                          <strong>{sample.topic}</strong>:{" "}
+                          {t(`history.placementOutcomes.${sample.outcome}`)} — {sample.evidence}
+                        </li>
+                      ))}
+                    </ItemList>
+                  </section>
+                  <Feedback live="off" tone="warning">
+                    {entry.detail.voiceCalibration.explanation}
+                  </Feedback>
+                  <ConfirmDialog
+                    body={t("history.deleteBody")}
+                    cancel={t("actions.cancel")}
+                    confirm={t("actions.delete")}
+                    onConfirm={() => deleteEntry(entry)}
+                    title={t("history.deleteTitle")}
+                    trigger={t("history.delete")}
+                  />
+                </div>
+              ) : entry.detail.kind === "voice-summary" ? (
+                <div className={styles.historyDetail} data-testid="voice-summary-detail">
+                  <section>
+                    <h3>{t("history.voiceSummary.scenario")}</h3>
+                    <p>
+                      <strong>{entry.detail.scenario.title}</strong> — {entry.detail.scenario.topic}
+                    </p>
+                    <Muted as="p">
+                      {t("history.voiceSummary.level", {
+                        level: entry.detail.scenario.targetLevel.toUpperCase(),
+                      })}
+                      {" · "}
+                      {entry.detail.duration.status === "known"
+                        ? t("history.voiceSummary.duration", {
+                            minutes: Math.max(
+                              1,
+                              Math.round(entry.detail.duration.milliseconds / 60_000),
+                            ),
+                          })
+                        : t("history.voiceSummary.durationUnknown")}
+                    </Muted>
+                  </section>
+                  <section>
+                    <h3>{t("history.feedback")}</h3>
+                    <p>{entry.detail.feedback.summary}</p>
+                    {entry.detail.feedback.strengths.length > 0 && (
+                      <ItemList>
+                        {entry.detail.feedback.strengths.map((item) => (
+                          <li key={`strength:${item}`}>{item}</li>
+                        ))}
+                      </ItemList>
+                    )}
+                    {entry.detail.feedback.priorities.length > 0 && (
+                      <ItemList>
+                        {entry.detail.feedback.priorities.map((item) => (
+                          <li key={`priority:${item}`}>{item}</li>
+                        ))}
+                      </ItemList>
+                    )}
+                  </section>
+                  {entry.detail.observedIssues.length > 0 && (
+                    <section>
+                      <h3>{t("history.voiceSummary.issues")}</h3>
+                      <ItemList>
+                        {entry.detail.observedIssues.map((issue) => (
+                          <li key={`${issue.category}:${issue.observation}`}>
+                            <strong>{issue.category}</strong>: {issue.observation} —{" "}
+                            {issue.feedback}
+                          </li>
+                        ))}
+                      </ItemList>
+                    </section>
+                  )}
+                  {entry.detail.vocabulary.length > 0 && (
+                    <section>
+                      <h3>{t("history.voiceSummary.vocabulary")}</h3>
+                      <ItemList>
+                        {entry.detail.vocabulary.map((item) => (
+                          <li key={`${item.lemma}:${item.meaning}`}>
+                            <strong>{item.lemma}</strong> — {item.meaning}. {item.contextSummary}
+                          </li>
+                        ))}
+                      </ItemList>
+                    </section>
+                  )}
+                  <section>
+                    <h3>{t("history.voiceSummary.nextSteps")}</h3>
+                    <ItemList>
+                      {entry.detail.nextSteps.map((step) => (
+                        <li key={`${step.title}:${step.naturalRequest}`}>
+                          <strong>{step.title}</strong> — {step.rationale}
+                        </li>
+                      ))}
+                    </ItemList>
+                    <ActionGroup>
+                      {practiceState?.patternKey === `voice:${entry.historyEntryId}` &&
+                      practiceState.status === "created" ? (
+                        <Feedback live="off" tone="success">
+                          {t("history.voiceSummary.practiceCreated")}
+                        </Feedback>
+                      ) : practiceState?.patternKey === `voice:${entry.historyEntryId}` &&
+                        (practiceState.status === "queued" ||
+                          practiceState.status === "running") ? (
+                        <Feedback live="off">
+                          {practiceState.status === "queued"
+                            ? t("history.voiceSummary.practiceQueued")
+                            : t("history.voiceSummary.practiceRunning")}
+                        </Feedback>
+                      ) : (
+                        <Button onPress={() => void createVoiceFollowUp(entry)}>
+                          <Sparkles aria-hidden="true" /> {t("history.voiceSummary.practice")}
+                        </Button>
+                      )}
+                    </ActionGroup>
+                  </section>
+                  <Muted as="p">{t("history.voiceSummary.noAudio")}</Muted>
+                  <ConfirmDialog
+                    body={t("history.deleteBody")}
+                    cancel={t("actions.cancel")}
+                    confirm={t("actions.delete")}
+                    onConfirm={() => deleteEntry(entry)}
+                    title={t("history.deleteTitle")}
+                    trigger={t("history.delete")}
+                  />
+                </div>
+              ) : entry.detail.kind === "exercise-attempt" ? (
+                <div className={styles.historyDetail}>
+                  {entry.detail.readingMaterial && (
+                    <section>
+                      <h3>{entry.detail.readingMaterial.title}</h3>
+                      <p className={styles.correctionText}>
+                        {entry.detail.readingMaterial.passage}
+                      </p>
+                    </section>
+                  )}
+
+                  <section>
+                    <h3>{t("history.exercisePrompt")}</h3>
+                    <p>{entry.detail.instructions}</p>
+                    <blockquote>{entry.detail.prompt}</blockquote>
+                  </section>
+                  <section>
+                    <h3>{t("history.exerciseAnswer")}</h3>
+                    <p className={styles.correctionText}>{exerciseAnswerText(entry.detail)}</p>
+                  </section>
+                  <section>
+                    <h3>{t("history.feedback")}</h3>
+                    <p>{entry.detail.feedback.summary}</p>
+                    <ItemList>
+                      {entry.detail.objectiveEvaluations.map((evaluation, position) => (
+                        <li key={`${evaluation.outcome}:${String(position)}`}>
+                          <strong>{t(`history.objectiveOutcomes.${evaluation.outcome}`)}</strong>{" "}
+                          {evaluation.evidence}
+                        </li>
+                      ))}
+                    </ItemList>
+                  </section>
+                  {(entry.detail.suggestedAnswer ||
+                    entry.detail.acceptedAnswerReveal.length > 0) && (
+                    <section>
+                      <h3>{t("history.acceptedEvidence")}</h3>
+                      <p>
+                        {entry.detail.suggestedAnswer ??
+                          entry.detail.acceptedAnswerReveal.join(" / ")}
+                      </p>
+                    </section>
+                  )}
+                  <ActionGroup>
+                    <Button
+                      onPress={() => {
+                        if (entry.detail.kind === "exercise-attempt") {
+                          onPracticeAgain({
+                            kind: "exercise",
+                            activityId: entry.detail.activityId,
+                          });
+                        }
+                      }}
+                    >
+                      <Repeat2 aria-hidden="true" /> {t("history.practiceAgain")}
+                    </Button>
+                    <ConfirmDialog
+                      body={t("history.deleteBody")}
+                      cancel={t("actions.cancel")}
+                      confirm={t("actions.delete")}
+                      onConfirm={() => deleteEntry(entry)}
+                      title={t("history.deleteTitle")}
+                      triggerVariant="quiet"
+                      trigger={t("history.delete")}
+                    />
+                  </ActionGroup>
+                </div>
+              ) : (
+                <Muted as="p">{t("history.referenceOnly")}</Muted>
+              )}
+            </Disclosure>
           </Card>
         ))}
       </div>

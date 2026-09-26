@@ -22,8 +22,8 @@ extraResources:
       - .codex-plugin/**
       - .mcp.json
       - bin/**
-      - scripts/plugin-lifecycle.mjs
       - skills/**
+      - prompts/**
   - from: release/mcp-helper
     to: mcp-helper
     filter:

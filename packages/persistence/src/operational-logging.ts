@@ -1,10 +1,7 @@
 import { appendFile, lstat, mkdir, realpath, rename, rm } from "node:fs/promises";
 import path from "node:path";
 
-import {
-  operationalLogRecordSchema,
-  type OperationalLogRecord,
-} from "@open-deutsch/contracts";
+import { operationalLogRecordSchema, type OperationalLogRecord } from "@open-deutsch/contracts";
 
 const maximumLogBytes = 5 * 1024 * 1024;
 const retainedLogFiles = 10;
@@ -72,7 +69,7 @@ function field(value: string | number | undefined): string {
   return value === undefined ? "-" : String(value);
 }
 
-export async function appendOperationalLog(
+async function appendRecord(
   logsDirectory: string,
   fileName: string,
   record: OperationalLogRecord,
@@ -105,4 +102,27 @@ export async function appendOperationalLog(
     .filter(Boolean)
     .join(" ");
   await appendFile(logFile, `${line}\n`, { encoding: "utf8", mode: 0o600 });
+}
+
+// Serialize appends and rotation per file within this process. A rejected write does
+// not poison subsequent diagnostics; callers still receive their own write error.
+const pendingWrites = new Map<string, Promise<void>>();
+
+export async function appendOperationalLog(
+  logsDirectory: string,
+  fileName: string,
+  record: OperationalLogRecord,
+): Promise<void> {
+  const parsed = operationalLogRecordSchema.parse(record);
+  const key = path.join(logsDirectory, fileName);
+  const previous = pendingWrites.get(key) ?? Promise.resolve();
+  const write = previous
+    .catch(() => undefined)
+    .then(() => appendRecord(logsDirectory, fileName, parsed));
+  pendingWrites.set(key, write);
+  try {
+    await write;
+  } finally {
+    if (pendingWrites.get(key) === write) pendingWrites.delete(key);
+  }
 }

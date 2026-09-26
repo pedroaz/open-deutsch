@@ -1,5 +1,3 @@
-
-
 .historyList,
 .historyDetail {
   display: grid;
@@ -80,12 +78,6 @@
   padding: var(--od-space-4);
 }
 
-.page h1 {
-  font-size: var(--od-font-size-xl);
-  line-height: var(--od-line-tight);
-  margin: 0 0 var(--od-space-3);
-}
-
 .eyebrow {
   color: var(--od-color-primary);
   font-size: var(--od-font-size-xs);
@@ -100,7 +92,6 @@
 }
 
 @media (max-width: 52rem) {
-
   .historyMistakeGrid,
   .correctionGrid {
     grid-template-columns: 1fr;
@@ -108,5 +99,37 @@
 
   .historyEntryHeader {
     flex-direction: column;
+  }
+}
+.advancedFilters {
+  grid-column: 1 / -1;
+}
+.advancedGrid {
+  display: grid;
+  gap: var(--od-space-3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.historyEntryHeader time {
+  font-size: var(--od-font-size-sm);
+}
+.historyEntryHeader h2 {
+  font-size: var(--od-font-size-md);
+}
+.historyDetail > section {
+  display: grid;
+  gap: var(--od-space-3);
+  min-width: 0;
+}
+.historyDetail > section > :where(h3, p, ul) {
+  margin-block: 0;
+}
+@container workspace (max-width: 42rem) {
+  .historyMistakeGrid,
+  .correctionGrid,
+  .advancedGrid {
+    grid-template-columns: 1fr;
+  }
+  .historyEntryHeader {
+    flex-wrap: wrap;
   }
 }

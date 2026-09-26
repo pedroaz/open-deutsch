@@ -9,11 +9,9 @@ export const identifierPrefixes = {
   mistake: "mistake",
   vocabulary: "vocabulary",
   review: "review",
-  plan: "plan",
   voiceSession: "voice-session",
   curriculumTopic: "curriculum-topic",
   modelRequest: "model-request",
-  persistentHandoff: "handoff",
   historyEntry: "history-entry",
   run: "run",
   session: "session",
@@ -38,7 +36,6 @@ export const vocabularyIdSchema = opaqueIdentifier(
   identifierPrefixes.vocabulary,
 ).brand<"VocabularyId">();
 export const reviewIdSchema = opaqueIdentifier(identifierPrefixes.review).brand<"ReviewId">();
-export const planIdSchema = opaqueIdentifier(identifierPrefixes.plan).brand<"PlanId">();
 export const voiceSessionIdSchema = opaqueIdentifier(
   identifierPrefixes.voiceSession,
 ).brand<"VoiceSessionId">();
@@ -48,9 +45,6 @@ export const curriculumTopicIdSchema = opaqueIdentifier(
 export const modelRequestIdSchema = opaqueIdentifier(
   identifierPrefixes.modelRequest,
 ).brand<"ModelRequestId">();
-export const persistentHandoffIdSchema = opaqueIdentifier(
-  identifierPrefixes.persistentHandoff,
-).brand<"PersistentHandoffId">();
 export const historyEntryIdSchema = opaqueIdentifier(
   identifierPrefixes.historyEntry,
 ).brand<"HistoryEntryId">();
@@ -69,11 +63,9 @@ export const identifierSchemas = {
   mistake: mistakeIdSchema,
   vocabulary: vocabularyIdSchema,
   review: reviewIdSchema,
-  plan: planIdSchema,
   voiceSession: voiceSessionIdSchema,
   curriculumTopic: curriculumTopicIdSchema,
   modelRequest: modelRequestIdSchema,
-  persistentHandoff: persistentHandoffIdSchema,
   historyEntry: historyEntryIdSchema,
   run: runIdSchema,
   session: sessionIdSchema,
@@ -106,11 +98,9 @@ export type CorrectionId = z.infer<typeof correctionIdSchema>;
 export type MistakeId = z.infer<typeof mistakeIdSchema>;
 export type VocabularyId = z.infer<typeof vocabularyIdSchema>;
 export type ReviewId = z.infer<typeof reviewIdSchema>;
-export type PlanId = z.infer<typeof planIdSchema>;
 export type VoiceSessionId = z.infer<typeof voiceSessionIdSchema>;
 export type CurriculumTopicId = z.infer<typeof curriculumTopicIdSchema>;
 export type ModelRequestId = z.infer<typeof modelRequestIdSchema>;
-export type PersistentHandoffId = z.infer<typeof persistentHandoffIdSchema>;
 export type HistoryEntryId = z.infer<typeof historyEntryIdSchema>;
 export type RunId = z.infer<typeof runIdSchema>;
 export type SessionId = z.infer<typeof sessionIdSchema>;

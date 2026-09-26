@@ -73,6 +73,7 @@ export const defaultModelPreferences = {
 const resolvedSelectionShape = {
   effectiveModelId: runtimeModelIdSchema,
   effectiveEffortId: runtimeEffortIdSchema,
+  unavailableAutomaticModelId: runtimeModelIdSchema.optional(),
 } as const;
 
 export const unavailableSavedChoiceSchema = z.enum(["model", "effort", "model-and-effort"]);
@@ -173,6 +174,7 @@ function resolved(
   effectiveModelId: string,
   effectiveEffortId: string,
   unavailableChoices: ReadonlySet<"model" | "effort">,
+  unavailableAutomaticModelId?: string,
 ): ModelPreferenceResolution {
   const unavailableSavedChoice: UnavailableSavedChoice | undefined =
     unavailableChoices.size === 0
@@ -187,12 +189,18 @@ function resolved(
     workload,
     resolution:
       unavailableSavedChoice === undefined
-        ? { status: "available", effectiveModelId, effectiveEffortId }
+        ? {
+            status: "available",
+            effectiveModelId,
+            effectiveEffortId,
+            ...(unavailableAutomaticModelId ? { unavailableAutomaticModelId } : {}),
+          }
         : {
             status: "fallback",
             effectiveModelId,
             effectiveEffortId,
             fallbackBasis: "runtime-default",
+            ...(unavailableAutomaticModelId ? { unavailableAutomaticModelId } : {}),
             unavailableSavedChoice,
             noticeKey: "modelPreferences.fallback",
           },
@@ -328,6 +336,7 @@ export function resolveModelPreference(
   const unavailableChoices = new Set<"model" | "effort">();
 
   let effectiveModel: RuntimeModel | undefined;
+  let unavailableAutomaticModelId: string | undefined;
   if (preference.model.mode === "exact") {
     const savedModelId = preference.model.modelId;
     effectiveModel = catalog.models.find(({ id }) => id === savedModelId);
@@ -336,7 +345,16 @@ export function resolveModelPreference(
       effectiveModel = fallbackModel;
     }
   } else {
-    effectiveModel = fallbackModel;
+    const preferredId = workload === "helper" ? "gpt-6-luna" : "gpt-6-sol";
+    const preferred = catalog.models.find(({ id }) => id === preferredId);
+    const usable =
+      preferred &&
+      (preference.effort.mode === "semantic"
+        ? resolveSemanticEffort(preferred, preference.effort.effort)
+        : preferred.supportedReasoningEfforts.includes(preference.effort.effortId) ||
+          allowedAdvertisedDefaultEffort(preferred));
+    effectiveModel = usable ? preferred : fallbackModel;
+    if (!usable) unavailableAutomaticModelId = preferredId;
   }
   if (!effectiveModel) {
     return unavailable(workload, { runtimeDefaultModel: "unavailable" });
@@ -357,5 +375,11 @@ export function resolveModelPreference(
     return unavailable(workload, { supportedEffort: "unavailable" });
   }
 
-  return resolved(workload, effectiveModel.id, effectiveEffort, unavailableChoices);
+  return resolved(
+    workload,
+    effectiveModel.id,
+    effectiveEffort,
+    unavailableChoices,
+    unavailableAutomaticModelId,
+  );
 }

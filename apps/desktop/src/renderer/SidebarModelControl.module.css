@@ -1,21 +1,12 @@
-
-
 :global([data-nav-collapsed="true"]) .navModelPanel {
   display: none;
 }
 
 .navModelPanel {
-  border-top: var(--od-border-thin) solid var(--od-color-border);
   display: grid;
   gap: var(--od-space-2);
   margin-top: auto;
-  padding: var(--od-space-3) 0 0;
-}
-
-.navModelHeading {
-  align-items: center;
-  display: flex;
-  gap: var(--od-space-2);
+  padding: 0;
 }
 
 .navModelHeading svg {
@@ -139,13 +130,6 @@
   opacity: 0.5;
 }
 
-.navModelHint {
-  color: var(--od-color-text-muted);
-  font-size: var(--od-font-size-xs);
-  line-height: 1.4;
-  margin: calc(var(--od-space-1) * -1) 0 0;
-}
-
 .navModelStatus,
 .navModelError {
   font-size: var(--od-font-size-xs);
@@ -160,9 +144,17 @@
   color: var(--od-color-error);
 }
 
-@media (max-height: 48rem) and (min-width: 52.01rem) {
-
-  .navModelHint {
-    display: none;
-  }
+.navModelHeading {
+  display: inline-flex;
+  gap: var(--od-space-2);
+  align-items: center;
+  vertical-align: middle;
+  font-size: var(--od-font-size-sm);
+}
+.navModelHeading small {
+  display: block;
+  color: var(--od-color-text-muted);
+  font-size: var(--od-font-size-xs);
+  font-weight: normal;
+  overflow-wrap: anywhere;
 }

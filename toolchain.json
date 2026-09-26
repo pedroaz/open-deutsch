@@ -9,8 +9,6 @@
     "pinnedVersion": "11.0.9"
   },
   "codex": {
-    "minimumVersion": "0.146.0",
-    "maximumExclusiveVersion": "0.146.1",
     "appServerCommand": ["app-server", "--help"]
   }
 }

@@ -5,7 +5,7 @@ slug: topic-slug
 band: a1
 domain: personal-social-life
 title: A1 topic title
-status: foundation-incomplete
+
 communicativeGoals: []
 prerequisiteTopicIds: []
 grammarFoundations: []
@@ -21,4 +21,4 @@ coverage:
 
 # Topic title
 
-Draft only. Keep unreviewed material in local ignored staging.
+Write original explanations and examples. Check German accuracy, level, prerequisites and cited sources as part of authoring.

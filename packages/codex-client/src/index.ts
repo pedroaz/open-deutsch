@@ -2,10 +2,11 @@ export {
   classifyCodexVersion,
   discoverCodex,
   resolveCodexExecutable,
-  supportedCodexVersion,
   type CodexDiscovery,
 } from "./discovery.js";
 export { scrubCodexEnvironment } from "./environment.js";
+export { ScopedPluginClient, openDeutschPluginName, openDeutschMarketplaceName } from "./plugin.js";
+export { readPluginSourceVersion, stagePluginSource } from "./plugin-source.js";
 export { OpenDeutschAppServerClient, type OpenDeutschAppServerClientOptions } from "./adapter.js";
 export {
   ManagedAuthenticationClient,

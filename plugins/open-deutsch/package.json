@@ -1,12 +1,12 @@
 {
   "name": "@open-deutsch/plugin",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Versioned Open Deutsch Codex plugin payload workspace.",
   "type": "module",
   "scripts": {
-    "plugin:install": "node scripts/plugin-lifecycle.mjs install",
-    "plugin:refresh": "node scripts/plugin-lifecycle.mjs refresh",
+    "plugin:install": "pnpm --filter @open-deutsch/mcp-server... run build && pnpm --filter @open-deutsch/codex-client... run build && node scripts/plugin-lifecycle.mjs install",
+    "plugin:refresh": "pnpm --filter @open-deutsch/mcp-server... run build && pnpm --filter @open-deutsch/codex-client... run build && node scripts/plugin-lifecycle.mjs refresh",
     "plugin:status": "node scripts/plugin-lifecycle.mjs status",
     "plugin:uninstall": "node scripts/plugin-lifecycle.mjs uninstall"
   }

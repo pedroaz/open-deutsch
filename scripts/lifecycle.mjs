@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readFile, stat, unlink } from "node:fs/promises";
+import { unlink } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
 
@@ -13,6 +13,14 @@ import {
   startMode,
   statusMode,
 } from "./lib/lifecycle.mjs";
+
+import {
+  formatLog,
+  logViewOptions,
+  matchesLog,
+  parseLogLine,
+  readLogBatch,
+} from "./lib/log-view.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const invalidRuntimeOverride =
@@ -39,6 +47,25 @@ async function status() {
 async function kill() {
   let incomplete = false;
   for (const lifecycleMode of lifecycleModes) {
+    if (lifecycleMode === "verify") {
+      const state = await statusMode({ mode: lifecycleMode, runtimeRoot });
+      if (["ready", "starting"].includes(state.status)) {
+        try {
+          const { requestVerification } = await import("./lib/verification-client.mjs");
+          const result = await requestVerification({ action: "stop" });
+          process.stdout.write(
+            `verify: ${result.status} cleanup=${result.failures?.length || result.notes?.length ? "incomplete" : "complete"}\n`,
+          );
+          if (result.failures?.length || result.notes?.length) incomplete = true;
+        } catch {
+          process.stderr.write(
+            "verify: retained; use make verify-stop after the active operation finishes.\n",
+          );
+          incomplete = true;
+        }
+        continue;
+      }
+    }
     const result = await killMode({ mode: lifecycleMode, runtimeRoot });
     process.stdout.write(
       `${result.mode}: ${result.status}${result.reason ? ` reason=${result.reason}` : ""}\n`,
@@ -48,72 +75,80 @@ async function kill() {
   if (incomplete) process.exitCode = 1;
 }
 
-function recordTimestamp(line) {
-  const match = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)\s/u.exec(line);
-  return match ? Date.parse(match[1]) : Number.MAX_SAFE_INTEGER;
-}
-
-function isErrorRecord(line) {
-  return /\s(?:WARN|ERROR)\s/u.test(line);
-}
-
-const maximumLogReadBytes = 512 * 1024;
-
-async function readLogLines(log, offset = 0) {
-  try {
-    const contents = await readFile(log, "utf8");
-    const next = Buffer.byteLength(contents);
-    const start = offset === 0 ? Math.max(0, next - maximumLogReadBytes) : offset;
-    const fresh = Buffer.from(contents).subarray(start).toString("utf8");
-    return { next, lines: fresh.split("\n").filter(Boolean) };
-  } catch (error) {
-    if (error.code === "ENOENT") return { next: 0, lines: [] };
-    throw error;
-  }
-}
-
-async function logs() {
-  const follow = mode === "--follow" || flags.includes("--follow");
-  const errorsOnly = mode === "--errors" || flags.includes("--errors");
-  const unknown = [mode, ...flags].filter(
-    (value) => value && value !== "--follow" && value !== "--errors",
-  );
-  if (unknown.length > 0) throw new Error(`Unknown logs flag: ${unknown.join(", ")}`);
-  const files = [
-    ...lifecycleModes.map((lifecycleMode) => lifecyclePaths(runtimeRoot, lifecycleMode).log),
-    ...(await applicationLogFiles()),
-  ];
+async function logs(args = [mode, ...flags].filter(Boolean), selectedMode) {
+  const options = logViewOptions(process.env, args);
+  const followedAt = new Date().toISOString();
+  const active = (
+    await Promise.all(
+      (selectedMode ? [selectedMode] : lifecycleModes).map((mode) =>
+        statusMode({ mode, runtimeRoot }),
+      ),
+    )
+  ).filter((state) => state.runId && state.startedAt);
+  const since = active.map((state) => state.startedAt).sort()[0] ?? followedAt;
+  const runIds = new Set(active.map((state) => state.runId));
   const positions = new Map();
-  const initial = [];
-  for (const log of files) {
-    const result = await readLogLines(log);
-    positions.set(log, result.next);
-    for (const line of result.lines) {
-      if (!errorsOnly || isErrorRecord(line)) initial.push(line);
+  const unreadable = new Set();
+  let initial = true;
+  let displayedDate;
+  process.stdout.write(
+    `Open Deutsch logs · ${options.level.toUpperCase()}+ · ${options.scope === "history" ? "history" : active.length ? "current run" : "new records only (no running app)"} · UTC\n`,
+  );
+  process.stdout.write("LEVEL=debug for details · SCOPE=history for earlier runs\n");
+  for (;;) {
+    // Resolve again so onboarding, folder switches and newly created logs are discovered.
+    const files = [
+      ...new Set([
+        ...lifecycleModes.map((lifecycleMode) => lifecyclePaths(runtimeRoot, lifecycleMode).log),
+        ...(await applicationLogFiles()).filter((file) => file.endsWith(".log")),
+      ]),
+    ];
+    for (const file of positions.keys()) {
+      if (!files.includes(file)) positions.delete(file);
     }
-  }
-  initial.sort((left, right) => recordTimestamp(left) - recordTimestamp(right));
-  for (const line of initial) process.stdout.write(`${line}\n`);
-  if (!follow) return;
-  process.stdout.write("Following merged Open Deutsch logs. Press Ctrl-C to stop.\n");
-  while (true) {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    const fresh = [];
-    for (const [log, position] of positions) {
+    const records = [];
+    for (const file of files) {
       try {
-        const info = await stat(log);
-        const offset = info.size < position ? 0 : position;
-        const result = await readLogLines(log, offset);
-        positions.set(log, result.next);
-        for (const line of result.lines) {
-          if (!errorsOnly || isErrorRecord(line)) fresh.push(line);
+        const previous = positions.get(file);
+        const batch = await readLogBatch(file, previous);
+        unreadable.delete(file);
+        if (batch.cursor) positions.set(file, batch.cursor);
+        for (const line of batch.lines) {
+          const record = parseLogLine(line);
+          const inScope =
+            options.scope === "history" ||
+            runIds.has(record.fields.run) ||
+            (record.timestamp
+              ? record.timestamp >= since
+              : !initial && previous?.identity === batch.cursor?.identity);
+          if (inScope && matchesLog(record, options)) records.push(record);
         }
-      } catch (error) {
-        if (error.code !== "ENOENT") throw error;
+      } catch {
+        if (!unreadable.has(file)) {
+          process.stderr.write(
+            `WARN lifecycle LOG_READ_FAILED · Cannot read ${path.basename(file)}; continuing with other logs.\n`,
+          );
+          unreadable.add(file);
+        }
       }
     }
-    fresh.sort((left, right) => recordTimestamp(left) - recordTimestamp(right));
-    for (const line of fresh) process.stdout.write(`${line}\n`);
+    records.sort((left, right) => left.timestamp.localeCompare(right.timestamp));
+    const visible = initial ? (options.lines === 0 ? [] : records.slice(-options.lines)) : records;
+    for (const record of visible) {
+      const date = record.timestamp.slice(0, 10);
+      if (options.format === "pretty" && date && date !== displayedDate) {
+        process.stdout.write(`── ${date} UTC ──\n`);
+        displayedDate = date;
+      }
+      process.stdout.write(`${formatLog(record, options)}\n`);
+    }
+    if (!options.follow) return;
+    if (initial)
+      process.stdout.write(
+        "Following new records. Ctrl-C stops log following; make kill stops the app.\n",
+      );
+    initial = false;
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
 }
 
@@ -143,14 +178,32 @@ try {
   if (invalidRuntimeOverride) {
     throw new Error("OPEN_DEUTSCH_RUNTIME_DIR is accepted only with OPEN_DEUTSCH_TEST_MODE=1.");
   }
-  if (action === "start") {
-    if (!lifecycleModes.includes(mode)) throw new Error("Start requires mode dev or prd.");
+  if (action === "debug") {
+    if (mode)
+      throw new Error("debug does not accept arguments; use logging environment variables.");
+    logViewOptions(process.env, ["--follow"]);
+    const current = await statusMode({ mode: "dev", runtimeRoot });
+    if (current.status !== "ready") {
+      process.stdout.write("Starting development; waiting for readiness…\n");
+      await startMode({
+        mode: "dev",
+        runtimeRoot,
+        cwd: root,
+        command: ["pnpm", "run", "service:dev"],
+        timeoutMs: 180_000,
+      });
+    }
+    await logs(["--follow"], "dev");
+  } else if (action === "start") {
+    if (!["dev", "prd"].includes(mode))
+      throw new Error("Start requires mode dev or prd; use make verify-start for verification.");
     assertNoUnknownFlags([]);
     const state = await startMode({
       mode,
       runtimeRoot,
       cwd: root,
       command: ["pnpm", "run", `service:${mode}`],
+      timeoutMs: mode === "dev" ? 180_000 : 60_000,
     });
     process.stdout.write(`${mode}: ready pid=${state.pid}\n`);
   } else if (action === "status") {
@@ -166,7 +219,7 @@ try {
     await logsClear();
   } else {
     throw new Error(
-      "Usage: lifecycle.mjs start <dev|prd> | status | kill | logs [--follow] [--errors] | logs-clear",
+      "Usage: lifecycle.mjs debug | start <dev|prd> | status | kill | logs [--follow] [--errors] | logs-clear",
     );
   }
 } catch (error) {

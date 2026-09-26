@@ -1,5 +1,3 @@
-/// <reference types="vite/client" />
-
 import type { OpenDeutschDesktopBridge } from "@open-deutsch/contracts";
 
 declare global {

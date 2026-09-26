@@ -1,36 +1,36 @@
 schemaVersion: 1
 sources:
   - sourceId: curriculum-source_0000000000000001
-    title: Open Deutsch product requirements
-    repositoryPath: docs/product-requirements.md
+    title: Open Deutsch curriculum inventory
+    repositoryPath: content/curriculum/manifest.yaml
     publisher: Open Deutsch
     sourceClass: repository-original
     supportedClaims:
-      - The product requirements define the accepted everyday-life domain progression and learning boundaries.
-    retrievedOn: 2026-08-21
-    reviewedOn: 2026-08-21
+      - The local inventory defines the selected A1-B2 bands, everyday-life topic cells; it is not external pedagogical evidence.
+    retrievedOn: 2026-09-26
+    reviewedOn: 2026-09-26
     freshness:
       status: stable
   - sourceId: curriculum-source_0000000000000002
-    title: Open Deutsch curriculum research mode
-    repositoryPath: docs/research-mode.md
+    title: Open Deutsch foundation content checks
+    repositoryPath: content/curriculum/rubrics/content-checks.yaml
     publisher: Open Deutsch
     sourceClass: repository-original
     supportedClaims:
-      - The research mode defines A1-B2 progression, source order, staging, validation, and approval boundaries.
-    retrievedOn: 2026-08-21
-    reviewedOn: 2026-08-21
+      - The local rubric defines agent checks for language, level, sources and schema consistency during authoring.
+    retrievedOn: 2026-09-26
+    reviewedOn: 2026-09-26
     freshness:
       status: stable
   - sourceId: curriculum-source_0000000000000003
-    title: Open Deutsch component boundaries
-    repositoryPath: docs/component-boundaries.md
+    title: Open Deutsch curriculum storage boundaries
+    repositoryPath: content/curriculum/README.md
     publisher: Open Deutsch
     sourceClass: repository-original
     supportedClaims:
-      - The current component boundaries define teaching surfaces, activity ownership, and review-gated curriculum policy.
-    retrievedOn: 2026-08-21
-    reviewedOn: 2026-08-21
+      - The curriculum README identifies reusable curriculum files and separates the read-only packaged snapshot from private learner and scratch data.
+    retrievedOn: 2026-09-26
+    reviewedOn: 2026-09-26
     freshness:
       status: stable
   - sourceId: curriculum-source_0000000000000004

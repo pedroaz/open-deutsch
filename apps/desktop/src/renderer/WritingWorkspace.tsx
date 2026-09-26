@@ -1,12 +1,23 @@
+import { useOperationProgress } from "./useOperationProgress.js";
+import { OperationProgress } from "./OperationProgress.js";
 import type { AppServerCandidateOutputMap, OpenDeutschError } from "@open-deutsch/contracts";
 import {
   writingCorrectionCandidateSchema,
   writingPromptCandidateSchema,
 } from "@open-deutsch/contracts";
 import { useEffect, useRef, useState } from "react";
-import { FilePenLine, MousePointer2, Sparkles, X } from "lucide-react";
+import { MousePointer2, Sparkles, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { DiagnosticCode, Button, Feedback, FieldGroup, LoadingState, Muted } from "./components/ui/index.js";
+import {
+  DiagnosticCode,
+  Disclosure,
+  InfoHint,
+  Button,
+  Feedback,
+  FieldGroup,
+  LoadingState,
+  Muted,
+} from "./components/ui/index.js";
 import { ActionGroup, Page } from "./components/layout/index.js";
 
 import styles from "./WritingWorkspace.module.css";
@@ -41,6 +52,8 @@ export function WritingWorkspace({
   onHelperSelection: (selection: ContextualHelperSelection | undefined) => void;
 }) {
   const { t } = useTranslation();
+  const promptProgress = useOperationProgress();
+  const correctionProgress = useOperationProgress();
   const [context, setContext] = useState(initialContext);
   const [draft, setDraft] = useState(initialDraft);
   const [teachingProfile, setTeachingProfile] = useState<TeachingProfileChoice>("strict-corrector");
@@ -119,11 +132,12 @@ export function WritingWorkspace({
           submissionId.current &&
           event.submissionId === submissionId.current &&
           event.event === "learning-operation-progress" &&
-          event.kind === "writing-prompt"
+          event.kind === "writing-prompt" &&
+          !settledPromptSubmissions.current.has(event.submissionId)
         ) {
           setOperationId(event.operationId);
           setPromptStage(
-            event.stage === "persisting" || event.stage === "cancelling" ? "running" : event.stage,
+            event.stage === "starting" ? "queued" : event.stage === "persisting" || event.stage === "cancelling" ? "running" : event.stage,
           );
         }
         if (
@@ -148,12 +162,13 @@ export function WritingWorkspace({
         if (
           !correctionSubmissionId.current ||
           event.submissionId !== correctionSubmissionId.current ||
-          event.kind !== "writing-correction"
+          event.kind !== "writing-correction" ||
+          settledCorrectionSubmissions.current.has(event.submissionId)
         )
           return;
         if (event.event === "learning-operation-progress") {
           setCorrectionOperationId(event.operationId);
-          setCorrectionStage(event.stage === "persisting" ? "validating" : event.stage);
+          setCorrectionStage(event.stage === "persisting" ? "validating" : event.stage === "starting" ? "queued" : event.stage);
           return;
         }
         settledCorrectionSubmissions.current.add(event.submissionId);
@@ -185,6 +200,7 @@ export function WritingWorkspace({
     if (!(await requestAiAccess())) return;
     const nextSubmissionId = createDesktopSubmissionId();
     submissionId.current = nextSubmissionId;
+    promptProgress.begin(nextSubmissionId, "writing-prompt");
     setPromptStage("queued");
     try {
       const result = await invokeDesktop("learning-operation/start", {
@@ -222,6 +238,8 @@ export function WritingWorkspace({
     if (!draft.trim() || !(await requestAiAccess())) return;
     const nextSubmissionId = createDesktopSubmissionId();
     correctionSubmissionId.current = nextSubmissionId;
+    correctionProgress.begin(nextSubmissionId, "writing-correction");
+    correctionOriginals.current.clear();
     correctionOriginals.current.set(nextSubmissionId, draft);
     setCorrectionStage("queued");
     setCorrectionError(undefined);
@@ -260,9 +278,15 @@ export function WritingWorkspace({
 
   const retryCorrection = async () => {
     if (!previousCorrectionOperationId || !(await requestAiAccess())) return;
+    const original = correctionSubmissionId.current
+      ? correctionOriginals.current.get(correctionSubmissionId.current)
+      : undefined;
+    if (original === undefined) return;
     const nextSubmissionId = createDesktopSubmissionId();
     correctionSubmissionId.current = nextSubmissionId;
-    correctionOriginals.current.set(nextSubmissionId, correctionOriginal);
+    correctionProgress.begin(nextSubmissionId, "writing-correction");
+    correctionOriginals.current.clear();
+    correctionOriginals.current.set(nextSubmissionId, original);
     setCorrectionStage("queued");
     setCorrectionError(undefined);
     setCorrectionOutcome(undefined);
@@ -285,37 +309,28 @@ export function WritingWorkspace({
   };
 
   return (
-    <Page
-      description={t("writing.intro")}
-      eyebrow={t("writing.eyebrow")}
-      title={t("writing.title")}
-      width="wide"
-    >
-      <section className={styles.promptActions} aria-labelledby="writing-prompt-heading">
-        <div>
-          <h2 id="writing-prompt-heading">{t("writing.promptTitle")}</h2>
-          <Muted as="p">{t("writing.promptBody")}</Muted>
-        </div>
+    <Page title={t("writing.title")} width="wide">
+      <section className={styles.promptActions} aria-label={t("writing.promptTitle")}>
         <ActionGroup className={styles.promptActionButtons}>
-          <Button
-            variant="primary"
-            isDisabled={promptStage !== "idle"}
-            onPress={() => void generatePrompt()}
-          >
+          <Button isDisabled={promptStage !== "idle"} onPress={() => void generatePrompt()}>
             <Sparkles aria-hidden="true" />
             {promptStage === "idle"
               ? t("writing.generatePrompt")
               : t(`writing.promptStages.${promptStage}`)}
           </Button>
           {operationId ? (
-            <Button onPress={() => void cancelPrompt()}>
+            <Button variant="secondary" onPress={() => void cancelPrompt()}>
               <X aria-hidden="true" /> {t("actions.cancel")}
             </Button>
           ) : null}
-          <Button onPress={useFreeWriting}>
-            {t("writing.freeWriting")}
-          </Button>
+          {context && (
+            <Button onPress={useFreeWriting}>
+              {t("writing.freeWriting")}
+            </Button>
+          )}
+          <InfoHint label={t("writing.generatePrompt")}>{t("writing.promptBody")}</InfoHint>
         </ActionGroup>
+        <OperationProgress progress={promptStage === "idle" ? undefined : promptProgress.progress} />
         {promptError ? (
           <Feedback live="assertive" tone="error">
             <p>{t(promptError.messageKey)}</p>
@@ -347,61 +362,29 @@ export function WritingWorkspace({
       </section>
 
       <div className={styles.writingLayout}>
-        <aside className={styles.writingOptions} aria-label={t("writing.optionsTitle")}>
-          <div className={styles.writingOptionsHeading}>
-            <FilePenLine aria-hidden="true" />
-            <h2>{t("writing.optionsTitle")}</h2>
-          </div>
-          <FieldGroup>
-            <span>{t("writing.profileLabel")}</span>
-            <select
-              value={teachingProfile}
-              onChange={(event) => {
-                setTeachingProfile(event.currentTarget.value as TeachingProfileChoice);
-              }}
-            >
-              <option value="profile-default">{t("writing.profileDefault")}</option>
-              <option value="conversation-partner">{t("writing.profileConversation")}</option>
-              <option value="strict-corrector">{t("writing.profileStrict")}</option>
-            </select>
-          </FieldGroup>
-          <FieldGroup>
-            <span>{t("writing.feedbackLabel")}</span>
-            <select
-              value={feedback}
-              onChange={(event) => {
-                setFeedback(event.currentTarget.value as FeedbackChoice);
-              }}
-            >
-              <option value="all-meaningful">{t("writing.feedbackAll")}</option>
-              <option value="priority-only">{t("writing.feedbackPriority")}</option>
-            </select>
-          </FieldGroup>
-          <Muted as="p">{t("writing.localDraftNotice")}</Muted>
-        </aside>
-
         <div className={styles.writingEditor}>
-          <FieldGroup>
-            <span>{t("writing.contextLabel")}</span>
-            <textarea
-              aria-label={t("writing.contextLabel")}
-              maxLength={1_000}
-              placeholder={t("writing.contextPlaceholder")}
-              rows={3}
-              value={context}
-              onChange={(event) => {
-                setContext(event.currentTarget.value);
-              }}
-            />
-            <small>{t("writing.contextHint")}</small>
-          </FieldGroup>
+          <Disclosure label={t("writing.contextLabel")} defaultOpen={Boolean(initialContext)}>
+            <FieldGroup>
+              <span>{t("writing.contextLabel")}</span>
+              <textarea
+                aria-label={t("writing.contextLabel")}
+                maxLength={1_000}
+                placeholder={t("writing.contextPlaceholder")}
+                rows={3}
+                value={context}
+                onChange={(event) => {
+                  setContext(event.currentTarget.value);
+                }}
+              />
+            </FieldGroup>
+          </Disclosure>
           <FieldGroup>
             <span>{t("writing.editorLabel")}</span>
             <textarea
               className={styles.writingTextarea}
               maxLength={10_000}
               placeholder={t("writing.editorPlaceholder")}
-              rows={16}
+              rows={10}
               value={draft}
               onChange={(event) => {
                 setDraft(event.currentTarget.value);
@@ -418,12 +401,43 @@ export function WritingWorkspace({
               }}
             />
           </FieldGroup>
-          <p className={styles.selectionStatus} role="status">
-            <MousePointer2 aria-hidden="true" />
-            {selection.end > selection.start
-              ? t("writing.selection", { count: selection.end - selection.start })
-              : t("writing.noSelection")}
-          </p>
+          {selection.end > selection.start && (
+            <p className={styles.selectionStatus} role="status">
+              <MousePointer2 aria-hidden="true" />
+              {selection.end > selection.start
+                ? t("writing.selection", { count: selection.end - selection.start })
+                : t("writing.noSelection")}
+            </p>
+          )}
+          <Disclosure label={t("writing.optionsTitle")}>
+            <div className={styles.writingOptions}>
+              <FieldGroup>
+                <span>{t("writing.profileLabel")}</span>
+                <select
+                  value={teachingProfile}
+                  onChange={(event) => {
+                    setTeachingProfile(event.currentTarget.value as TeachingProfileChoice);
+                  }}
+                >
+                  <option value="profile-default">{t("writing.profileDefault")}</option>
+                  <option value="conversation-partner">{t("writing.profileConversation")}</option>
+                  <option value="strict-corrector">{t("writing.profileStrict")}</option>
+                </select>
+              </FieldGroup>
+              <FieldGroup>
+                <span>{t("writing.feedbackLabel")}</span>
+                <select
+                  value={feedback}
+                  onChange={(event) => {
+                    setFeedback(event.currentTarget.value as FeedbackChoice);
+                  }}
+                >
+                  <option value="all-meaningful">{t("writing.feedbackAll")}</option>
+                  <option value="priority-only">{t("writing.feedbackPriority")}</option>
+                </select>
+              </FieldGroup>
+            </div>
+          </Disclosure>
           <ActionGroup>
             <Button
               variant="primary"
@@ -433,21 +447,23 @@ export function WritingWorkspace({
               <Sparkles aria-hidden="true" /> {t("writing.correctNow")}
             </Button>
             {correctionOperationId ? (
-              <Button onPress={() => void cancelCorrection()}>
+              <Button variant="secondary" onPress={() => void cancelCorrection()}>
                 <X aria-hidden="true" /> {t("writing.cancelCorrection")}
               </Button>
             ) : null}
             {(correctionError || correctionOutcome === "rate-limited") &&
             previousCorrectionOperationId ? (
-              <Button onPress={() => void retryCorrection()}>
-                {t("writing.retryCorrection")}
-              </Button>
+              <Button onPress={() => void retryCorrection()}>{t("writing.retryCorrection")}</Button>
             ) : null}
           </ActionGroup>
+          <Muted as="p" className={styles.draftNotice}>
+            {t("writing.localDraftNotice")}
+          </Muted>
           {correctionStage !== "idle" ? (
             <LoadingState live>{t(`writing.correctionStages.${correctionStage}`)}</LoadingState>
           ) : null}
-          {correctionError ? (
+          <OperationProgress progress={correctionStage === "idle" ? undefined : correctionProgress.progress} />
+      {correctionError ? (
             <Feedback live="assertive" tone="error">
               <p>{t(correctionError.messageKey)}</p>
               <DiagnosticCode>

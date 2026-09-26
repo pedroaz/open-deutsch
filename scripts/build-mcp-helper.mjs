@@ -79,10 +79,52 @@ function parseOutput() {
   return normalized;
 }
 
+// pnpm deploy updates metadata in its source workspace, even with a separate target.
+// Give it only manifests and built package payloads in an owned temporary workspace.
+async function copyDeploymentWorkspace(destination) {
+  await mkdir(destination, { recursive: true, mode: 0o700 });
+  for (const filename of ["package.json", "pnpm-workspace.yaml", "pnpm-lock.yaml"]) {
+    await cp(path.join(repositoryRoot, filename), path.join(destination, filename));
+  }
+  for (const directory of ["apps", "packages", "plugins"]) {
+    for (const entry of await readdir(path.join(repositoryRoot, directory), {
+      withFileTypes: true,
+    })) {
+      if (!entry.isDirectory()) continue;
+      const relative = path.join(directory, entry.name);
+      const manifest = path.join(repositoryRoot, relative, "package.json");
+      try {
+        await access(manifest);
+      } catch (error) {
+        if (error.code === "ENOENT") continue;
+        throw error;
+      }
+      await mkdir(path.join(destination, relative), { recursive: true, mode: 0o700 });
+      await cp(manifest, path.join(destination, relative, "package.json"));
+    }
+  }
+  for (const relative of [
+    "apps/mcp-server",
+    "packages/contracts",
+    "packages/domain",
+    "packages/persistence",
+  ]) {
+    await cp(
+      path.join(repositoryRoot, relative, "dist"),
+      path.join(destination, relative, "dist"),
+      {
+        recursive: true,
+      },
+    );
+  }
+}
+
 async function main() {
   const output = parseOutput();
   const temporary = `${output}.${process.pid}.next`;
-  const deployment = await mkdtemp(path.join(os.tmpdir(), "open-deutsch-mcp-deploy-"));
+  const scratch = await mkdtemp(path.join(os.tmpdir(), "open-deutsch-mcp-deploy-"));
+  const deploymentWorkspace = path.join(scratch, "workspace");
+  const deployment = path.join(scratch, "payload");
   const deployEnvironment = { ...process.env };
   for (const key of [
     "NODE_ENV",
@@ -96,11 +138,18 @@ async function main() {
   await rm(temporary, { recursive: true, force: true });
   await mkdir(path.dirname(output), { recursive: true, mode: 0o700 });
   try {
+    await execFileAsync("pnpm", ["--filter", "@open-deutsch/mcp-server...", "run", "build"], {
+      cwd: repositoryRoot,
+      env: deployEnvironment,
+      timeout: 120_000,
+      maxBuffer: 4 * 1024 * 1024,
+    });
+    await copyDeploymentWorkspace(deploymentWorkspace);
     await execFileAsync(
       "pnpm",
       ["--filter", "@open-deutsch/mcp-server", "deploy", "--prod", "--legacy", deployment],
       {
-        cwd: repositoryRoot,
+        cwd: deploymentWorkspace,
         env: deployEnvironment,
         timeout: 120_000,
         maxBuffer: 4 * 1024 * 1024,
@@ -154,7 +203,7 @@ async function main() {
     process.stdout.write(`[PASS] MCP_HELPER_BUILT: ${JSON.stringify(evidence)}\n`);
   } finally {
     await rm(temporary, { recursive: true, force: true });
-    await rm(deployment, { recursive: true, force: true });
+    await rm(scratch, { recursive: true, force: true });
   }
 }
 

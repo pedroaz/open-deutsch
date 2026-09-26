@@ -56,6 +56,7 @@ export class AppServerProcessManager {
   #startPromise: Promise<void> | undefined;
   #shutdownPromise: Promise<void> | undefined;
   #expectedExit = false;
+  #codexVersion: string | undefined;
   #stderrBytes = 0;
   #stderrTruncated = false;
   readonly #notificationListeners = new Set<(method: string, params: unknown) => void>();
@@ -68,6 +69,10 @@ export class AppServerProcessManager {
 
   state(): AppServerLifecycleState {
     return this.#state;
+  }
+
+  version(): string | undefined {
+    return this.#codexVersion;
   }
 
   history(): readonly JsonRpcHistoryEntry[] {
@@ -178,7 +183,7 @@ export class AppServerProcessManager {
       this.#options.spawn ??
       ((command, arguments_, options) =>
         spawnChild(command, arguments_, { ...options, stdio: ["pipe", "pipe", "pipe"] }));
-    const child = spawn(executable ?? "codex", ["app-server", "--stdio"], {
+    const child = spawn(executable ?? "codex", ["app-server", "--listen", "stdio://"], {
       ...(this.#options.cwd === undefined ? {} : { cwd: this.#options.cwd }),
       env: environment,
       windowsHide: true,
@@ -222,11 +227,15 @@ export class AppServerProcessManager {
       if (
         typeof initializeResult !== "object" ||
         initializeResult === null ||
-        Array.isArray(initializeResult)
+        Array.isArray(initializeResult) ||
+        !("userAgent" in initializeResult) ||
+        typeof initializeResult.userAgent !== "string" ||
+        initializeResult.userAgent.trim().length === 0
       ) {
         throw new AppServerUnavailableError("initialize-invalid");
       }
       transport.notify("initialized");
+      this.#codexVersion = discovery.version;
       this.#setState("ready");
       this.#log("info", "APP_SERVER_READY", "Codex App Server initialized.", {
         version: discovery.version,

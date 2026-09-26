@@ -1,5 +1,4 @@
 import {
-  boundaryUnion,
   calendarDateSchema,
   curriculumTopicIdSchema,
   strictBoundaryObject,
@@ -68,37 +67,26 @@ const lessonFoundationSchema = z.strictObject({
   examples: z.array(text(500)).min(1).max(20),
 });
 
-const readyCoverageSchema = z.union([
-  curriculumCoverageSchema.extend({ reception: mappedCoverageDimensionSchema }),
-  curriculumCoverageSchema.extend({ production: mappedCoverageDimensionSchema }),
-  curriculumCoverageSchema.extend({ interaction: mappedCoverageDimensionSchema }),
-  curriculumCoverageSchema.extend({ mediation: mappedCoverageDimensionSchema }),
-]);
-
-const incompleteCurriculumTopicSchema = strictBoundaryObject({
+export const curriculumTopicFrontMatterSchema = strictBoundaryObject({
   ...topicIdentity,
-  status: z.literal("foundation-incomplete"),
   grammarFoundations: z.array(foundationSchema).max(30),
   vocabularyFoundations: z.array(foundationSchema).max(60),
   lessonFoundation: lessonFoundationSchema.optional(),
   exerciseConcepts: z.array(foundationSchema).max(30),
   coverage: curriculumCoverageSchema,
+}).superRefine((topic, ctx) => {
+  if (
+    topic.lessonFoundation &&
+    (!topic.grammarFoundations.length ||
+      !topic.vocabularyFoundations.length ||
+      !topic.exerciseConcepts.length ||
+      !Object.values(topic.coverage).some((dimension) => dimension.status === "mapped"))
+  )
+    ctx.addIssue({
+      code: "custom",
+      message: "Lesson foundations require language, exercises and mapped outcomes",
+    });
 });
-
-const readyCurriculumTopicSchema = strictBoundaryObject({
-  ...topicIdentity,
-  status: z.literal("foundation-ready"),
-  grammarFoundations: z.array(foundationSchema).min(1).max(30),
-  vocabularyFoundations: z.array(foundationSchema).min(1).max(60),
-  lessonFoundation: lessonFoundationSchema,
-  exerciseConcepts: z.array(foundationSchema).min(1).max(30),
-  coverage: readyCoverageSchema,
-});
-
-export const curriculumTopicFrontMatterSchema = boundaryUnion([
-  incompleteCurriculumTopicSchema,
-  readyCurriculumTopicSchema,
-]);
 
 const freshnessSchema = z.discriminatedUnion("status", [
   z.strictObject({ status: z.literal("stable") }),
@@ -149,7 +137,6 @@ const manifestEntry = (band: "a1" | "a2" | "b1" | "b2") =>
     topicId: curriculumTopicIdSchema,
     domain: curriculumDomainSchema,
     path: z.string().regex(new RegExp(`^topics/${band}/[a-z0-9]+(?:-[a-z0-9]+)*\\.md$`, "u")),
-    status: z.enum(["foundation-incomplete", "foundation-ready"]),
   });
 
 export const curriculumManifestSchema = strictBoundaryObject({
@@ -174,7 +161,7 @@ export const curriculumReadPolicySchema = strictBoundaryObject({
     z.strictObject({
       mode: z.literal("development-repository"),
       contentRoot: z.literal("content/curriculum"),
-      mutability: z.literal("review-workflow-only"),
+      mutability: z.literal("repository-authoring"),
     }),
     z.strictObject({
       mode: z.literal("packaged-snapshot"),

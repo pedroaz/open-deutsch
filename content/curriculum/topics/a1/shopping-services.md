@@ -5,25 +5,16 @@ slug: shopping-services
 band: a1
 domain: shopping-services
 title: "A1: Shopping and services"
-status: foundation-ready
+
 communicativeGoals:
   [
     "Handle a practical shopping and services interaction at A1 level.",
     "Understand and respond to the most useful shopping and services language.",
   ]
 prerequisiteTopicIds: []
-grammarFoundations:
-  - key: a1-core-structures
-    description: "Use A1-appropriate sentence structure, questions, and connectives for shopping and services."
-vocabularyFoundations:
-  - key: shopping-services-foundations
-    description: "Use high-frequency words and phrases for shopping and services."
-lessonFoundation:
-  explanation: "A reviewed A1 foundation for shopping and services, with reusable examples and a clear progression from the previous band."
-  examples: ["Ich brauche Hilfe bei shopping and services.", "Können Sie das bitte erklären?"]
-exerciseConcepts:
-  - key: a1-shopping-services-role-play
-    description: "Role-play a bounded shopping and services exchange and report what was understood."
+grammarFoundations: []
+vocabularyFoundations: []
+exerciseConcepts: []
 sourceIds: [curriculum-source_0000000000000001]
 coverage:
   reception:
@@ -42,8 +33,6 @@ coverage:
 
 # A1: Shopping and services
 
-This reviewed A1 foundation connects practical shopping and services communication to the prior learning band and the Open Deutsch exercise blueprints.
+This topic records intended learning scope. See learning-path.json for available course lessons linked to this topic.
 
-Use the lesson foundation for explanation, the vocabulary foundation for reusable language, and the exercise concept for a bounded practice activity. Research staging may propose refinements, but this canonical snapshot changes only through explicit review.
-
-Sources: curriculum-source_0000000000000001.
+The framework citations support scope; they do not provide a lesson. Author original explanations, examples and activities with source, language and level checks.

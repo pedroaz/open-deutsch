@@ -31,8 +31,8 @@
   align-items: center;
   display: flex;
   justify-content: center;
-  min-height: 80vh;
-  padding: var(--od-space-8);
+  min-height: 80dvh;
+  padding: var(--od-space-5);
 }
 
 .startupCard {
@@ -40,11 +40,11 @@
   background: var(--od-color-surface);
   border: var(--od-border-thin) solid var(--od-color-border);
   border-radius: var(--od-radius-lg);
-  box-shadow: var(--od-shadow-raised);
+
   display: grid;
   gap: var(--od-space-5);
   max-width: var(--od-dialog-max);
-  padding: var(--od-space-10);
+  padding: var(--od-space-6);
   width: 100%;
 }
 
@@ -81,8 +81,33 @@
 }
 
 @media (max-width: 52rem) {
-
   .privacyGrid {
     grid-template-columns: 1fr;
   }
+}
+.startupCard > :where(h1, h2, p) {
+  margin-block: 0;
+}
+.startupCard {
+  display: grid;
+  gap: var(--od-space-4);
+}
+
+.privacyGrid section {
+  display: grid;
+  gap: var(--od-space-2);
+  min-width: 0;
+}
+.privacyGrid section > * {
+  margin: 0;
+}
+.privacyGrid svg {
+  width: var(--od-icon-md);
+  height: var(--od-icon-md);
+  color: var(--od-color-primary);
+}
+.languageButton {
+  min-height: var(--od-control-small);
+  font-size: var(--od-font-size-sm);
+  padding: var(--od-space-1) var(--od-space-3);
 }

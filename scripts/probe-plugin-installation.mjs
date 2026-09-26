@@ -155,7 +155,7 @@ try {
   );
   assertCondition(
     cachedManifest.name === pluginName &&
-      cachedMcp.mcpServers?.[pluginName]?.command === "open-deutsch-mcp",
+      cachedMcp.mcp_servers?.[pluginName]?.command === "open-deutsch-mcp",
     "PLUGIN_CACHED_COMPONENT_INVALID",
   );
 
@@ -191,7 +191,7 @@ try {
     await readFile(refreshedMcpPath, "utf8"),
     "PLUGIN_SOURCE_MCP_INVALID",
   );
-  refreshedMcp.mcpServers[pluginName].command = "open-deutsch-mcp-refresh";
+  refreshedMcp.mcp_servers[pluginName].command = "open-deutsch-mcp-refresh";
   await writeFile(refreshedMcpPath, `${JSON.stringify(refreshedMcp, null, 2)}\n`, {
     encoding: "utf8",
     mode: 0o600,

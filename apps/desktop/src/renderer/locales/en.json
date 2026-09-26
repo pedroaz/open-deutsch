@@ -1,5 +1,8 @@
 {
-  "app": { "name": "Open Deutsch", "tagline": "A focused place to build confident German." },
+  "app": {
+    "name": "Open Deutsch",
+    "tagline": "A focused place to build confident German."
+  },
   "actions": {
     "choose": "Choose folder",
     "confirm": "Confirm folder",
@@ -25,8 +28,9 @@
     "vocabulary": "Vocabulary",
     "history": "History",
     "progress": "Progress",
-    "weeklyPlan": "Weekly plan",
-    "settings": "Settings/Account"
+    "settings": "Settings/Account",
+    "personalData": "Personal Data",
+    "learningPath": "Learning path"
   },
   "practice": {
     "eyebrow": "Choose your focus",
@@ -39,7 +43,7 @@
     "speaking": "Codex speaking handoff",
     "diagnostic": "Optional diagnostic",
     "chooser": {
-      "title": "What do you want to practise?",
+      "title": "Choose a practice type",
       "body": "Choose a format to see its setup and start when you are ready."
     },
     "types": {
@@ -64,41 +68,47 @@
         "body": "Prepare a practical role-play with prompts and correction goals, then speak in Codex Voice."
       },
       "diagnostic": {
-        "title": "Check your level",
-        "body": "Answer grammar, vocabulary, and reading choices plus one short writing prompt."
+        "title": "Practice diagnostic",
+        "body": "Try three grammar, vocabulary and reading samples without changing your selected level."
       }
     },
     "library": {
-      "title": "Your generated exercises",
-      "body": "Open a generated quiz or grammar set and continue where you left off.",
+      "title": "Saved activities",
+      "body": "Open saved instructions or a generated exercise set. Listening and speaking activities are in their own sections below.",
       "count_one": "{{count}} ready",
       "count_other": "{{count}} ready",
       "loading": "Loading your exercises…",
-      "empty": "No generated exercises are waiting. Create one below when you want a tailored practice set.",
-      "filterLabel": "Filter generated exercises by type",
+      "empty": "No activities are waiting. Choose a practice type below to get started.",
+      "filterLabel": "Filter activities by type",
       "filters": {
         "all": "All",
         "custom-lesson": "Quiz",
-        "grammar": "Grammar"
+        "grammar": "Grammar",
+        "reading": "Reading"
       },
       "noFilterResults": "No exercises match this filter.",
       "open": "Open {{title}}",
       "deleteAction": "Delete {{title}}",
       "deleteTitle": "Delete “{{title}}”?",
-      "deleteBody": "This permanently removes the quiz and its unconfirmed vocabulary candidates.",
+      "deleteBody": "This permanently removes the activity and its unconfirmed vocabulary candidates.",
       "deleteCascadeBody": "This permanently removes the quiz, its attempts, answers, feedback, related History entries, and unconfirmed vocabulary candidates.",
       "deleteConfirm": "Delete exercise",
       "deleteBlocked": {
-        "retained-data": "{{title}} is linked to confirmed vocabulary and cannot be deleted here."
+        "retained-data": "{{title}} has completed results, retained feedback or confirmed vocabulary and cannot be deleted here."
       },
       "deleteStates": {
         "cascade": "Started",
-        "retained-data": "Confirmed vocabulary"
+        "retained-data": "Retained evidence"
       },
       "types": {
         "grammar": "Grammar practice",
-        "custom-lesson": "Quiz"
-      }
+        "custom-lesson": "Quiz",
+        "reading": "Reading practice",
+        "writing": "Writing practice",
+        "vocabulary-review": "Vocabulary practice",
+        "placement": "Diagnostic"
+      },
+      "loadMore": "Load more"
     },
     "session": {
       "eyebrow": "Generated practice",
@@ -110,37 +120,22 @@
     },
     "grammarLesson": {
       "title": "Focused grammar lesson",
-      "body": "A level-calibrated A2 starter uses the reviewed curriculum and any saved mistake evidence available to the bounded generation service.",
+      "body": "Generate a lesson at your selected learning level using the curriculum and available saved mistake evidence.",
       "topic": "Starter topic: dative articles after common prepositions.",
-      "request": "Create an A2 grammar lesson on dative articles after mit and zu, with a clear explanation, examples, hints, guided practice, and one free-production exercise.",
+      "request": "Create a grammar lesson at my current learning level on dative articles after mit and zu, with a clear explanation, examples, hints, guided practice, and one free-production exercise.",
       "start": "Generate grammar lesson"
     },
     "readingFlow": {
-      "title": "Read a short everyday notice",
-      "body": "Use the bundled local material or paste text you already have. Imported text is treated as data, never as instructions.",
-      "bundledPassage": "The doctor's office asks patients to arrive ten minutes before an appointment. The consultation starts at 10:00 in room 2.",
-      "start": "Start reading practice",
-      "generate": "Generate a local reading",
-      "generatedSource": "Open Deutsch local A2 passage generator",
-      "generatedPassage": "On Thursday, the community center offers a German conversation group. Bring a notebook and arrive at 18:00; the first meeting is free.",
-      "saved": "Reading evidence saved to History.",
+      "title": "Read and practise German",
+      "body": "Generate a German passage for your learning level, or create questions from text you paste below. Codex prepares passage-specific exercises and reviews your written answers.",
+      "bundledPassage": "Die Arztpraxis bittet Patientinnen und Patienten, zehn Minuten vor einem Termin zu kommen. Die Sprechstunde beginnt um 10:00 Uhr in Raum 2.",
+      "topic": "Topic or learning goal (optional)",
+      "defaultRequest": "Practise understanding a short everyday German text, including vocabulary, inference and a written summary.",
+      "generate": "Generate reading practice",
       "material": "Reading material",
-      "source": "Source",
-      "hint": "Show a progressive hint",
-      "hintBody": "First find the who, when, and where. Then explain the main point in your own words.",
-      "translation": "Reveal translation",
-      "bundledTranslation": "Die Arztpraxis bittet Patientinnen und Patienten, zehn Minuten vor einem Termin zu kommen. Die Sprechstunde beginnt um 10:00 Uhr in Raum 2.",
-      "generatedTranslation": "Am Donnerstag bietet das Gemeindezentrum eine deutsche Gesprächsgruppe an. Bring ein Notizbuch mit und komm um 18:00 Uhr; das erste Treffen ist kostenlos.",
-      "importedTranslation": "No automatic translation is added for imported local text. The text remains learner-provided data; use the hint and your own notes.",
-      "importLabel": "Paste local text (optional)",
-      "useImport": "Use imported text",
-      "comprehension": "Comprehension: when does the appointment start?",
-      "vocabulary": "Vocabulary in context: what is an appointment?",
-      "summary": "Summarize the notice in your own words",
-      "inference": "Inference: what should the person do before the appointment?",
-      "choose": "Choose an answer",
-      "finish": "Save reading evidence",
-      "saving": "Saving reading evidence…"
+      "importLabel": "Paste a German text (optional)",
+      "useStarter": "Use a starter text",
+      "useImport": "Create exercises from this text"
     },
     "listeningFlow": {
       "title": "Listening in Codex Voice",
@@ -180,17 +175,16 @@
       "prepared": "Listening activity prepared",
       "saved": "Listening activity saved.",
       "voiceStart": "Continue with the saved activity in Codex Voice:",
-      "voiceStepOne": "Open a new, empty task in the ChatGPT desktop app.",
-      "voiceStepTwo": "Select Start new voice chat before sending a message.",
-      "voiceStepThree": "Say: Start my latest prepared Open Deutsch listening activity.",
+      "voiceStepOne": "Select Open in Codex for this activity.",
+      "voiceStepTwo": "Send the prepared message to load this exact activity.",
+      "voiceStepThree": "Select Start voice chat in the same task when available.",
       "savedTitle": "Saved listening activities",
       "savedBody": "Open or delete a prepared activity. Codex can retrieve the exact structured context through the Open Deutsch plugin.",
-      "savedEmpty": "No listening activities are prepared yet.",
+      "savedEmpty": "No saved listening activities.",
       "deleteAction": "Delete",
       "deleteTitle": "Delete this listening activity?",
       "deleteBody": "This permanently removes the prepared activity.",
-      "deleteConfirm": "Delete activity",
-      "handoffUnavailable": "Open Deutsch cannot start an exact Voice task externally. The saved activity is available to the Open Deutsch plugin from a new Voice task."
+      "deleteConfirm": "Delete activity"
     },
     "speakingFlow": {
       "title": "Speaking scenario in Codex Voice",
@@ -228,21 +222,20 @@
       "prepared": "Speaking scenario prepared",
       "saved": "Speaking scenario saved.",
       "voiceStart": "Continue with this scenario in Codex Voice:",
-      "voiceStepOne": "Open a new, empty task in the ChatGPT desktop app.",
-      "voiceStepTwo": "Select Start new voice chat before sending a message.",
-      "voiceStepThree": "Say: Start my latest prepared Open Deutsch speaking scenario.",
+      "voiceStepOne": "Select Open in Codex for this activity.",
+      "voiceStepTwo": "Send the prepared message to load this exact activity.",
+      "voiceStepThree": "Select Start voice chat in the same task when available.",
       "savedTitle": "Saved speaking scenarios",
       "savedBody": "Open or delete a prepared scenario. Codex can retrieve its exact goals and prompts through the Open Deutsch plugin.",
-      "savedEmpty": "No speaking scenarios are prepared yet.",
+      "savedEmpty": "No saved scenarios.",
       "deleteAction": "Delete",
       "deleteTitle": "Delete this speaking scenario?",
       "deleteBody": "This permanently removes the prepared scenario.",
-      "deleteConfirm": "Delete scenario",
-      "handoffUnavailable": "Open Deutsch cannot start an exact Voice task externally. The saved scenario is available to the Open Deutsch plugin from a new Voice task."
+      "deleteConfirm": "Delete scenario"
     },
     "diagnosticFlow": {
-      "title": "Optional lightweight diagnostic",
-      "body": "Try four short local samples for orientation. You can skip this and continue learning; it is not a certificate or a formal score.",
+      "title": "Optional practice diagnostic",
+      "body": "Three short samples: grammar, vocabulary, and reading. Your learning level stays unchanged.",
       "start": "Start diagnostic",
       "skip": "Skip for now",
       "skipped": "Skipped for now. You can return to this diagnostic from Practice.",
@@ -251,18 +244,38 @@
       "reading": "Reading sample",
       "readingText": "The appointment notice says: “Sprechstunde am Dienstag um 10 Uhr.”",
       "readingQuestion": "What time is the consultation?",
-      "writing": "Writing: write a short message to request an appointment.",
       "choose": "Choose an answer",
       "finish": "Save diagnostic evidence",
       "saving": "Saving evidence…",
       "completedTitle": "Diagnostic evidence saved",
-      "completedBody": "Your current orientation is {{level}}. The evidence remains uncertain and can change as you practise.",
+      "completedBody": "Saved in History. Your learning level is unchanged.",
       "noAdditionalUncertainty": "No additional uncertainty was reported.",
       "outcomes": {
         "demonstrated": "demonstrated",
         "developing": "developing",
-        "not-demonstrated": "not demonstrated"
-      }
+        "not-demonstrated": "not demonstrated",
+        "not-assessed": "not assessed"
+      },
+      "limitedEvidence": "Three local choices are insufficient to estimate a CEFR level.",
+      "writingNotAssessed": "Writing is not assessed here. Use Writing for feedback on an actual text.",
+      "voiceUnavailable": "Listening and speaking are not assessed here. Start a separate prepared activity in Codex Voice.",
+      "sampleUncertainty": "One local sample cannot establish proficiency.",
+      "grammarTopic": "Dative after zu",
+      "grammarEvidence": "A short article-selection sample was completed.",
+      "vocabularyTopic": "Appointments",
+      "vocabularyEvidence": "An everyday-word meaning sample was completed.",
+      "readingTopic": "Finding a time in a notice",
+      "writingTopic": "Writing"
+    },
+    "voiceContentNotice": "When changing the scenario, also adapt the goals, questions, script and answer guidance. These contents are saved as entered.",
+    "voiceHandoff": {
+      "open": "Open in Codex",
+      "opening": "Opening Codex…",
+      "openRequested": "Opening requested. Send the prepared message in Codex, then start Voice in that task.",
+      "setupRequired": "Open Settings / Account in Open Deutsch to install or refresh the Open Deutsch plugin and check Codex setup. Then try again.",
+      "failed": "Codex could not be opened. Check that the ChatGPT desktop app is installed, then try Open in Codex again.",
+      "availability": "Voice in existing tasks depends on your app, account and workspace. If Start voice chat is unavailable, update Codex or continue by text.",
+      "resume": "To resume a conversation, return to its task in Codex. This button prepares a new chat."
     }
   },
   "modelControl": {
@@ -272,7 +285,7 @@
     "activity": "AI activity",
     "model": "Model",
     "reasoning": "Reasoning",
-    "reasoningHint": "Low is faster. Higher levels can be more thorough but take longer.",
+    "reasoningHint": "Lower effort is faster. Higher effort takes more time for deeper reasoning.",
     "automatic": "Automatic — {{model}}",
     "workloads": {
       "correction": "Writing",
@@ -356,7 +369,7 @@
     "body": "Confirm only the words you want to review. Open Deutsch keeps scheduling deterministic and explainable.",
     "refresh": "Refresh vocabulary",
     "createTitle": "Create a vocabulary lesson set",
-    "createBody": "Use your current candidates, goal, topic, and mistake evidence to group a short lesson set.",
+    "createBody": "Group existing candidate words into a set. Add candidates through a writing correction first.",
     "request": "What should this set help with?",
     "topic": "Optional topic",
     "setTitle": "Set title",
@@ -364,110 +377,121 @@
     "filtersLabel": "Vocabulary views",
     "filters": {
       "all": "All",
-      "candidate": "Candidates",
+      "candidate": "Suggested",
       "due": "Due today",
       "active": "Active",
-      "suspended": "Suspended"
+      "suspended": "Paused"
     },
-    "empty": "Nothing is here yet. Complete a correction or create a candidate before building a set.",
+    "empty": "No words in this view.",
     "candidateState": "Candidate — confirmation required before review",
     "due": "Due {{date}} · stage {{stage}}",
-    "suspendedState": "Suspended: {{reason}}",
+    "suspendedState": "Paused: {{reason}}",
     "confirm": "Add to active review",
-    "suspend": "Suspend",
-    "resume": "Resume",
+    "suspend": "Pause review",
+    "resume": "Resume review",
     "edit": "Edit",
     "save": "Save vocabulary",
     "delete": "Delete",
     "deleteConfirm": "Delete this vocabulary card and its review history?",
     "openSource": "Open source",
-    "lemma": "Word or phrase",
+    "lemma": "Word",
     "meaning": "Meaning",
     "example": "German example",
     "exampleMeaning": "Example meaning",
     "lessonSets": "Saved lesson sets",
     "lessonSetItems": "{{count}} candidates",
-    "grades": { "again": "Again", "hard": "Hard", "good": "Good", "easy": "Easy" }
-  },
-  "weeklyPlan": {
-    "eyebrow": "A flexible week",
-    "title": "Weekly plan",
-    "body": "Generate an advisory plan from your goal, available time, recent mistakes, due vocabulary, and curriculum context.",
-    "refresh": "Refresh plan",
-    "generateTitle": "Plan this week",
-    "generateBody": "Review the proposal before replacing the current plan. Nothing is marked complete automatically.",
-    "request": "Optional focus",
-    "requestPlaceholder": "For example: prioritise appointments and short writing practice",
-    "generate": "Generate a plan",
-    "generating": "Generating…",
-    "current": "Current advisory plan",
-    "week": "Week of {{date}}",
-    "advisory": "Advisory only",
-    "recommendedTitle": "Recommended next",
-    "recommendedBody": "A stable suggestion based on due vocabulary and recurring mistakes. Choose it when it fits your week.",
-    "alternatives": "Other options",
-    "noCompletionLedger": "This plan has no completion checkboxes or automatic attempt reconciliation.",
-    "empty": "No plan yet. Generate one when you are ready to choose this week's focus."
+    "grades": {
+      "again": "Again",
+      "hard": "Hard",
+      "good": "Good",
+      "easy": "Easy"
+    },
+    "library": {
+      "search": "Search words and meanings",
+      "sort": "Sort by",
+      "sortWord": "Word (A–Z)",
+      "sortDue": "Next review (earliest first)",
+      "status": "Status",
+      "nextReview": "Next review",
+      "notScheduled": "Not scheduled",
+      "details": "Word details",
+      "source": "Source context",
+      "plural": "Plural",
+      "plurals": {
+        "unchanged": "unchanged",
+        "unknown": "not recorded",
+        "not-applicable": "not applicable"
+      },
+      "reasons": {
+        "learner-paused": "paused by you",
+        "duplicate": "duplicate",
+        "not-useful": "not useful",
+        "other": "other"
+      },
+      "lastReview": "Last reviewed {{date}} · {{grade}}",
+      "reviewDue": "Review due words ({{count}})",
+      "selectPage": "Select all words on this page",
+      "selectWord": "Select {{word}}",
+      "selected": "{{count}} selected",
+      "clearSelection": "Clear selection",
+      "resultCount": "{{count}} matching words",
+      "noMatches": "No words match this search and filter.",
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page {{page}} of {{total}}",
+      "close": "Close",
+      "reloadDetails": "Reload current details",
+      "setCreated": "Vocabulary lesson set created.",
+      "noSuggestions": "Suggested words are needed to create a lesson set."
+    },
+    "review": {
+      "title": "Vocabulary review",
+      "back": "Back to vocabulary",
+      "progress": "Word {{current}} of {{total}}",
+      "reveal": "Show answer",
+      "saved": "Saved · Next review: {{date}}",
+      "next": "Next word",
+      "skip": "Skip changed word",
+      "complete": "Review complete",
+      "reviewed": "{{count}} words reviewed.",
+      "noneDue": "No words are due right now.",
+      "another": "Review another batch",
+      "failed": "The result could not be confirmed. Skip this word or return to the library to refresh.",
+      "answer": "Answer"
+    }
   },
   "dashboard": {
     "eyebrow": "Today",
-    "title": "Keep your German moving",
+    "title": "Dashboard",
     "body": "Continue with a focused activity or review what you learned recently.",
-    "primary": "Start a short practice",
+    "primary": "Start practice",
     "helperTitle": "Context helper",
     "helperBody": "Open explanations only when you need them. Your main task stays in focus.",
     "refresh": "Refresh dashboard",
     "refreshing": "Refreshing…",
     "refreshed": "Updated at {{time}}",
     "cards": {
-      "plan": "Weekly plan",
       "quickPractice": "Quick practice",
       "corrections": "Recent corrections",
       "mistakes": "Recurring mistakes",
       "vocabulary": "Vocabulary due"
     },
-    "planWeek": "Week beginning {{date}}",
-    "emptyPlan": "No current weekly plan is stored yet.",
-    "openPlan": "Open weekly plan",
     "quickPracticeBody": "Choose a focused local activity without waiting for AI.",
     "openPractice": "Open practice",
     "openWriting": "Open writing",
     "correctionItem": "{{count}} changed segments · {{date}}",
-    "emptyCorrections": "No saved corrections are available yet.",
+    "emptyCorrections": "No corrections yet.",
     "openHistory": "Open history",
     "mistakeItem": "{{category}} · {{count}} occurrences",
-    "emptyMistakes": "No recurring pattern has enough evidence yet.",
-    "emptyVocabulary": "No vocabulary cards are due today.",
+    "emptyMistakes": "No recurring patterns yet.",
+    "emptyVocabulary": "No words due today.",
     "openVocabulary": "Open vocabulary"
   },
-  "progress": {
-    "eyebrow": "Evidence view",
-    "title": "Progress without a score",
-    "intro": "See what your saved activity demonstrates across four skills. Every statement links back to bounded evidence in History.",
-    "refresh": "Refresh evidence",
-    "refreshing": "Refreshing…",
-    "noScore": "Open Deutsch does not calculate one overall score or claim certification. Evidence can be incomplete and can change with practice.",
-    "activityCount": "{{count}} saved activities",
-    "noEvidence": "No saved evidence for this skill yet.",
-    "openHistory": "Open History evidence",
-    "patternEyebrow": "Selected grammar and vocabulary",
-    "patternTitle": "Patterns with inspectable sources",
-    "patternEvidence": "{{count}} dated observation(s) support this pattern.",
-    "inferred": "Inferred from saved evidence; you can amend this classification.",
-    "amended": "Learner-amended classification.",
-    "editInference": "Edit inference",
-    "cancelEdit": "Cancel edit",
-    "categoryKey": "Category key",
-    "lemma": "Vocabulary lemma",
-    "note": "Amendment note (optional)",
-    "saveInference": "Save amendment",
-    "noPatterns": "No grammar or vocabulary pattern has enough saved evidence yet."
-  },
   "helper": {
-    "selectText": "Highlight text in your writing to add it as context.",
+    "selectText": "Select text in Writing to ask about it.",
     "selectedContext": "Current context",
     "messageLabel": "Message the context helper",
-    "messagePlaceholder": "Ask about meaning, grammar, conjugation, or word choice…",
+    "messagePlaceholder": "Ask about this text…",
     "send": "Send",
     "sendHint": "Enter to send · Shift+Enter for a new line",
     "translate": "Translate",
@@ -489,9 +513,9 @@
     "title": "Write in German",
     "intro": "Keep the situation and your own text together. Nothing is sent until you explicitly start an AI action.",
     "promptTitle": "Choose how to start",
-    "promptBody": "Ask Codex for one short everyday-life writing task based on your level, goal, interests, and preferred topics—or begin with a blank page.",
+    "promptBody": "Generate a task for your level and interests, or write freely.",
     "generatePrompt": "Generate prompt",
-    "freeWriting": "Start blank",
+    "freeWriting": "Clear prompt",
     "generatedPrompt": "Generated writing prompt",
     "suggestedWords": "Suggested length: {{count}} words",
     "promptStages": {
@@ -507,7 +531,7 @@
       "practical-description": "Practical description",
       "essay": "Essay"
     },
-    "contextLabel": "Situation or prompt",
+    "contextLabel": "Situation or prompt (optional)",
     "contextPlaceholder": "For example: ask a Hausverwaltung about a repair appointment",
     "contextHint": "Optional context for this piece of writing. Keep it relevant and concise.",
     "editorLabel": "Your German text",
@@ -521,7 +545,7 @@
     "inlineCorrection": "Annotated correction",
     "mistakes_one": "1 change to review",
     "mistakes_other": "{{count}} changes to review",
-    "changeSelectionHelp": "Annotated correction. Activate a marked change to show the same change in both comparison panes and its explanation.",
+    "changeSelectionHelp": "Select a marked change to read its explanation.",
     "selectChange": "Show change {{number}}",
     "changeHeading": "Change {{number}}",
     "changedText": "Text changed",
@@ -562,14 +586,14 @@
       "rate-limited": "Codex is temporarily rate-limited. Your text is still here."
     },
     "optionsTitle": "Review options",
-    "profileLabel": "Teaching profile for this activity",
+    "profileLabel": "Teaching profile",
     "profileDefault": "Use my profile default",
     "profileConversation": "Conversation partner",
     "profileStrict": "Strict corrector",
-    "feedbackLabel": "Feedback coverage",
-    "feedbackAll": "Review every meaningful issue",
-    "feedbackPriority": "Prioritize the most useful issues",
-    "localDraftNotice": "This draft remains in this window until a later save or correction action is completed.",
+    "feedbackLabel": "Feedback",
+    "feedbackAll": "All meaningful issues",
+    "feedbackPriority": "Priority issues",
+    "localDraftNotice": "Unsaved draft · Correct now saves the review.",
     "unsavedTitle": "Leave this writing draft?",
     "unsavedBody": "Your unsaved prompt and German text will be discarded if you leave this workspace.",
     "leave": "Discard and leave",
@@ -606,8 +630,7 @@
       "codex-listening": "Codex listening",
       "voice-speaking": "Voice speaking",
       "placement": "Placement",
-      "custom-lesson": "Quiz",
-      "plan-generation": "Plan generation"
+      "custom-lesson": "Quiz"
     },
     "topics": "Curriculum topics",
     "mistakes": "Mistake categories",
@@ -627,14 +650,9 @@
     "improvements": "Improvements",
     "vocabularyCandidates": "Vocabulary candidates",
     "placementSummary": "Optional diagnostic",
-    "placementLevel": "Current orientation: {{level}}",
     "placementEvidence": "Four-skill evidence",
     "placementUncertaintyNone": "No additional uncertainty was reported.",
     "readingMaterial": "Reading material",
-    "readingSource": "Source: {{source}} ({{kind}})",
-    "readingEvidence": "Reading exercise evidence",
-    "readingWords": "Difficult words: {{words}}",
-    "readingUntrusted": "Imported text was treated strictly as untrusted data; it was not sent to a model or executed.",
     "listeningSummary": "Structured listening evidence",
     "listeningWords": "Difficult vocabulary: {{words}}",
     "listeningNextSteps": "Next steps",
@@ -696,14 +714,13 @@
     "writing": "Writing",
     "vocabulary": "Vocabulary",
     "history": "History",
-    "weeklyPlan": "Weekly plan",
     "settings": "Settings and account",
     "placeholder": "This workspace is ready for the next implementation block."
   },
   "startup": {
     "loading": "Preparing your learning workspace…",
     "firstTitle": "Choose where your learning records live",
-    "firstBody": "Open Deutsch keeps your learning history in a folder you choose. Confirm it before anything is created.",
+    "firstBody": "Choose where to keep your learning data.",
     "unavailableTitle": "Your learning folder needs attention",
     "unavailableBody": "Open Deutsch could not safely open the selected folder.",
     "schemaTitle": "This learning folder needs a newer Open Deutsch",
@@ -743,14 +760,14 @@
   },
   "onboarding": {
     "step": "Set up your learning profile",
-    "title": "A useful starting point",
+    "title": "Your learning preferences",
     "intro": "Choose a few defaults now. You can change them later, and the app language remains a separate choice.",
     "accountTitle": "Personal Codex account",
     "accountConnected": "Your managed Codex account is ready ({{plan}}).",
-    "accountSignedOut": "No managed Codex account is connected yet. Local learning remains available.",
+    "accountSignedOut": "Codex is not connected. Local practice is available.",
     "accountExpired": "Your Codex session needs to be connected again.",
     "accountUnsupported": "This Codex authentication method is not supported by Open Deutsch.",
-    "accountUnavailable": "Codex account status is unavailable. You can continue with local learning.",
+    "accountUnavailable": "Codex status unavailable. You can continue locally.",
     "planUnknown": "plan not reported",
     "connectBrowser": "Connect in browser",
     "connectDevice": "Use a device code",
@@ -769,7 +786,7 @@
     "time": "Available study time each week",
     "minutes": "{{count}} minutes",
     "skipPlacement": "Skip the optional placement diagnostic for now",
-    "placementLater": "The lightweight diagnostic will remain available from Practice and will not block setup.",
+    "placementLater": "Optional diagnostic available in Practice.",
     "teachingTitle": "Teaching style",
     "profiles": {
       "conversation-partner": {
@@ -782,13 +799,16 @@
       }
     },
     "explanationLanguage": "Language for explanations",
-    "languages": { "en": "English", "de": "German" },
+    "languages": {
+      "en": "English",
+      "de": "German"
+    },
     "localeIndependent": "This does not change the Open Deutsch interface language.",
     "finish": "Finish setup"
   },
   "settings": {
     "eyebrow": "Preferences",
-    "title": "Settings and account",
+    "title": "Settings",
     "intro": "Manage local learning defaults and the Codex capabilities reported by your installed runtime.",
     "loading": "Loading settings…",
     "saved": "Settings saved locally.",
@@ -800,7 +820,7 @@
     "dataSwitch": "Choose another data folder",
     "dataSwitchCancelled": "Folder switching was cancelled.",
     "dataSwitchConfirmTitle": "Confirm data folder switch",
-    "dataSwitchConfirm": "Switch to {{name}} as data-root generation {{generation}}? The current dataset stays in its original folder.",
+    "dataSwitchConfirm": "Switch to {{name}}? Your current data stays in its original folder.",
     "dataSwitchConfirmAction": "Switch data folder",
     "accountTitle": "Codex account and compatibility",
     "account": {
@@ -829,15 +849,20 @@
     "notReported": "Not reported by the current runtime.",
     "privacyTitle": "Local and OpenAI processing",
     "profileTitle": "Learning defaults",
-    "persistenceUnavailable": "Editing is unavailable until the learner-settings contract is supported by this app version.",
+    "persistenceUnavailable": "Settings cannot be edited in this app version.",
     "teachingProfile": "Default teaching profile",
     "uiLocale": "Interface language",
-    "localeSeparate": "Interface language and explanation language are saved independently.",
+    "localeSeparate": "Explanation language is independent of the interface language.",
     "modelsTitle": "Models by workload",
     "model": "Model",
     "effort": "Reasoning effort",
     "automatic": "Automatic",
     "exactEffort": "Exact: {{effort}}",
+    "semanticEfforts": {
+      "fast": "Fast (prefer low)",
+      "balanced": "Model default",
+      "deep": "Deep (prefer high)"
+    },
     "exactEfforts": {
       "none": "Minimal",
       "low": "Low",
@@ -849,7 +874,7 @@
     },
     "unavailableSavedModel": "Unavailable saved model: {{model}}",
     "unavailableSavedEffort": "Unavailable saved effort: {{effort}}",
-    "savedModelFallback": "This saved choice is unavailable. AI actions temporarily use the runtime default while preserving your saved preference.",
+    "savedModelFallback": "This saved model or reasoning choice is unavailable. The effective choice shown above is used temporarily; your preference is preserved.",
     "workloads": {
       "correction": "Writing correction",
       "generation": "Exercise and lesson generation",
@@ -869,24 +894,294 @@
     "logsCleared": "Cleared {{count}} local log files.",
     "restoreModels": "Restore automatic model defaults",
     "discard": "Discard changes",
-    "save": "Save settings"
+    "save": "Save settings",
+    "automaticFallback": "{{model}} is unavailable. Using {{effective}} for now."
   },
   "errors": {
     "boundaryTitle": "This view could not be displayed",
-    "boundaryBody": "Your input is still available. Close this message or try the view again.",
-    "validation": "Some information is invalid.",
-    "notFound": "The item is no longer available.",
-    "conflict": "The item changed before the action finished.",
-    "staleDataRoot": "The learning folder changed.",
-    "database": "The local learning database could not be opened.",
-    "appServer": "Codex is temporarily unavailable.",
-    "authentication": "Connect your Codex account.",
-    "unsupportedCodexVersion": "Upgrade Codex to a supported version.",
-    "rateLimit": "Codex usage is temporarily limited.",
+    "boundaryBody": "This view encountered an unexpected error. Try opening it again. Unsaved input may need to be entered again.",
+    "validation": "Some information is invalid or incomplete. Check the required fields and try again.",
+    "notFound": "This item is no longer available. Reopen the list and select another item.",
+    "conflict": "This item changed before the action finished. Reopen it to load the current version, then try again.",
+    "staleDataRoot": "The selected learning folder changed. Reopen this view before trying again.",
+    "database": "Open Deutsch could not read or save local learning data. Check that the selected folder is available and writable in Settings/Account, then retry.",
+    "aiPolicy": "Open Deutsch stopped this AI action because it encountered an operation outside the allowed learning workflow. Retry once. If it happens again, report the diagnostic reference.",
+    "aiTimeout": "Codex did not finish within the time limit. Try again with a shorter request or a smaller activity.",
+    "modelUnavailable": "The selected model or reasoning setting is unavailable. Choose Automatic or another available option in the model selector, then retry.",
+    "appServer": "The AI action could not finish. Retry once. If it fails again, check Codex in Settings/Account and report the diagnostic reference.",
+    "authentication": "Codex needs you to sign in. Open Settings/Account, connect your Codex account, then retry.",
+    "unsupportedCodexVersion": "Open Deutsch could not use this Codex installation. Check its status in Settings/Account and update or reinstall Codex if needed.",
+    "rateLimit": "Your Codex usage limit was reached. Check Settings/Account for the reset time and try again after it resets.",
     "cancellation": "The action was cancelled.",
-    "modelOutput": "The result could not be safely used.",
-    "mcp": "The Codex integration could not finish.",
-    "handoff": "The related activity could not be opened.",
-    "unsupportedOperation": "This operation is not supported."
+    "modelOutput": "Codex returned an incomplete or unusable result. Try again; if it keeps happening, try another model or report the diagnostic reference.",
+    "mcp": "The Codex integration could not complete this action. Check its status in Settings/Account and install or refresh the integration if needed.",
+    "handoff": "Open Deutsch could not open the related activity. Check the Codex integration in Settings/Account, then try again.",
+    "unsupportedOperation": "This action is unavailable in the current setup. Check Settings/Account for supported options.",
+    "dataRootBusy": "Finish or cancel the active AI operation before changing the data folder."
+  },
+  "ui": {
+    "newPractice": "New practice",
+    "moreFilters": "More filters",
+    "details": "View details",
+    "activityOptions": "Activity options",
+    "manageWord": "Manage word",
+    "deleteWord": "Delete “{{word}}”?",
+    "actionFailed": "Could not complete this action. Please try again.",
+    "loading": "Loading…",
+    "completeOptions": "Complete the required activity options before saving."
+  },
+  "suggestions": {
+    "title": "Practice next",
+    "recommended": "Recommended",
+    "more": "More ideas",
+    "minutes": "About {{count}} min",
+    "starting": "Preparing your practice…",
+    "learningSummary": "Recent learning",
+    "recentSummary": "{{corrections}} recent corrections · {{patterns}} recurring patterns",
+    "choosePractice": "Choose another activity",
+    "freeWriting": "Free writing",
+    "flexibleWeek": "Choose what helps today. There is no schedule to catch up with.",
+    "allGoals": "All goals and activities",
+    "voiceGuidance": "Adapt the conversation to the learner’s level. Give concise explanations and allow time to respond.",
+    "voiceQuestion": "What would you say in this situation?",
+    "sources": {
+      "due-vocabulary": "Vocabulary review",
+      "mistake": "From your mistakes",
+      "starter": "Try something new"
+    },
+    "actions": {
+      "start": "Start practice",
+      "write": "Start writing",
+      "review": "Review words",
+      "prepare": "Prepare conversation",
+      "diagnostic": "Open diagnostic"
+    },
+    "fullPrompt": "Full prompt"
+  },
+  "personalData": {
+    "title": "Personal Data",
+    "intro": "Understand what is saved, why it is needed, and what you can clear.",
+    "folder": "Stored on this device",
+    "refresh": "Refresh",
+    "loading": "Loading data…",
+    "updated": "Updated {{time}}",
+    "tabs": {
+      "overview": "Overview",
+      "storage": "Storage",
+      "cleanup": "Clean up"
+    },
+    "overviewHelp": "A summary of your saved data. Counts show main records; related details and links are not counted twice.",
+    "overviewCaption": "What the app remembers",
+    "columns": {
+      "data": "Data stored",
+      "purpose": "Why it is stored",
+      "saved": "Saved",
+      "location": "Storage area",
+      "path": "Location on this device",
+      "status": "Status",
+      "cleanup": "Data to clear",
+      "removes": "What changes",
+      "action": "Action"
+    },
+    "supporting": "The app also keeps links between records, your privacy acknowledgement, and small save/deletion records that prevent duplicates. These support the features above.",
+    "privacy": "Your learning records are stored locally. When you use an AI action, selected text and learning context are sent through Codex. Codex manages its account and conversations separately; Open Deutsch does not store audio.",
+    "storageHelp": "Your learning records share one local database. Larger files and research material have separate folders.",
+    "storageCaption": "Where your data lives",
+    "status": {
+      "file": "File",
+      "directory": "Folder",
+      "missing": "Not present",
+      "unavailable": "Unavailable"
+    },
+    "cleanup": {
+      "intro": "Clear a specific area or start again with an empty learning history. Every action asks for confirmation.",
+      "caption": "Selective cleanup",
+      "permanent": "This permanently deletes the listed records. There is no undo.",
+      "clearing": "Clearing…",
+      "confirmLabel": "Type CLEAR to confirm",
+      "confirmWord": "CLEAR",
+      "retained": "Cleanup keeps your account connection, privacy acknowledgement and duplicate/deletion markers. It does not delete attachments, research files, app configuration or diagnostic logs. Diagnostic controls remain in Settings/Account.",
+      "blocked": {
+        "busy": "An AI action is still running. Finish or cancel it before clearing data.",
+        "linked-vocabulary": "Some vocabulary refers to this practice. Clear that vocabulary first, or choose “Clear all learning data”. No data was changed.",
+        "attachments": "Saved attachment references prevent cleanup so that files are not left without their records. No data was changed."
+      },
+      "practice": {
+        "title": "Exercises and practice",
+        "action": "Clear practice",
+        "removes": "Removes all saved activities, lessons, exercises, attempts, answers, corrections, mistakes, learning insights, Voice summaries and their history.",
+        "keeps": "Keeps your profile details, preferences and vocabulary. Linked vocabulary must be cleared first.",
+        "success": "Practice, feedback and related history cleared."
+      },
+      "vocabulary": {
+        "title": "Vocabulary deck",
+        "action": "Clear vocabulary",
+        "removes": "Removes suggested, active and paused words, vocabulary sets, review schedules and review history.",
+        "keeps": "Keeps your profile, exercises and feedback. Words may still appear in saved exercise text.",
+        "success": "Vocabulary deck, sets and review history cleared."
+      },
+      "learning": {
+        "title": "Start fresh for testing",
+        "action": "Clear all learning data",
+        "removes": "Removes all practice, lessons, answers, feedback, mistakes, learning insights, vocabulary, Voice summaries and learning history in this data folder.",
+        "keeps": "Keeps your profile details, preferences and selected data folder, so you can start practising again without onboarding.",
+        "success": "All learning records cleared. Your profile and preferences are ready for a fresh start."
+      }
+    },
+    "categories": {
+      "profile": {
+        "title": "Your profile",
+        "contains": "Level, goals, interests and preferred topics.",
+        "purpose": "Calibrates your practice and recommendations."
+      },
+      "preferences": {
+        "title": "Your preferences",
+        "contains": "Teaching style, correction settings, language and model choices.",
+        "purpose": "Remembers how you want to learn."
+      },
+      "practice": {
+        "title": "Practice activities",
+        "contains": "Saved exercises, lesson content and prepared conversation scenarios.",
+        "purpose": "Lets you open and continue prepared practice."
+      },
+      "attempts": {
+        "title": "Attempts and feedback",
+        "contains": "Submitted answers, writing corrections and exercise results.",
+        "purpose": "Shows your feedback and records what you practised."
+      },
+      "vocabulary": {
+        "title": "Vocabulary",
+        "contains": "Suggested and saved words, meanings, examples and review dates.",
+        "purpose": "Builds your vocabulary deck and schedules reviews."
+      },
+      "voice": {
+        "title": "Voice summaries",
+        "contains": "Saved summaries and feedback from listening and speaking practice. No audio.",
+        "purpose": "Brings the learning outcome back from Codex."
+      },
+      "history": {
+        "title": "Learning history",
+        "contains": "Activity dates, titles and saved results.",
+        "purpose": "Lets you revisit past practice and see progress."
+      },
+      "insights": {
+        "title": "Learning insights",
+        "contains": "Recurring mistakes, strengths, weaknesses and edited classifications.",
+        "purpose": "Helps identify useful topics to practise next."
+      },
+      "files": {
+        "title": "Attachments",
+        "contains": "References to local documents, images and imported texts.",
+        "purpose": "Connects source material to learning activities."
+      }
+    },
+    "locations": {
+      "database": {
+        "title": "Learner database",
+        "description": "Profiles, preferences and learning records."
+      },
+      "attachments": {
+        "title": "Attachments",
+        "description": "Local attachment files; their references are stored in the database."
+      },
+      "bootstrap": {
+        "title": "Selected-folder pointer",
+        "description": "The path and generation used to reopen your selected data folder."
+      },
+      "appConfig": {
+        "title": "Application configuration",
+        "description": "Electron configuration and browser runtime storage, outside the portable learner folder."
+      }
+    }
+  },
+  "learningPath": {
+    "title": "Learning path",
+    "intro": "Learn German at your own pace. Follow the suggested order or choose any available unit.",
+    "return": "Back to learning path",
+    "continue": "Continue learning",
+    "finishExplanation": "I’ve studied this explanation",
+    "openSaved": "Open saved activity",
+    "practiseAgain": "New practice",
+    "start": "Start activity",
+    "reopen": "Revisit",
+    "skip": "Skip for now",
+    "evidence": "Saved feedback",
+    "openHistory": "Open history",
+    "preparing": "Preparing your activity…",
+    "loading": "Loading your learning path…",
+    "courseUnavailable": "The A1.1 and A1.2 course is not available yet. You can continue in Practice.",
+    "stageFinished": "You’ve reached the end of this stage. Revisit skipped activities or choose another stage.",
+    "syllabus": "Course outline",
+    "counts": "{{completed}} of {{total}} completed · {{skipped}} skipped",
+    "prerequisites": "Useful earlier learning:",
+    "grammar": "Language foundations",
+    "vocabulary": "Useful vocabulary",
+    "progressMeaning": "Completion shows participation, not a CEFR level. Skipped work is separate. Feedback describes only the activity that was assessed.",
+    "openUnit": "Open unit",
+    "challengeIntro": "Check your German whenever you like. These untimed challenges are optional and never unlock or block lessons.",
+    "challengeScope": "Choose a challenge",
+    "challengeCoverage": "Stage challenges sample different topics and all four skills. Unfinished sections remain unassessed. Repeat with new examples whenever you like.",
+    "moreLevels": "Coming next",
+    "construction": "Under construction",
+    "tabs": {
+      "course": "Course",
+      "progress": "Progress",
+      "challenges": "Check your German"
+    },
+    "steps": {
+      "learn": "Learn with examples",
+      "practice": "Guided practice",
+      "reading": "Read and understand",
+      "writing": "Write a short message",
+      "listening": "Listen in Voice",
+      "speaking": "Speak in Voice"
+    },
+    "status": {
+      "not-started": "Not started",
+      "started": "Started",
+      "completed": "Completed",
+      "skipped": "Skipped"
+    },
+    "outcomes": {
+      "demonstrated": "Demonstrated in this activity",
+      "developing": "Developing",
+      "not-demonstrated": "Not yet demonstrated",
+      "not-evaluated": "Not assessed"
+    },
+    "uncertainty": {
+      "none": "",
+      "some": "Some uncertainty",
+      "substantial": "Limited evidence"
+    },
+    "skillParticipation": "{{count}} linked activities completed",
+    "noEvidence": "Not yet assessed. Completing lessons does not establish this skill.",
+    "historyAndPatterns": "Review history and recurring mistakes",
+    "allHistory": "Show all history"
+  },
+  "aiProgress": {
+    "attempt": "Attempt {{count}}",
+    "elapsed": "Elapsed: {{time}}",
+    "stages": {
+      "preparing": "Preparing your request",
+      "writing-prompt": "Creating your writing prompt",
+      "writing-correction": "Correcting your writing",
+      "contextual-help": "Creating your answer",
+      "exercise-generation": "Creating exercises",
+      "exercise-feedback": "Creating feedback",
+      "checking": "Checking the result",
+      "refining": "Refining the result",
+      "saving": "Saving your result",
+      "cancelling": "Cancelling",
+      "refiningExercises": "Refining exercises"
+    },
+    "messages": {
+      "0": "Longer requests can take a little time.",
+      "1": "The result will appear here when ready.",
+      "2": "You can wait or cancel this request."
+    }
+  },
+  "developmentReset": {
+    "body": "Development update: Previous learning data was reset for the current data format. Your profile and settings were retained; files were not deleted.",
+    "dismiss": "Dismiss"
   }
 }

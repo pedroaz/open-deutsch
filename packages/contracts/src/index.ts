@@ -30,8 +30,6 @@ export {
   learnerIdSchema,
   mistakeIdSchema,
   modelRequestIdSchema,
-  persistentHandoffIdSchema,
-  planIdSchema,
   reviewIdSchema,
   runIdSchema,
   sessionIdSchema,
@@ -53,8 +51,6 @@ export {
   type LearnerId,
   type MistakeId,
   type ModelRequestId,
-  type PersistentHandoffId,
-  type PlanId,
   type ReviewId,
   type RunId,
   type SessionId,
@@ -92,13 +88,11 @@ export {
   learningOperationKindSchema,
   learningOperationKinds,
   placementResultSchema,
-  readingResultSchema,
   type DesktopIpcChannel,
   type DesktopIpcEvent,
   type DesktopIpcRequest,
   type DesktopIpcResponse,
   type PlacementResult,
-  type ReadingResult,
   type OpenDeutschDesktopBridge,
 } from "./ipc.js";
 
@@ -147,8 +141,6 @@ export {
   preparedVoiceActivityReadResultSchema,
   voiceSummarySaveInputSchema,
   voiceSummarySaveResultSchema,
-  weeklyPlanReplacementInputSchema,
-  weeklyPlanReplacementResultSchema,
   type McpIdempotencyKey,
   type McpToolContracts,
   type McpToolInput,
@@ -158,6 +150,7 @@ export {
 
 export {
   appServerCandidateOutputJsonSchemas,
+  appServerOutputJsonSchemaForInput,
   appServerCandidateOutputSchemas,
   appServerCommandNameSchema,
   appServerCommands,
@@ -179,7 +172,6 @@ export {
   exerciseFeedbackCandidateSchema,
   exerciseGenerationCandidateSchema,
   supportedCodexVersionSchema,
-  weeklyPlanCandidateSchema,
   writingCorrectionCandidateSchema,
   writingPromptCandidateSchema,
   type AppServerCandidateOutputMap,
@@ -198,3 +190,39 @@ export {
   type OpenDeutschAppServerAdapter,
   type SupportedCodexVersion,
 } from "./app-server.js";
+
+export {
+  activityTypeSchema,
+  preparedActivitySchema,
+  activityLibraryCursorSchema,
+  activityLibraryFilterSchema,
+  activityLibraryItemSchema,
+} from "./activity.js";
+
+export {
+  practiceSuggestionSchema,
+  practiceSuggestionContextSchema,
+  type PracticeSuggestion,
+} from "./practice-suggestion.js";
+
+export {
+  personalDataGroups,
+  personalDataTables,
+  personalDataTableSchema,
+  personalDataTableSummarySchema,
+  personalDataOverviewSchema,
+  personalDataCleanupRequestSchema,
+  personalDataCleanupResultSchema,
+  personalDataCleanupScopeSchema,
+  type PersonalDataCleanupScope,
+  type PersonalDataTable,
+} from "./personal-data.js";
+
+export {
+  vocabularyLibraryFilterSchema,
+  vocabularyVersionSchema,
+  vocabularyBulkRequestSchema,
+  vocabularySummarySchema,
+  vocabularyCountsSchema,
+} from "./vocabulary-library.js";
+export * from "./learning-path.js";

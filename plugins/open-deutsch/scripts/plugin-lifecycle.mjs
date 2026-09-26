@@ -1,152 +1,63 @@
-import { execFile } from "node:child_process";
-import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { promisify } from "node:util";
+import os from "node:os";
 
-const execFileAsync = promisify(execFile);
-const pluginName = "open-deutsch";
-const marketplaceName = "open-deutsch-local";
-const pluginId = `${pluginName}@${marketplaceName}`;
 const repositoryRoot = path.resolve(import.meta.dirname, "../../..");
-const marketplaceRoot = path.resolve(
-  process.env.OPEN_DEUTSCH_PLUGIN_MARKETPLACE_ROOT ?? repositoryRoot,
-);
-const codexExecutable = process.env.CODEX_EXECUTABLE ?? "codex";
-const sourceManifestPath = path.join(
-  repositoryRoot,
-  "plugins",
-  pluginName,
-  ".codex-plugin",
-  "plugin.json",
-);
-
-async function readSourceManifest() {
-  return JSON.parse(await readFile(sourceManifestPath, "utf8"));
-}
-
-async function runCodex(args) {
-  const result = await execFileAsync(codexExecutable, args, {
-    cwd: repositoryRoot,
-    env: process.env,
-    timeout: 20_000,
-    maxBuffer: 2 * 1024 * 1024,
-  });
-  return result.stdout.trim();
-}
-
-async function runJson(args) {
-  const output = await runCodex([...args, "--json"]);
-  try {
-    return JSON.parse(output);
-  } catch {
-    throw new Error("OD_PLUGIN_CLI_JSON_INVALID");
-  }
-}
-
-function installedEntry(list) {
-  return Array.isArray(list?.installed)
-    ? list.installed.find((entry) => entry?.pluginId === pluginId)
-    : undefined;
-}
-
-function mcpEntry(list) {
-  return Array.isArray(list) ? list.find((entry) => entry?.name === pluginName) : undefined;
-}
-
-export async function readPluginStatus() {
-  const sourceManifest = await readSourceManifest();
-  try {
-    const [plugins, mcp] = await Promise.all([
-      runJson(["plugin", "list"]),
-      runJson(["mcp", "list"]),
-    ]);
-    const installed = installedEntry(plugins);
-    const mcpServer = mcpEntry(mcp);
-    let state = "missing";
-    if (installed !== undefined && mcpServer === undefined) state = "failed-start";
-    else if (installed !== undefined && installed.version !== sourceManifest.version)
-      state = "stale";
-    else if (installed !== undefined) state = "installed";
-    return {
-      schemaVersion: 1,
-      pluginName,
-      marketplaceName,
-      state,
-      source: { marketplaceRoot: "repository-scoped", version: sourceManifest.version },
-      installed:
-        installed === undefined
-          ? null
-          : { version: installed.version, enabled: installed.enabled === true },
-      mcp:
-        mcpServer === undefined
-          ? null
-          : {
-              enabled: mcpServer.enabled === true,
-              transport: mcpServer.transport?.type ?? "unknown",
-            },
-    };
-  } catch (error) {
-    return {
-      schemaVersion: 1,
-      pluginName,
-      marketplaceName,
-      state: "failed-start",
-      source: { marketplaceRoot: "repository-scoped", version: sourceManifest.version },
-      installed: null,
-      mcp: null,
-      error: error instanceof Error ? error.message : "OD_PLUGIN_STATUS_FAILED",
-    };
-  }
-}
-
-async function ensureMarketplace() {
-  return runJson(["plugin", "marketplace", "add", marketplaceRoot]);
-}
-
-export async function installPlugin({ refresh = false } = {}) {
-  const marketplace = await ensureMarketplace();
-  const installed = await runJson(["plugin", "add", pluginId]);
-  const status = await readPluginStatus();
-  if (status.state !== "installed")
-    throw new Error(`OD_PLUGIN_INSTALL_NOT_VERIFIED:${status.state}`);
-  return {
-    schemaVersion: 1,
-    action: refresh ? "refresh" : "install",
-    source: { marketplace: marketplaceName, version: status.source.version },
-    result: {
-      marketplaceAdded: marketplace.alreadyAdded !== true,
-      installedVersion: installed.version,
-    },
-    status,
-  };
-}
-
-export async function uninstallPlugin() {
-  const statusBefore = await readPluginStatus();
-  if (statusBefore.state !== "missing") await runJson(["plugin", "remove", pluginId]);
-  await runCodex(["plugin", "marketplace", "remove", marketplaceName, "--json"]);
-  const status = await readPluginStatus();
-  if (status.state !== "missing" && status.state !== "failed-start") {
-    throw new Error(`OD_PLUGIN_UNINSTALL_NOT_VERIFIED:${status.state}`);
-  }
-  return { schemaVersion: 1, action: "uninstall", status };
-}
-
+const pluginRoot = path.join(repositoryRoot, "plugins/open-deutsch");
 const action = process.argv[2];
 try {
-  const result =
-    action === "status"
-      ? await readPluginStatus()
-      : action === "install"
-        ? await installPlugin()
-        : action === "refresh"
-          ? await installPlugin({ refresh: true })
-          : action === "uninstall"
-            ? await uninstallPlugin()
-            : null;
-  if (result === null) throw new Error("OD_PLUGIN_ACTION_INVALID");
-  process.stdout.write(`${JSON.stringify(result)}\n`);
+  const {
+    ScopedPluginClient,
+    readPluginSourceVersion,
+    stagePluginSource,
+    discoverCodex,
+    resolveCodexExecutable,
+  } = await import("../../../packages/codex-client/dist/index.js").catch(() => {
+    throw new Error("OD_PLUGIN_BUILD_REQUIRED");
+  });
+  if (!["install", "refresh", "status", "uninstall"].includes(action))
+    throw new Error("OD_PLUGIN_ACTION_INVALID");
+  const configuredExecutable =
+    process.env.OPEN_DEUTSCH_CODEX_EXECUTABLE ?? process.env.CODEX_EXECUTABLE;
+  const executable = await resolveCodexExecutable(configuredExecutable, process.env);
+  if (!executable) throw new Error("OD_CODEX_DESKTOP_RUNTIME_MISSING");
+  const client = new ScopedPluginClient({
+    executable,
+    cwd: repositoryRoot,
+    sourceVersion: await readPluginSourceVersion(pluginRoot),
+  });
+  let status;
+  if (action === "status") status = await client.status();
+  else {
+    const discovery = await discoverCodex(
+      configuredExecutable ? { executable: configuredExecutable } : {},
+    );
+    if (discovery.status !== "available") throw new Error("OD_CODEX_VERSION_UNSUPPORTED");
+    if (action === "uninstall") status = await client.uninstall();
+    else {
+      await client.requireLogin();
+      const configRoot = path.join(
+        process.env.XDG_CONFIG_HOME ?? path.join(os.homedir(), ".config"),
+        "Open Deutsch",
+      );
+      const bootstrapFile =
+        process.env.OPEN_DEUTSCH_BOOTSTRAP_FILE ?? path.join(configRoot, "bootstrap.json");
+      const staged = await stagePluginSource({
+        pluginRoot,
+        runtimeRoot: path.join(configRoot, "integration"),
+        bootstrapFile,
+        runtime: { kind: "development", executable: process.execPath, repositoryRoot },
+      });
+      status = await client.install(staged.marketplaceRoot, staged.version);
+    }
+  }
+  process.stdout.write(
+    `${JSON.stringify({ schemaVersion: 1, pluginName: "open-deutsch", marketplaceName: "open-deutsch-local", ...status })}\n`,
+  );
 } catch (error) {
-  process.stderr.write(`${error instanceof Error ? error.message : "OD_PLUGIN_ACTION_FAILED"}\n`);
+  const code =
+    error instanceof Error && /^OD_[A-Z0-9_]+$/u.test(error.message)
+      ? error.message
+      : "OD_PLUGIN_ACTION_FAILED";
+  process.stderr.write(`${code}\n`);
   process.exitCode = 1;
 }

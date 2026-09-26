@@ -8,7 +8,6 @@ import styles from "./Startup.module.css";
 import { ActionGroup } from "./components/layout/index.js";
 import {
   Button,
-  Card,
   CheckboxContainer,
   DiagnosticCode,
   Feedback,
@@ -87,7 +86,6 @@ export class ViewBoundary extends Component<BoundaryProps, BoundaryState> {
           <strong>{this.props.title}</strong>
           <p>{this.props.body}</p>
           <Button
-
             onPress={() => {
               this.setState({ failed: false });
             }}
@@ -182,16 +180,16 @@ export function FolderOnboarding({ onReady }: { onReady: () => Promise<void> }) 
               </ul>
             )}
             <div className={styles.privacyGrid}>
-              <Card as="article">
+              <section>
                 <ShieldCheck aria-hidden="true" />
                 <h2>{t("folder.privacyTitle")}</h2>
                 <p>{t("folder.privacyBody")}</p>
-              </Card>
-              <Card as="article">
+              </section>
+              <section>
                 <Sparkles aria-hidden="true" />
                 <h2>{t("folder.cloudTitle")}</h2>
                 <p>{t("folder.cloudBody")}</p>
-              </Card>
+              </section>
             </div>
             <CheckboxContainer>
               <input
@@ -213,7 +211,7 @@ export function FolderOnboarding({ onReady }: { onReady: () => Promise<void> }) 
                 {t("actions.confirm")}
               </Button>
               <Button
-
+                variant="secondary"
                 isDisabled={busy}
                 onPress={() => {
                   setSelection(undefined);
@@ -259,9 +257,7 @@ export function StartupError(props: {
           <Button variant="primary" onPress={() => void props.retry()}>
             {t("actions.retry")}
           </Button>
-          <Button onPress={props.recover}>
-            {t("actions.chooseAnother")}
-          </Button>
+          <Button onPress={props.recover}>{t("actions.chooseAnother")}</Button>
         </ActionGroup>
       </section>
     </StartupFrame>
@@ -286,4 +282,3 @@ export function CodexBanner({ readiness }: { readiness: Readiness }) {
     </Feedback>
   );
 }
-

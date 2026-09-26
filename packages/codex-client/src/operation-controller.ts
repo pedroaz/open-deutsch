@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 
+import { AppServerOutputValidationError } from "./output-validation.js";
+
 export type OperationStage =
   | "queued"
   | "running"
@@ -19,7 +21,7 @@ export type OperationOutcome<Output> =
   | Readonly<{ status: "succeeded"; output: Output }>
   | Readonly<{ status: "cancelled" }>
   | Readonly<{ status: "rate-limited" }>
-  | Readonly<{ status: "failed"; errorCode: string }>;
+  | Readonly<{ status: "failed"; errorCode: string; errorKind?: "model-output" }>;
 
 export type ExecuteContext = Readonly<{
   signal: AbortSignal;
@@ -74,6 +76,8 @@ export class OperationController<Input, Output> {
   readonly #byOperation = new Map<string, RecordState<Input, Output>>();
   readonly #listeners = new Set<(event: OperationEvent) => void>();
 
+  constructor(readonly options: { onForgot?: (operationId: string) => void } = {}) {}
+
   start(options: {
     submissionId: string;
     operationId: string;
@@ -93,6 +97,10 @@ export class OperationController<Input, Output> {
         operationId: previous.operationId,
         completion: previous.completion,
       });
+    }
+    for (const retained of this.#bySubmission.values()) {
+      if (this.#bySubmission.size < maximumRetainedSubmissions) break;
+      this.forget(retained.operationId);
     }
     if (this.#bySubmission.size >= maximumRetainedSubmissions) {
       throw new Error("OD_OPERATION_SUBMISSION_LIMIT");
@@ -133,7 +141,13 @@ export class OperationController<Input, Output> {
         if (error instanceof OperationRateLimitedError) {
           return this.#finish(state, { status: "rate-limited" });
         }
-        return this.#finish(state, { status: "failed", errorCode: safeFailureCode(error) });
+        return this.#finish(state, {
+          status: "failed",
+          errorCode: safeFailureCode(error),
+          ...(error instanceof AppServerOutputValidationError
+            ? { errorKind: "model-output" as const }
+            : {}),
+        });
       }
     });
     this.#bySubmission.set(options.submissionId, state);
@@ -151,6 +165,16 @@ export class OperationController<Input, Output> {
     if (!state || terminalStages.has(state.stage)) return false;
     if (state.stage !== "cancelling") this.#transition(state, "cancelling");
     state.controller.abort();
+    return true;
+  }
+
+  forget(operationId: string): boolean {
+    const state = this.#byOperation.get(operationId);
+    if (!state || !terminalStages.has(state.stage)) return false;
+    state.input = undefined;
+    this.#byOperation.delete(operationId);
+    this.#bySubmission.delete(state.submissionId);
+    this.options.onForgot?.(operationId);
     return true;
   }
 

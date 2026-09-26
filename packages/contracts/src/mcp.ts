@@ -1,3 +1,4 @@
+import { courseReferenceSchema, courseTeachingContextSchema, courseEvidenceSchema } from "./learning-path.js";
 import {
   activityIdSchema,
   attemptIdSchema,
@@ -7,7 +8,6 @@ import {
   historyEntryIdSchema,
   learnerIdSchema,
   mistakeIdSchema,
-  planIdSchema,
   utcInstantSchema,
   vocabularyIdSchema,
   voiceSessionIdSchema,
@@ -35,7 +35,6 @@ export const mcpToolNames = [
   "open_deutsch_create_activity",
   "open_deutsch_save_attempt_feedback",
   "open_deutsch_save_listening_result",
-  "open_deutsch_replace_weekly_plan",
   "open_deutsch_save_voice_summary",
 ] as const;
 export const mcpToolNameSchema = z.enum(mcpToolNames);
@@ -62,20 +61,17 @@ const learnerContextDataSchema = z.strictObject({
   learnerId: learnerIdSchema,
   approximateLevel: z.enum(["A1", "A2", "B1", "B2"]),
   everydayLifeGoal: text(500),
-  availableMinutesPerWeek: z.int().min(15).max(2_100),
   explanationLanguage: z.enum(["en", "de"]),
   teachingProfile: z.enum(["conversation-partner", "strict-corrector"]),
 });
 
 export const practiceContextReadInputSchema = strictBoundaryObject({
   ...generationInput,
-  focus: z.enum(["recommendation", "mistakes", "vocabulary", "weekly-plan", "all"]),
+  focus: z.enum(["recommendation", "mistakes", "vocabulary", "learning-path", "all"]),
   maximumItemsPerSection: z.int().min(1).max(20).default(5),
 });
 const practiceContextDataSchema = z.strictObject({
-  currentPlan: z
-    .strictObject({ planId: planIdSchema, summary: text(500), goalCount: count })
-    .nullable(),
+  learningPath: z.strictObject({ reference: courseReferenceSchema, title: text(300), objective: text(1000) }).nullable(),
   mistakes: z
     .array(
       z.strictObject({
@@ -121,10 +117,16 @@ const preparedVoiceActivityDataSchema = z.strictObject({
   title: text(160),
   preparedAt: utcInstantSchema,
   context: voiceActivityContextSchema,
+  learningPath: courseReferenceSchema.optional(),
+  courseTeaching: courseTeachingContextSchema.optional(),
+  teachingDefaults: z.strictObject({
+    explanationLanguage: z.enum(["en", "de"]),
+    teachingProfile: z.enum(["conversation-partner", "strict-corrector"]),
+  }),
 });
 const curriculumCoverageDataSchema = z.strictObject({
   matchingTopicCount: count,
-  foundationReadyCount: count,
+  topicsWithLessonsCount: count,
   gaps: z
     .array(
       z.strictObject({
@@ -145,29 +147,35 @@ const curriculumCoverageDataSchema = z.strictObject({
     .nullable(),
 });
 
+const activityCreateFields = {
+  title: text(160),
+  instructions: text(2_000),
+  curriculumTopicIds: z.array(curriculumTopicIdSchema).max(12),
+  naturalRequest: text(1_000).optional(),
+};
 export const activityCreateInputSchema = strictBoundaryObject({
   ...writeInput,
-  activity: z.strictObject({
-    kind: z.enum([
-      "writing",
-      "grammar",
-      "vocabulary",
-      "reading",
-      "listening",
-      "speaking",
-      "placement",
-    ]),
-    title: text(160),
-    instructions: text(2_000),
-    destinationSurface: z.enum(["writing", "practice", "vocabulary"]),
-    curriculumTopicIds: z.array(curriculumTopicIdSchema).max(12),
-    naturalRequest: text(1_000).optional(),
-    voiceContext: voiceActivityContextSchema.optional(),
-  }),
+  activity: z.discriminatedUnion("kind", [
+    z.strictObject({
+      ...activityCreateFields,
+      kind: z.enum(["writing", "grammar", "vocabulary", "reading", "placement"]),
+      voiceContext: z.never().optional(),
+    }),
+    z.strictObject({
+      ...activityCreateFields,
+      kind: z.literal("listening"),
+      voiceContext: voiceActivityContextSchema.extend({ kind: z.literal("listening") }),
+    }),
+    z.strictObject({
+      ...activityCreateFields,
+      kind: z.literal("speaking"),
+      voiceContext: voiceActivityContextSchema.extend({ kind: z.literal("speaking") }),
+    }),
+  ]),
 });
 const activityCreateDataSchema = z.strictObject({
   activityId: activityIdSchema,
-  destinationSurface: z.enum(["writing", "practice", "vocabulary"]),
+  destinationSurface: z.literal("practice"),
   persistence: z.literal("until-completed-or-deleted"),
   replayed: z.boolean(),
 });
@@ -189,37 +197,9 @@ const attemptFeedbackDataSchema = z.strictObject({
   replayed: z.boolean(),
 });
 
-export const weeklyPlanReplacementInputSchema = strictBoundaryObject({
-  ...writeInput,
-  expectedCurrentPlanId: planIdSchema.nullable(),
-  preview: z.strictObject({
-    previewId: correlationIdSchema,
-    confirmation: z.literal("confirmed"),
-    summary: text(1_000),
-  }),
-  plan: z.strictObject({
-    weekStartsOn: z.iso.date(),
-    naturalRequest: text(1_000).optional(),
-    goals: z
-      .array(
-        z.strictObject({
-          title: text(160),
-          rationale: text(500),
-          suggestions: z.array(text(500)).min(1).max(8),
-        }),
-      )
-      .min(1)
-      .max(12),
-  }),
-});
-const weeklyPlanReplacementDataSchema = z.strictObject({
-  planId: planIdSchema,
-  replacedPlanId: planIdSchema.nullable(),
-  replayed: z.boolean(),
-});
-
 export const voiceSummarySaveInputSchema = strictBoundaryObject({
   ...writeInput,
+  activity: z.strictObject({ activityId: activityIdSchema, outcome: z.enum(["completed", "partially-completed", "abandoned"]), objectiveResults: z.array(courseEvidenceSchema).min(1).max(4) }).optional(),
   summary: z.strictObject({
     scenario: text(300),
     topic: text(300),
@@ -266,7 +246,6 @@ export const preparedVoiceActivityReadResultSchema = toolResult(preparedVoiceAct
 export const activityCreateResultSchema = toolResult(activityCreateDataSchema);
 export const attemptFeedbackSaveResultSchema = toolResult(attemptFeedbackDataSchema);
 export const listeningResultSaveResultSchema = toolResult(listeningResultDataSchema);
-export const weeklyPlanReplacementResultSchema = toolResult(weeklyPlanReplacementDataSchema);
 export const voiceSummarySaveResultSchema = toolResult(voiceSummaryDataSchema);
 
 const readAnnotations = {
@@ -295,7 +274,7 @@ export const mcpToolContracts = {
   open_deutsch_read_practice_context: {
     title: "Read practice context",
     description:
-      "Read a bounded practice view containing the current plan, mistakes, due vocabulary, or recommendation.",
+      "Read a bounded practice view containing the learning path, mistakes, due vocabulary, or recommendation.",
     annotations: readAnnotations,
     confirmationPolicy: "none",
     inputSchema: practiceContextReadInputSchema,
@@ -313,7 +292,7 @@ export const mcpToolContracts = {
   open_deutsch_read_prepared_voice_activity: {
     title: "Read a prepared Voice activity",
     description:
-      "Read one prepared Open Deutsch speaking or listening activity by exact id or select the latest matching activity.",
+      "Read one prepared Voice activity and its teaching defaults. Use the exact id when supplied; select latest only when the learner requests it. No prior learner or practice context read is needed.",
     annotations: readAnnotations,
     confirmationPolicy: "none",
     inputSchema: preparedVoiceActivityReadInputSchema,
@@ -322,7 +301,7 @@ export const mcpToolContracts = {
   open_deutsch_create_activity: {
     title: "Create a desktop activity",
     description:
-      "Create one validated persistent learning activity that appears on the Open Deutsch dashboard.",
+      "Create one validated persistent learning activity in the Open Deutsch Practice library. Listening and speaking require matching structured voiceContext.",
     annotations: additiveWriteAnnotations,
     confirmationPolicy: "none",
     inputSchema: activityCreateInputSchema,
@@ -344,20 +323,6 @@ export const mcpToolContracts = {
     confirmationPolicy: "none",
     inputSchema: listeningResultSaveInputSchema,
     resultSchema: listeningResultSaveResultSchema,
-  },
-  open_deutsch_replace_weekly_plan: {
-    title: "Replace the weekly plan",
-    description:
-      "Replace the advisory weekly plan only after the learner confirms an exact preview.",
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: true,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
-    confirmationPolicy: "preview-and-explicit-confirmation",
-    inputSchema: weeklyPlanReplacementInputSchema,
-    resultSchema: weeklyPlanReplacementResultSchema,
   },
   open_deutsch_save_voice_summary: {
     title: "Save a Voice summary",

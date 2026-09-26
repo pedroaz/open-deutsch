@@ -2,7 +2,15 @@ import { useCallback, useEffect, useState } from "react";
 import type { DesktopIpcResponse, OpenDeutschError } from "@open-deutsch/contracts";
 import { Languages, UserRound } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { DiagnosticCode, Button, CheckboxContainer, Feedback, FieldGroup, OptionCard, Muted } from "./components/ui/index.js";
+import {
+  DiagnosticCode,
+  Button,
+  InfoHint,
+  Feedback,
+  FieldGroup,
+  OptionCard,
+  Muted,
+} from "./components/ui/index.js";
 import { ActionGroup } from "./components/layout/index.js";
 
 import styles from "./ProfileOnboarding.module.css";
@@ -51,12 +59,10 @@ export function ProfileOnboarding({
   const [saveError, setSaveError] = useState<OpenDeutschError>();
   const [goal, setGoal] = useState("");
   const [level, setLevel] = useState<"a1" | "a2" | "b1" | "b2">("a2");
-  const [minutes, setMinutes] = useState("90");
   const [teachingProfile, setTeachingProfile] = useState<
     "conversation-partner" | "strict-corrector"
   >("conversation-partner");
   const [explanationLanguage, setExplanationLanguage] = useState<"en" | "de">("en");
-  const [skipPlacement, setSkipPlacement] = useState(true);
   const [busy, setBusy] = useState(false);
 
   const readAccount = useCallback(async () => {
@@ -141,13 +147,12 @@ export function ProfileOnboarding({
           aria-labelledby="profile-onboarding-title"
           onSubmit={(event) => {
             event.preventDefault();
-            if (goal.trim().length === 0 || !skipPlacement) return;
+            if (goal.trim().length === 0) return;
             setBusy(true);
             setSaveError(undefined);
             void invokeDesktop("learner-profile/complete-onboarding", {
               approximateLevel: level,
               everydayGermanyGoal: goal.trim(),
-              availableStudyMinutesPerWeek: Number(minutes),
               defaultTeachingProfileId: teachingProfile,
               explanationLanguage,
               placement: { status: "skipped" },
@@ -165,7 +170,6 @@ export function ProfileOnboarding({
         >
           <p className={styles.eyebrow}>{t("onboarding.step")}</p>
           <h1 id="profile-onboarding-title">{t("onboarding.title")}</h1>
-          <Muted as="p">{t("onboarding.intro")}</Muted>
 
           <fieldset className={styles.onboardingSection}>
             <legend>{t("onboarding.accountTitle")}</legend>
@@ -182,18 +186,13 @@ export function ProfileOnboarding({
                   <UserRound aria-hidden="true" /> {t("onboarding.connectBrowser")}
                 </Button>
                 <Button
-
                   isDisabled={busy || Boolean(loginId)}
                   onPress={() => void connect("device-code")}
                 >
                   {t("onboarding.connectDevice")}
                 </Button>
                 {loginId && (
-                  <Button
-
-                    isDisabled={busy}
-                    onPress={() => void cancelLogin()}
-                  >
+                  <Button variant="secondary" isDisabled={busy} onPress={() => void cancelLogin()}>
                     {t("onboarding.cancelLogin")}
                   </Button>
                 )}
@@ -233,32 +232,8 @@ export function ProfileOnboarding({
                 />
                 <small>{t("onboarding.goalHint")}</small>
               </FieldGroup>
-              <FieldGroup>
-                <span>{t("onboarding.time")}</span>
-                <select
-                  value={minutes}
-                  onChange={(event) => {
-                    setMinutes(event.currentTarget.value);
-                  }}
-                >
-                  {[30, 60, 90, 120, 180].map((value) => (
-                    <option key={value} value={value}>
-                      {t("onboarding.minutes", { count: value })}
-                    </option>
-                  ))}
-                </select>
-              </FieldGroup>
-              <CheckboxContainer>
-                <input
-                  checked={skipPlacement}
-                  onChange={(event) => {
-                    setSkipPlacement(event.currentTarget.checked);
-                  }}
-                  type="checkbox"
-                />
-                <span>{t("onboarding.skipPlacement")}</span>
-              </CheckboxContainer>
-              {!skipPlacement && <Muted as="p">{t("onboarding.placementLater")}</Muted>}
+
+              <Muted as="p">{t("learningPath.intro")}</Muted>
             </fieldset>
 
             <fieldset className={styles.onboardingSection}>
@@ -300,17 +275,15 @@ export function ProfileOnboarding({
                   </OptionCard>
                 ))}
               </div>
-              <Muted as="p">{t("onboarding.localeIndependent")}</Muted>
+              <InfoHint label={t("onboarding.explanationLanguage")}>
+                {t("onboarding.localeIndependent")}
+              </InfoHint>
             </fieldset>
           </div>
 
           <ActionGroup>
             {saveError && <AccountError error={saveError} />}
-            <Button
-              variant="primary"
-              isDisabled={busy || goal.trim().length === 0 || !skipPlacement}
-              type="submit"
-            >
+            <Button variant="primary" isDisabled={busy || goal.trim().length === 0} type="submit">
               {t("onboarding.finish")}
             </Button>
           </ActionGroup>

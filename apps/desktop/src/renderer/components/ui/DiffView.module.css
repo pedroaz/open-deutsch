@@ -21,3 +21,13 @@
     grid-template-columns: 1fr;
   }
 }
+
+.grid > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@container workspace (max-width: 42rem) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

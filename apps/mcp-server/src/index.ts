@@ -7,13 +7,13 @@ import { McpServer, type CallToolResult } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import {
   activityIdSchema,
+  correlationIdSchema,
   activityCreateInputSchema,
   activityCreateResultSchema,
   attemptFeedbackSaveInputSchema,
   attemptFeedbackSaveResultSchema,
   listeningResultSaveInputSchema,
   listeningResultSaveResultSchema,
-  calendarDateSchema,
   curriculumCoverageReadInputSchema,
   curriculumCoverageReadResultSchema,
   errorDefinitions,
@@ -27,20 +27,19 @@ import {
   preparedVoiceActivityReadResultSchema,
   voiceSummarySaveInputSchema,
   voiceSummarySaveResultSchema,
-  weeklyPlanReplacementInputSchema,
-  weeklyPlanReplacementResultSchema,
   type ErrorKind,
   utcInstantSchema,
 } from "@open-deutsch/contracts";
 import {
-  aiProvenanceSchema,
+  resolveCourseReference,
+  nextCourseStep,
   curriculumManifestSchema,
+  curriculumTopicFrontMatterSchema,
   selectNextCurriculumGap,
-  selectWeeklyPlanRecommendation,
   voiceSummarySchema,
-  weeklyPlanSchema,
 } from "@open-deutsch/domain";
 import {
+  readLearningCourse,
   assertCurrentDataRootLease,
   OpenDeutschRepository,
   appendOperationalLog,
@@ -53,7 +52,7 @@ import { parse as parseYaml } from "yaml";
 
 export const productionServerIdentity = Object.freeze({
   name: "open-deutsch",
-  version: "0.1.0",
+  version: "0.2.0",
 });
 const thisFile = fileURLToPath(import.meta.url);
 
@@ -106,7 +105,7 @@ function failureResult(kind: ErrorKind, summary: string): CallToolResult {
   };
 }
 
-async function readManifest(): Promise<ReturnType<typeof curriculumManifestSchema.parse>> {
+async function readCurriculumInventory() {
   const configured = process.env["OPEN_DEUTSCH_CURRICULUM_ROOT"];
   const root = configured
     ? path.resolve(configured)
@@ -114,7 +113,27 @@ async function readManifest(): Promise<ReturnType<typeof curriculumManifestSchem
   const parsed: unknown = parseYaml(
     await readFile(path.join(root, "manifest.yaml"), "utf8"),
   ) as unknown;
-  return curriculumManifestSchema.parse(parsed);
+  const manifest = curriculumManifestSchema.parse(parsed);
+  const course = await readLearningCourse(root);
+  const entries = Object.values(manifest.bands).flat();
+  const topicIds = new Set(entries.map((entry) => entry.topicId));
+  const availableTopicIds = new Set<string>();
+  for (const unit of course?.units ?? []) {
+    for (const id of unit.curriculumTopicIds) {
+      if (!topicIds.has(id)) throw new Error("OD_CURRICULUM_TOPIC_INVALID");
+      availableTopicIds.add(id);
+    }
+  }
+  for (const entry of entries) {
+    const source = await readFile(path.join(root, entry.path), "utf8");
+    const frontMatter = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/u.exec(source)?.[1];
+    if (!frontMatter) throw new Error("OD_CURRICULUM_TOPIC_INVALID");
+    const topic = curriculumTopicFrontMatterSchema.parse(parseYaml(frontMatter));
+    if (topic.topicId !== entry.topicId || topic.domain !== entry.domain)
+      throw new Error("OD_CURRICULUM_TOPIC_INVALID");
+    if (topic.lessonFoundation) availableTopicIds.add(topic.topicId);
+  }
+  return { manifest, availableTopicIds };
 }
 
 function logCode(event: string): string {
@@ -145,7 +164,7 @@ async function writeLog(
     runId:
       process.env["OPEN_DEUTSCH_RUN_ID"] ?? `mcp_${runtime.sessionId.slice("session_".length)}`,
     sessionId: runtime.sessionId,
-    ...(fields.correlationId === undefined ? {} : { correlationId: fields.correlationId }),
+    ...(fields.correlationId === undefined ? {} : { correlationId: correlationIdSchema.parse(fields.correlationId) }),
     ...(fields.action === undefined && fields.tool === undefined
       ? {}
       : { action: fields.action ?? fields.tool }),
@@ -182,6 +201,7 @@ async function withToolLog<T extends CallToolResult>(
   const correlationId = `correlation_${randomUUID().replaceAll("-", "")}`;
   const startedAt = Date.now();
   await writeLog(runtime, "tool-started", undefined, {
+    severity: "debug",
     correlationId,
     phase: "started",
     tool,
@@ -295,35 +315,7 @@ function activityType(
   return kind;
 }
 
-function makeCodexPlan(input: ReturnType<typeof weeklyPlanReplacementInputSchema.parse>) {
-  const generatedAt = now();
-  return weeklyPlanSchema.parse({
-    schemaVersion: 1,
-    planId: deterministicId("plan", input.idempotencyKey),
-    role: "advisory",
-    weekStartsOn: calendarDateSchema.parse(input.plan.weekStartsOn),
-    requestedFrom: "codex",
-    aiProvenance: aiProvenanceSchema.parse({
-      source: "ai",
-      producer: "codex-host",
-      modelRequestId: deterministicId("model-request", input.idempotencyKey),
-      generatedAt,
-      modelSelection: { availability: "not-reported" },
-    }),
-    goals: input.plan.goals.map((goal) => ({
-      title: goal.title,
-      outcome: goal.rationale,
-      suggestedActivities: goal.suggestions.map((suggestion) => ({
-        kind: "custom-lesson" as const,
-        title: suggestion.slice(0, 160),
-        rationale: goal.rationale,
-        naturalRequest: suggestion,
-        estimatedMinutes: 15,
-        context: { curriculumTopicIds: [], mistakeIds: [], vocabularyIds: [] },
-      })),
-    })),
-  });
-}
+
 
 export function createProductionServer(runtime: Runtime) {
   let writeQueue = Promise.resolve();
@@ -360,7 +352,6 @@ export function createProductionServer(runtime: Runtime) {
             approximateLevel: settings.profile.levelEstimate.currentLevel.toUpperCase() as
               "A1" | "A2" | "B1" | "B2",
             everydayLifeGoal: settings.profile.everydayGermanyGoal,
-            availableMinutesPerWeek: settings.profile.availableStudyMinutesPerWeek,
             explanationLanguage: settings.profile.teachingLanguage,
             teachingProfile:
               settings.profile.defaultTeachingProfileId === "strict-corrector"
@@ -395,28 +386,15 @@ export function createProductionServer(runtime: Runtime) {
         const input = practiceContextReadInputSchema.parse(raw);
         return await withInputFreshRoot(runtime, input.dataRootGeneration, async () => {
           const snapshot = await runtime.repository.readDashboardSnapshot(now().slice(0, 10));
-          const recommendation = snapshot.weeklyPlan
-            ? selectWeeklyPlanRecommendation({
-                plan: snapshot.weeklyPlan,
-                dueVocabularyIds: snapshot.dueVocabulary.map(({ vocabularyId }) => vocabularyId),
-                relevantMistakeIds: snapshot.recurringMistakes.map(({ mistakeId }) => mistakeId),
-              })
-            : null;
+          const course = await readLearningCourse(process.env["OPEN_DEUTSCH_CURRICULUM_ROOT"] ?? path.resolve(path.dirname(thisFile), "../../../content/curriculum"));
+          const pathState = await runtime.repository.readLearningPathState();
+          const next = course ? nextCourseStep(course, pathState) : null;
+          const nextUnit = course?.units.find((u) => u.id === next?.unitId);
           const maximum = input.maximumItemsPerSection;
-          const include = (section: "recommendation" | "mistakes" | "vocabulary" | "weekly-plan") =>
+          const include = (section: "recommendation" | "mistakes" | "vocabulary" | "learning-path") =>
             input.focus === "all" || input.focus === section;
           const data = {
-            currentPlan:
-              include("weekly-plan") && snapshot.weeklyPlan
-                ? {
-                    planId: snapshot.weeklyPlan.planId,
-                    summary: snapshot.weeklyPlan.goals
-                      .map(({ title }) => title)
-                      .join("; ")
-                      .slice(0, 500),
-                    goalCount: snapshot.weeklyPlan.goals.length,
-                  }
-                : null,
+            learningPath: (include("learning-path") || include("recommendation")) && next && nextUnit ? { reference: next, title: nextUnit.title.en, objective: (nextUnit.objectives.find((o) => o.skill === next.step)?.description.en ?? nextUnit.grammar.en).slice(0,1000) } : null,
             mistakes: include("mistakes")
               ? snapshot.recurringMistakes.slice(0, maximum).map((mistake) => ({
                   mistakeId: mistake.mistakeId,
@@ -430,13 +408,7 @@ export function createProductionServer(runtime: Runtime) {
                   .slice(0, maximum)
                   .map(({ vocabularyId, lemma, dueOn }) => ({ vocabularyId, lemma, dueOn }))
               : [],
-            recommendation:
-              include("recommendation") && recommendation
-                ? {
-                    primary: recommendation.primary.title,
-                    alternatives: recommendation.alternatives.map(({ title }) => title),
-                  }
-                : null,
+            recommendation: include("recommendation") && nextUnit ? { primary: `Continue: ${nextUnit.title.en}`.slice(0,500), alternatives: snapshot.dueVocabulary.length ? ["Review due vocabulary"] : [] } : null,
           };
           return successResult("Practice context is ready.", data);
         });
@@ -463,7 +435,7 @@ export function createProductionServer(runtime: Runtime) {
     async (raw) => {
       try {
         const input = curriculumCoverageReadInputSchema.parse(raw);
-        const manifest = await withInputFreshRoot(runtime, input.dataRootGeneration, readManifest);
+        const { manifest, availableTopicIds } = await withInputFreshRoot(runtime, input.dataRootGeneration, readCurriculumInventory);
         const entries = (["a1", "a2", "b1", "b2"] as const)
           .flatMap((band) =>
             input.band && input.band.toLowerCase() !== band
@@ -473,19 +445,19 @@ export function createProductionServer(runtime: Runtime) {
           .filter((entry) => !input.domain || entry.domain === input.domain);
         return successResult("Curriculum coverage is ready.", {
           matchingTopicCount: entries.length,
-          foundationReadyCount: entries.filter(({ status }) => status === "foundation-ready")
+          topicsWithLessonsCount: entries.filter(({ topicId }) => availableTopicIds.has(topicId))
             .length,
           gaps: entries
-            .filter(({ status }) => status !== "foundation-ready")
+            .filter(({ topicId }) => !availableTopicIds.has(topicId))
             .slice(0, 100)
             .map((entry) => ({
               topicId: entry.topicId,
               band: entry.band.toUpperCase() as "A1" | "A2" | "B1" | "B2",
               domain: entry.domain,
-              summary: `Topic foundation is ${entry.status.replaceAll("-", " ")}.`,
+              summary: "No lesson content is available for this topic.",
             })),
           nextGap: (() => {
-            const gap = selectNextCurriculumGap(manifest, {
+            const gap = selectNextCurriculumGap(manifest, availableTopicIds, {
               ...(input.band === undefined
                 ? {}
                 : { band: input.band.toLowerCase() as "a1" | "a2" | "b1" | "b2" }),
@@ -529,11 +501,22 @@ export function createProductionServer(runtime: Runtime) {
           if (!activity?.context.voiceContext) {
             return failureResult("not-found", "No matching prepared Voice activity was found.");
           }
+          const settings = await runtime.repository.readCurrentLearnerSettings();
+          if (!settings) return failureResult("not-found", "No learner profile is configured yet.");
           return successResult("Prepared Voice activity is ready.", {
             activityId: activity.activityId,
             title: activity.title,
             preparedAt: activity.preparedAt,
             context: activity.context.voiceContext,
+            ...(activity.context.learningPath ? { learningPath: activity.context.learningPath } : {}),
+            ...(activity.context.courseTeaching ? { courseTeaching: activity.context.courseTeaching } : {}),
+            teachingDefaults: {
+              explanationLanguage: settings.profile.teachingLanguage,
+              teachingProfile:
+                settings.profile.defaultTeachingProfileId === "strict-corrector"
+                  ? "strict-corrector"
+                  : "conversation-partner",
+            },
           });
         });
       } catch (error) {
@@ -590,10 +573,10 @@ export function createProductionServer(runtime: Runtime) {
             return successResult(
               result.replayed
                 ? "Activity already existed."
-                : "Activity created on the Open Deutsch dashboard.",
+                : "Activity created in the Open Deutsch Practice library.",
               {
                 activityId,
-                destinationSurface: input.activity.destinationSurface,
+                destinationSurface: "practice" as const,
                 persistence: "until-completed-or-deleted" as const,
                 replayed: result.replayed,
               },
@@ -617,55 +600,6 @@ export function createProductionServer(runtime: Runtime) {
   registerLoggedTool(
     server,
     runtime,
-    "open_deutsch_replace_weekly_plan",
-    {
-      ...mcpToolContracts.open_deutsch_replace_weekly_plan,
-      inputSchema: weeklyPlanReplacementInputSchema,
-      outputSchema: weeklyPlanReplacementResultSchema,
-    },
-    async (raw) =>
-      serializeWrite(async () => {
-        try {
-          const input = weeklyPlanReplacementInputSchema.parse(raw);
-          return await withInputFreshRoot(runtime, input.dataRootGeneration, async () => {
-            const snapshot = await runtime.repository.readDashboardSnapshot(now().slice(0, 10));
-            const currentId = snapshot.weeklyPlan?.planId ?? null;
-            const requestedPlanId = deterministicId("plan", input.idempotencyKey);
-            if (currentId !== input.expectedCurrentPlanId && currentId !== requestedPlanId)
-              return failureResult("conflict", "The weekly plan changed before confirmation.");
-            const plan = makeCodexPlan(input);
-            const result = await runtime.repository.replaceWeeklyPlan(
-              plan,
-              now(),
-              input.idempotencyKey,
-            );
-            return successResult(
-              result.replayed
-                ? "Weekly plan replacement already existed."
-                : "Advisory weekly plan replaced.",
-              {
-                planId: plan.planId,
-                replacedPlanId: currentId,
-                replayed: result.replayed,
-              },
-            );
-          });
-        } catch (error) {
-          return failureResult(
-            error instanceof Error && error.message.includes("STALE")
-              ? "stale-data-root"
-              : error instanceof Error && error.message.includes("CONFLICT")
-                ? "conflict"
-                : "validation",
-            "The weekly plan could not be replaced.",
-          );
-        }
-      }),
-  );
-
-  registerLoggedTool(
-    server,
-    runtime,
     "open_deutsch_save_voice_summary",
     {
       ...mcpToolContracts.open_deutsch_save_voice_summary,
@@ -680,14 +614,23 @@ export function createProductionServer(runtime: Runtime) {
             const settings = await runtime.repository.readCurrentLearnerSettings();
             if (!settings)
               return failureResult("not-found", "No learner profile is configured yet.");
+            const linked = input.activity ? await runtime.repository.readPreparedActivity(input.activity.activityId) : undefined;
+            if (input.activity) {
+              if (!linked?.context.learningPath || !linked.context.courseTeaching?.objective) return failureResult("validation", "No matching course activity exists.");
+              const course = await readLearningCourse(process.env["OPEN_DEUTSCH_CURRICULUM_ROOT"] ?? path.resolve(path.dirname(thisFile), "../../../content/curriculum"));
+              resolveCourseReference(course, linked.context.learningPath);
+              const objective = linked.context.courseTeaching.objective;
+              if (input.activity.objectiveResults.length !== 1 || input.activity.objectiveResults.some((r) => r.objectiveId !== objective.id || r.skill !== objective.skill)) return failureResult("validation", "The result does not match the prepared objective.");
+            }
             const summary = voiceSummarySchema.parse({
+              ...(input.activity ? { activity: input.activity } : {}),
               schemaVersion: 1,
               voiceSessionId: deterministicId("voice-session", input.idempotencyKey),
               summarizedAt: input.summary.occurredAt,
               scenario: {
                 title: input.summary.scenario,
                 topic: input.summary.topic,
-                targetLevel: settings.profile.levelEstimate.currentLevel,
+                targetLevel: linked?.context.voiceContext?.targetLevel ?? settings.profile.levelEstimate.currentLevel,
                 speakingGoals: [input.summary.topic],
               },
               duration:
@@ -699,7 +642,7 @@ export function createProductionServer(runtime: Runtime) {
                 observation,
                 evidenceSummary: observation,
                 feedback: observation,
-                uncertainty: { level: "none" as const },
+                uncertainty: { level: "some" as const, explanation: "A saved session summary provides bounded observational evidence." },
               })),
               vocabulary: input.summary.vocabularyNotes.map((note) => ({
                 lemma: note.slice(0, 160),
@@ -710,7 +653,7 @@ export function createProductionServer(runtime: Runtime) {
                 summary: input.summary.feedback,
                 strengths: [],
                 priorities: input.summary.nextSteps.slice(0, 12),
-                uncertainty: { level: "none" as const },
+                uncertainty: { level: "some" as const, explanation: "A saved session summary provides bounded observational evidence." },
               },
               nextSteps: input.summary.nextSteps.map((nextStep) => ({
                 title: nextStep.slice(0, 160),

@@ -1,4 +1,19 @@
-import { activityIdSchema } from "@open-deutsch/contracts";
+import { activityIdSchema, dataRootGenerationSchema } from "@open-deutsch/contracts";
+import { openDeutschMarketplaceName, openDeutschPluginName } from "@open-deutsch/codex-client";
+
+export function createCodexVoiceActivityUrl(activityIdValue: string, generationValue: number) {
+  const activityId = activityIdSchema.parse(activityIdValue);
+  const generation = dataRootGenerationSchema.parse(generationValue);
+  const pluginId = `${openDeutschPluginName}@${openDeutschMarketplaceName}`;
+  const prompt = [
+    `[@Open Deutsch](plugin://${pluginId}) Prepare my saved activity for Voice.`,
+    `Activity: ${activityId}; dataRootGeneration: ${generation}.`,
+    "Load this exact activity and its teaching defaults, briefly acknowledge the scenario,",
+    "and wait for me to begin without revealing listening scripts or answers.",
+    "If this reference is missing or stale, ask me to reopen it in Open Deutsch instead of selecting another activity.",
+  ].join(" ");
+  return `codex://new?prompt=${encodeURIComponent(prompt)}`;
+}
 
 export function parseOpenDeutschActivityUrl(value: string) {
   if (typeof value !== "string" || value.includes("\0")) {

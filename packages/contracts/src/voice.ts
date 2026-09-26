@@ -13,11 +13,6 @@ export const voiceActivityContextSchema = z.strictObject({
   script: text(2_400).optional(),
   questions: z.array(text(500)).min(1).max(8),
   answerGuidance: z.array(text(500)).min(1).max(8),
-  handoff: z.strictObject({
-    status: z.literal("unavailable"),
-    code: z.literal("OD_HANDOFF_VOICE_SESSION_UNSUPPORTED"),
-    explanation: text(800),
-  }),
 });
 export type VoiceActivityContext = z.infer<typeof voiceActivityContextSchema>;
 

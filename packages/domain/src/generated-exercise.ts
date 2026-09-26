@@ -10,7 +10,6 @@ import {
   defaultFeedbackModeForExerciseKind,
   exerciseDefinitionSchema,
   lessonDefinitionSchema,
-  type feedbackModeSchema,
   type AiProvenance,
   type ExerciseDefinition,
   type LessonDefinition,
@@ -100,7 +99,6 @@ export function materializeGeneratedExercise(
   options: {
     exerciseId: string;
     aiProvenance: AiProvenance;
-    feedbackModeOverride?: z.infer<typeof feedbackModeSchema>;
     curriculumTopicIds?: readonly string[];
   },
 ): ExerciseDefinition {
@@ -117,8 +115,7 @@ export function materializeGeneratedExercise(
     instructions: candidate.instructions,
     ...(candidate.explanation === null ? {} : { explanation: candidate.explanation }),
     hints: candidate.hints.map((text) => ({ text })),
-    feedbackMode:
-      options.feedbackModeOverride ?? defaultFeedbackModeForExerciseKind(candidate.kind),
+    feedbackMode: defaultFeedbackModeForExerciseKind(candidate.kind),
     curriculumTopicIds: options.curriculumTopicIds ?? [],
     vocabularySetLinks: [],
   };
@@ -191,7 +188,6 @@ export function materializeGeneratedExerciseSet(
   options: {
     exerciseIds: readonly string[];
     aiProvenance: AiProvenance;
-    feedbackModeOverride?: z.infer<typeof feedbackModeSchema>;
     curriculumTopicIds?: readonly string[];
   },
 ): readonly ExerciseDefinition[] {
@@ -208,9 +204,6 @@ export function materializeGeneratedExerciseSet(
       materializeGeneratedExercise(candidate, {
         exerciseId: options.exerciseIds[position] ?? "",
         aiProvenance: options.aiProvenance,
-        ...(options.feedbackModeOverride
-          ? { feedbackModeOverride: options.feedbackModeOverride }
-          : {}),
         ...(options.curriculumTopicIds ? { curriculumTopicIds: options.curriculumTopicIds } : {}),
       }),
     ),
@@ -224,7 +217,6 @@ export function materializeGeneratedLesson(
     naturalRequest: string;
     exerciseIds: readonly string[];
     aiProvenance: AiProvenance;
-    feedbackModeOverride?: z.infer<typeof feedbackModeSchema>;
     curriculumTopicIds?: readonly string[];
   },
 ): LessonDefinition | undefined {

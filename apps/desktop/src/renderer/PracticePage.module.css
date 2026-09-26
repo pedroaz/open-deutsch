@@ -1,5 +1,3 @@
-
-
 .voicePreparation {
   display: grid;
   gap: var(--od-space-5);
@@ -7,7 +5,7 @@
 
 .voiceSetupGrid {
   display: grid;
-  gap: 0 var(--od-space-4);
+  gap: var(--od-space-4);
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: var(--od-space-5);
 }
@@ -37,12 +35,6 @@
   gap: var(--od-space-4);
 }
 
-.page h1 {
-  font-size: var(--od-font-size-xl);
-  line-height: var(--od-line-tight);
-  margin: 0 0 var(--od-space-3);
-}
-
 .eyebrow {
   color: var(--od-color-primary);
   font-size: var(--od-font-size-xs);
@@ -52,36 +44,21 @@
   text-transform: uppercase;
 }
 
-.lead {
-  color: var(--od-color-text-muted);
-  font-size: var(--od-font-size-lg);
-  max-width: var(--od-field-max);
-}
-
 .page {
   display: grid;
-  gap: var(--od-space-6);
-  max-width: var(--od-content-max);
+  gap: var(--od-space-5);
+  min-width: 0;
 }
-
-.practiceHeader {
-  margin-bottom: var(--od-space-8);
+.practiceSection {
+  margin-bottom: var(--od-space-5);
 }
-
-.practiceHeader .lead {
-  margin-bottom: 0;
-}
-
-.practiceSection,
 .generatedLibrary {
   margin-bottom: var(--od-space-8);
 }
 
 .generatedLibrary {
-  background: var(--od-color-surface-muted);
-  border: var(--od-border-thin) solid var(--od-color-border);
-  border-radius: var(--od-radius-lg);
-  padding: var(--od-space-5);
+  display: grid;
+  gap: var(--od-space-3);
 }
 
 .practiceSectionHeader {
@@ -122,12 +99,10 @@
   border-radius: var(--od-radius-md);
   display: flex;
   min-width: 0;
-  overflow: hidden;
 }
 
 .generatedActivity:focus-within {
   border-color: var(--od-color-primary);
-  box-shadow: var(--od-shadow-raised);
 }
 
 .generatedActivityOpen {
@@ -178,10 +153,10 @@
 
 .generatedActivityDelete {
   align-items: center;
-  align-self: stretch;
+  align-self: center;
   background: var(--od-color-transparent);
   border: 0;
-  border-left: var(--od-border-thin) solid var(--od-color-border);
+  margin-right: var(--od-space-2);
   color: var(--od-color-text-muted);
   cursor: pointer;
   display: inline-flex;
@@ -248,11 +223,10 @@
 .practiceTypeGrid {
   display: grid;
   gap: var(--od-space-3);
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .practiceTypeCard {
-  align-items: start;
   background: var(--od-color-surface);
   border: var(--od-border-thin) solid var(--od-color-border);
   border-radius: var(--od-radius-lg);
@@ -261,7 +235,8 @@
   display: grid;
   gap: var(--od-space-3);
   grid-template-columns: auto minmax(0, 1fr);
-  padding: var(--od-space-4);
+  padding: var(--od-space-3);
+  align-items: center;
   text-align: left;
 }
 
@@ -302,7 +277,7 @@
 }
 
 .practiceContent {
-  margin-bottom: var(--od-space-12);
+  min-width: 0;
 }
 
 .practiceSession {
@@ -310,35 +285,18 @@
   gap: var(--od-space-5);
 }
 
-:global([data-exercise-mode="true"]) .practiceSession {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: var(--od-space-2);
-  min-height: 0;
-  overflow: hidden;
-}
-
 .practiceSessionHeader {
   border-bottom: var(--od-border-thin) solid var(--od-color-border);
   padding-bottom: var(--od-space-5);
 }
 
-:global([data-exercise-mode="true"]) .practiceSessionHeader {
-  flex: 0 0 auto;
-  padding-bottom: var(--od-space-2);
-}
-
 .practiceSessionHeader .backButton {
-  margin-bottom: var(--od-space-5);
-}
-
-:global([data-exercise-mode="true"]) .practiceSessionHeader .backButton {
-  margin-bottom: var(--od-space-2);
+  margin-bottom: var(--od-space-4);
 }
 
 .practiceSessionTitleRow {
-  align-items: end;
+  align-items: center;
+  flex-wrap: wrap;
   display: flex;
   gap: var(--od-space-5);
   justify-content: space-between;
@@ -372,18 +330,6 @@
   margin: 0;
   overflow: hidden;
   padding-top: 0;
-}
-
-:global([data-exercise-mode="true"]) .practiceLessonDisclosure {
-  flex: 0 0 auto;
-  margin: 0;
-  max-height: 40%;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-:global([data-exercise-mode="true"]) .practiceLessonDisclosure > summary {
-  padding: var(--od-space-3) var(--od-space-4);
 }
 
 .practiceLessonDisclosure > summary {
@@ -428,24 +374,8 @@
 
 .practiceRunner > article {
   border-color: var(--od-color-primary);
-  box-shadow: var(--od-shadow-raised);
+
   padding: var(--od-space-5);
-}
-
-:global([data-exercise-mode="true"]) .practiceRunner {
-  display: flex;
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
-:global([data-exercise-mode="true"]) .practiceRunner > article {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: var(--od-space-4);
-  scrollbar-gutter: stable;
 }
 
 .practiceRunner > article > .eyebrow {
@@ -472,34 +402,9 @@
   padding: 0;
 }
 
-:global([data-exercise-mode="true"]) .practiceRunner > article > .eyebrow {
-  margin-bottom: var(--od-space-2);
-}
-
-:global([data-exercise-mode="true"]) .practiceRunner > article > h2 {
-  margin-bottom: var(--od-space-2);
-}
-
-:global([data-exercise-mode="true"]) .practiceRunner > article > p:not(.eyebrow) {
-  margin-bottom: var(--od-space-3);
-}
-
-:global([data-exercise-mode="true"]) .practiceRunner fieldset {
-  margin-top: var(--od-space-3);
-}
-
-:global([data-exercise-mode="true"]) .practiceRunner fieldset legend {
-  margin-bottom: var(--od-space-2);
-}
-
-:global([data-exercise-mode="true"]) .practiceRunner [role="status"],
-:global([data-exercise-mode="true"]) .practiceRunner [role="alert"] {
-  padding: var(--od-space-2) var(--od-space-3);
-}
-
 .quizLength {
   border: 0;
-  margin: var(--od-space-5) 0;
+  margin: 0;
   padding: 0;
 }
 
@@ -565,20 +470,6 @@
 }
 
 @media (max-width: 52rem) {
-
-  :global([data-exercise-mode="true"]) .practiceSession {
-    height: auto;
-    overflow: visible;
-  }
-
-  :global([data-exercise-mode="true"]) .practiceLessonDisclosure {
-    max-height: none;
-  }
-
-  :global([data-exercise-mode="true"]) .practiceRunner > article {
-    overflow: visible;
-  }
-
   .practiceTypeGrid {
     grid-template-columns: 1fr;
   }
@@ -590,5 +481,30 @@
   .practiceSessionTitleRow {
     align-items: stretch;
     flex-direction: column;
+  }
+}
+
+.practiceSessionTitleRow h1 {
+  margin: 0;
+  font-family: var(--od-font-reading);
+}
+
+.readingPassage {
+  white-space: pre-wrap;
+  font-family: var(--od-font-reading);
+  font-size: var(--od-font-size-lg);
+  line-height: var(--od-line-normal);
+  max-width: var(--od-reading-measure);
+}
+@container workspace (max-width: 42rem) {
+  .practiceTypeGrid,
+  .voiceSetupGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container workspace (max-width: 28rem) {
+  .practiceTypeGrid,
+  .voiceSetupGrid {
+    grid-template-columns: 1fr;
   }
 }

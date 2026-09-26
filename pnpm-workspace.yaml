@@ -7,3 +7,6 @@ allowBuilds:
   electron: true
   electron-winstaller: false
   unrs-resolver: true
+
+# Dependency changes are explicit through make setup, never a side effect of running a script.
+verifyDepsBeforeRun: error

@@ -5,26 +5,16 @@ slug: education-language-learning
 band: a1
 domain: education-language-learning
 title: "A1: Education and language learning"
-status: foundation-ready
+
 communicativeGoals:
   [
     "Handle a practical education and language learning interaction at A1 level.",
     "Understand and respond to the most useful education and language learning language.",
   ]
 prerequisiteTopicIds: []
-grammarFoundations:
-  - key: a1-core-structures
-    description: "Use A1-appropriate sentence structure, questions, and connectives for education and language learning."
-vocabularyFoundations:
-  - key: education-language-learning-foundations
-    description: "Use high-frequency words and phrases for education and language learning."
-lessonFoundation:
-  explanation: "A reviewed A1 foundation for education and language learning, with reusable examples and a clear progression from the previous band."
-  examples:
-    ["Ich brauche Hilfe bei education and language learning.", "Können Sie das bitte erklären?"]
-exerciseConcepts:
-  - key: a1-education-language-learning-role-play
-    description: "Role-play a bounded education and language learning exchange and report what was understood."
+grammarFoundations: []
+vocabularyFoundations: []
+exerciseConcepts: []
 sourceIds: [curriculum-source_0000000000000001]
 coverage:
   reception:
@@ -43,8 +33,6 @@ coverage:
 
 # A1: Education and language learning
 
-This reviewed A1 foundation connects practical education and language learning communication to the prior learning band and the Open Deutsch exercise blueprints.
+This topic records intended learning scope. See learning-path.json for available course lessons linked to this topic.
 
-Use the lesson foundation for explanation, the vocabulary foundation for reusable language, and the exercise concept for a bounded practice activity. Research staging may propose refinements, but this canonical snapshot changes only through explicit review.
-
-Sources: curriculum-source_0000000000000001.
+The framework citations support scope; they do not provide a lesson. Author original explanations, examples and activities with source, language and level checks.

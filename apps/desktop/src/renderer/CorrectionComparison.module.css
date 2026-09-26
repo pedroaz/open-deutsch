@@ -1,9 +1,6 @@
-
-
 .correctionReady {
-  background: var(--od-color-success-soft);
-  border: var(--od-border-thin) solid var(--od-color-success);
-  border-radius: var(--od-radius-lg);
+  background: transparent;
+  border-inline-start: var(--od-border-strong) solid var(--od-color-success);
   display: grid;
   gap: var(--od-space-2);
   padding: var(--od-space-4);
@@ -133,7 +130,17 @@
 }
 
 @media (max-width: 52rem) {
+  .correctionMistakes {
+    grid-template-columns: 1fr;
+  }
+}
 
+.correctionText,
+.correctedPriority,
+.inlineCorrection {
+  overflow-wrap: anywhere;
+}
+@container workspace (max-width: 42rem) {
   .correctionMistakes {
     grid-template-columns: 1fr;
   }

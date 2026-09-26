@@ -1,4 +1,4 @@
-const VERSION_PATTERN = /^(?:codex-cli\s+|v)?(\d+)\.(\d+)\.(\d+)$/;
+const VERSION_PATTERN = /^(?:codex-cli\s+|v)?(\d+)\.(\d+)\.(\d+)(-[0-9A-Za-z.-]+)?$/;
 
 export function parseVersion(raw, toolName) {
   const match = VERSION_PATTERN.exec(raw.trim());
@@ -10,7 +10,7 @@ export function parseVersion(raw, toolName) {
     major: Number(match[1]),
     minor: Number(match[2]),
     patch: Number(match[3]),
-    text: `${match[1]}.${match[2]}.${match[3]}`,
+    text: `${match[1]}.${match[2]}.${match[3]}${match[4] ?? ""}`,
   };
 }
 
@@ -83,31 +83,18 @@ export function diagnoseToolchain(observed, policy, options = {}) {
       check(
         codexFailureStatus,
         "CODEX_MISSING",
-        `Codex CLI >=${policy.codex.minimumVersion} <${policy.codex.maximumExclusiveVersion} was not found. Local non-AI features remain available; desktop AI and Codex integration installation are disabled until Codex is installed.`,
+        `Codex desktop runtime was not found. Local non-AI features remain available; desktop AI and Codex integration installation are disabled until the ChatGPT/Codex desktop app is installed.`,
       ),
     );
   } else {
     try {
-      const codex = parseVersion(observed.codexVersion, "Codex CLI");
-      const minimumCodex = parseVersion(policy.codex.minimumVersion, "configured Codex minimum");
-      const maximumCodex = parseVersion(
-        policy.codex.maximumExclusiveVersion,
-        "configured Codex maximum",
-      );
-      if (compareVersions(codex, minimumCodex) < 0 || compareVersions(codex, maximumCodex) >= 0) {
-        checks.push(
-          check(
-            codexFailureStatus,
-            "CODEX_UNSUPPORTED",
-            `Codex CLI ${codex.text} is unsupported. Install a version in the verified range >=${policy.codex.minimumVersion} <${policy.codex.maximumExclusiveVersion}; local non-AI features remain available.`,
-          ),
-        );
-      } else if (observed.appServerStatus === "timeout") {
+      const codex = parseVersion(observed.codexVersion, "Codex desktop runtime");
+      if (observed.appServerStatus === "timeout") {
         checks.push(
           check(
             codexFailureStatus,
             "CODEX_APP_SERVER_TIMEOUT",
-            `Codex CLI ${codex.text} did not complete the app-server capability check within 10 seconds. Run codex app-server --help and resolve the local Codex setup; local non-AI features remain available.`,
+            `Codex desktop runtime ${codex.text} did not complete the app-server capability check within 10 seconds. Check the desktop bundle and resolve the local Codex setup; local non-AI features remain available.`,
           ),
         );
       } else if (observed.appServerStatus === "failed") {
@@ -115,7 +102,7 @@ export function diagnoseToolchain(observed, policy, options = {}) {
           check(
             codexFailureStatus,
             "CODEX_APP_SERVER_CHECK_FAILED",
-            `Codex CLI ${codex.text} failed the app-server capability check (${observed.appServerDetail || "unknown failure"}). Run codex app-server --help and resolve the local Codex setup; local non-AI features remain available.`,
+            `Codex desktop runtime ${codex.text} failed the app-server capability check (${observed.appServerDetail || "unknown failure"}). Check the desktop bundle and resolve the local Codex setup; local non-AI features remain available.`,
           ),
         );
       } else if (observed.appServerStatus !== "available") {
@@ -123,7 +110,7 @@ export function diagnoseToolchain(observed, policy, options = {}) {
           check(
             codexFailureStatus,
             "CODEX_APP_SERVER_UNAVAILABLE",
-            `Codex CLI ${codex.text} does not expose the required app-server command. Upgrade Codex; local non-AI features remain available.`,
+            `Codex desktop runtime ${codex.text} does not expose the required app-server command. Upgrade Codex; local non-AI features remain available.`,
           ),
         );
       } else {
@@ -131,7 +118,7 @@ export function diagnoseToolchain(observed, policy, options = {}) {
           check(
             "pass",
             "CODEX_OK",
-            `Codex CLI ${codex.text} exposes the required app-server command.`,
+            `Codex desktop runtime ${codex.text} exposes the required app-server command.`,
           ),
         );
       }

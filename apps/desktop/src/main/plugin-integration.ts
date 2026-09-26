@@ -1,171 +1,90 @@
-import { execFile } from "node:child_process";
-import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { promisify } from "node:util";
-
-import type { OpenDeutschError } from "@open-deutsch/contracts";
+import { fileURLToPath } from "node:url";
 import { app } from "electron";
+import {
+  ScopedPluginClient,
+  resolveCodexExecutable,
+  readPluginSourceVersion,
+  stagePluginSource,
+} from "@open-deutsch/codex-client";
 
-const execFileAsync = promisify(execFile);
-const pluginName = "open-deutsch";
-const marketplaceName = "open-deutsch-local";
-const pluginId = `${pluginName}@${marketplaceName}`;
-
-type CodexIntegrationState =
-  | {
-      status: "unavailable";
-      reason: "missing" | "unsupported-version" | "app-server-unavailable";
-      error: OpenDeutschError;
-    }
-  | {
-      status: "available";
-      codexVersion: string;
-      plugin: "not-installed" | "installed" | "refresh-required";
-    };
-
-type PluginAction = "install" | "refresh" | "uninstall";
-type JsonRecord = Record<string, unknown>;
-
-function isRecord(value: unknown): value is JsonRecord {
-  return typeof value === "object" && value !== null;
+const repositoryRoot = fileURLToPath(new URL("../../../../", import.meta.url));
+function pluginRoot() {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, "plugin")
+    : path.join(repositoryRoot, "plugins/open-deutsch");
 }
-
-function executable() {
-  return process.env["OPEN_DEUTSCH_CODEX_EXECUTABLE"] ?? "codex";
-}
-
-function marketplaceRoot() {
-  return path.resolve(process.env["OPEN_DEUTSCH_PLUGIN_MARKETPLACE_ROOT"] ?? process.cwd());
-}
-
-function manifestCandidates() {
-  return [
-    process.env["OPEN_DEUTSCH_PLUGIN_MANIFEST"],
-    app.isPackaged
-      ? process.resourcesPath
-        ? path.join(process.resourcesPath, "plugin", ".codex-plugin", "plugin.json")
-        : undefined
-      : undefined,
-    path.resolve(process.cwd(), "plugins/open-deutsch/.codex-plugin/plugin.json"),
-  ].filter((candidate): candidate is string => candidate !== undefined);
-}
-
-async function sourceVersion() {
-  for (const candidate of manifestCandidates()) {
-    try {
-      const manifest: unknown = JSON.parse(await readFile(candidate, "utf8")) as unknown;
-      if (
-        isRecord(manifest) &&
-        manifest["name"] === pluginName &&
-        typeof manifest["version"] === "string" &&
-        /^\d+\.\d+\.\d+$/u.test(manifest["version"])
-      ) {
-        return manifest["version"];
-      }
-    } catch {
-      // Try the next packaged/development location without exposing filesystem details.
-    }
-  }
-  throw new Error("OD_PLUGIN_SOURCE_UNAVAILABLE");
-}
-
-async function jsonCommand(args: string[]): Promise<unknown> {
-  const { stdout } = await execFileAsync(executable(), [...args, "--json"], {
-    cwd: process.cwd(),
-    env: process.env,
-    timeout: 20_000,
-    maxBuffer: 2 * 1024 * 1024,
+async function client() {
+  const sourceVersion = await readPluginSourceVersion(pluginRoot());
+  const executable = await resolveCodexExecutable(
+    process.env["OPEN_DEUTSCH_CODEX_EXECUTABLE"],
+    process.env,
+  );
+  if (!executable) throw new Error("CODEX_DESKTOP_RUNTIME_MISSING");
+  return new ScopedPluginClient({
+    executable,
+    cwd: app.isPackaged ? app.getPath("userData") : repositoryRoot,
+    sourceVersion,
   });
+}
+function project(status: Awaited<ReturnType<ScopedPluginClient["status"]>>, codexVersion: string) {
+  return {
+    status: "available" as const,
+    codexVersion,
+    plugin:
+      status.state === "missing"
+        ? ("not-installed" as const)
+        : status.state === "installed"
+          ? ("installed" as const)
+          : ("refresh-required" as const),
+  };
+}
+export async function readPluginIntegrationState(codexVersion: string) {
   try {
-    return JSON.parse(stdout) as unknown;
+    return project(await (await client()).status(), codexVersion);
   } catch {
-    throw new Error("OD_PLUGIN_CLI_JSON_INVALID");
+    return { status: "available" as const, codexVersion, plugin: "refresh-required" as const };
   }
 }
-
-export async function readPluginIntegrationState(
-  codexVersion: string,
-  correlationId: string,
-): Promise<CodexIntegrationState> {
-  void correlationId;
-  try {
-    const version = await sourceVersion();
-    const [plugins, mcp] = await Promise.all([
-      jsonCommand(["plugin", "list"]),
-      jsonCommand(["mcp", "list"]),
-    ]);
-    const installed =
-      isRecord(plugins) && Array.isArray(plugins["installed"])
-        ? plugins["installed"].find(
-            (entry): entry is JsonRecord => isRecord(entry) && entry["pluginId"] === pluginId,
-          )
-        : undefined;
-    const server = Array.isArray(mcp)
-      ? mcp.find((entry): entry is JsonRecord => isRecord(entry) && entry["name"] === pluginName)
-      : undefined;
-    const plugin =
-      installed === undefined
-        ? "not-installed"
-        : installed["version"] !== version || server?.["enabled"] !== true
-          ? "refresh-required"
-          : "installed";
-    return { status: "available", codexVersion, plugin };
-  } catch {
-    return { status: "available", codexVersion, plugin: "refresh-required" };
-  }
-}
-
 export async function runPluginIntegrationAction(
-  action: PluginAction,
+  action: "install" | "refresh" | "uninstall",
   codexVersion: string,
-  correlationId: string,
 ) {
-  const version = await sourceVersion();
-  const steps: string[] = [];
+  let sourceVersion = "unavailable";
   try {
-    if (action === "uninstall") {
-      await jsonCommand(["plugin", "remove", pluginId]);
-      steps.push("Removed the Open Deutsch plugin from the scoped marketplace.");
-      await execFileAsync(
-        executable(),
-        ["plugin", "marketplace", "remove", marketplaceName, "--json"],
-        {
-          cwd: process.cwd(),
-          env: process.env,
-          timeout: 20_000,
-          maxBuffer: 2 * 1024 * 1024,
-        },
-      );
-      steps.push("Removed the scoped Open Deutsch marketplace entry.");
-    } else {
-      await jsonCommand(["plugin", "marketplace", "add", marketplaceRoot()]);
-      steps.push("Registered the versioned repository-scoped marketplace source.");
-      await jsonCommand(["plugin", "add", pluginId]);
-      steps.push(`${action === "refresh" ? "Refreshed" : "Installed"} Open Deutsch ${version}.`);
+    const integration = await client();
+    sourceVersion = integration.options.sourceVersion;
+    let status: Awaited<ReturnType<ScopedPluginClient["status"]>>;
+    if (action === "uninstall") status = await integration.uninstall();
+    else {
+      const staged = await stagePluginSource({
+        pluginRoot: pluginRoot(),
+        runtimeRoot: path.join(app.getPath("userData"), "integration"),
+        bootstrapFile: path.join(app.getPath("userData"), "bootstrap.json"),
+        runtime: app.isPackaged
+          ? { kind: "packaged", executable: process.execPath, resourcesRoot: process.resourcesPath }
+          : { kind: "development", executable: process.execPath, repositoryRoot, electron: true },
+      });
+      status = await integration.install(staged.marketplaceRoot, staged.version);
     }
-    const status = await readPluginIntegrationState(codexVersion, correlationId);
-    const verified =
-      status.status === "available" &&
-      (action === "uninstall" ? status.plugin === "not-installed" : status.plugin === "installed");
-    steps.push(
-      verified
-        ? "Verified the plugin and MCP status."
-        : "The requested action needs another refresh or could not be verified.",
-    );
     return {
       action,
-      result: verified ? "verified" : action === "uninstall" ? "missing" : "failed",
-      sourceVersion: version,
-      status,
-      steps,
-    } as const;
+      result: "verified" as const,
+      sourceVersion,
+      status: project(status, codexVersion),
+      steps: [
+        action === "uninstall"
+          ? "Removed and verified the scoped Open Deutsch plugin and marketplace."
+          : "Installed the stable Open Deutsch plugin source and verified plugin/MCP registration. Start a new Codex session to use it.",
+      ],
+    };
   } catch {
     return {
       action,
       result: "failed" as const,
-      sourceVersion: version,
-      status: { status: "available" as const, codexVersion, plugin: "refresh-required" as const },
-      steps: [...steps, "The scoped integration command failed; no success is reported."],
+      sourceVersion,
+      status: await readPluginIntegrationState(codexVersion),
+      steps: ["The scoped integration action failed; no success is reported."],
     };
   }
 }

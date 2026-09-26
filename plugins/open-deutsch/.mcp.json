@@ -1,5 +1,5 @@
 {
-  "mcpServers": {
+  "mcp_servers": {
     "open-deutsch": {
       "type": "stdio",
       "command": "open-deutsch-mcp"

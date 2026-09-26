@@ -5,25 +5,16 @@ slug: transport-travel
 band: a1
 domain: transport-travel
 title: "A1: Transport and travel"
-status: foundation-ready
+
 communicativeGoals:
   [
     "Handle a practical transport and travel interaction at A1 level.",
     "Understand and respond to the most useful transport and travel language.",
   ]
 prerequisiteTopicIds: []
-grammarFoundations:
-  - key: a1-core-structures
-    description: "Use A1-appropriate sentence structure, questions, and connectives for transport and travel."
-vocabularyFoundations:
-  - key: transport-travel-foundations
-    description: "Use high-frequency words and phrases for transport and travel."
-lessonFoundation:
-  explanation: "A reviewed A1 foundation for transport and travel, with reusable examples and a clear progression from the previous band."
-  examples: ["Ich brauche Hilfe bei transport and travel.", "Können Sie das bitte erklären?"]
-exerciseConcepts:
-  - key: a1-transport-travel-role-play
-    description: "Role-play a bounded transport and travel exchange and report what was understood."
+grammarFoundations: []
+vocabularyFoundations: []
+exerciseConcepts: []
 sourceIds: [curriculum-source_0000000000000001]
 coverage:
   reception:
@@ -42,8 +33,6 @@ coverage:
 
 # A1: Transport and travel
 
-This reviewed A1 foundation connects practical transport and travel communication to the prior learning band and the Open Deutsch exercise blueprints.
+This topic records intended learning scope. See learning-path.json for available course lessons linked to this topic.
 
-Use the lesson foundation for explanation, the vocabulary foundation for reusable language, and the exercise concept for a bounded practice activity. Research staging may propose refinements, but this canonical snapshot changes only through explicit review.
-
-Sources: curriculum-source_0000000000000001.
+The framework citations support scope; they do not provide a lesson. Author original explanations, examples and activities with source, language and level checks.

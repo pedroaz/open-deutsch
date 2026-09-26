@@ -68,7 +68,6 @@ export const learnerProfileSchema = strictBoundaryObject({
   motivation: z.string().trim().min(1).max(500),
   interests: z.array(z.string().trim().min(1).max(80)).max(20),
   preferredTopics: z.array(z.string().trim().min(1).max(120)).max(20),
-  availableStudyMinutesPerWeek: z.int().min(15).max(10_080),
   correctionPreferences: correctionPreferencesSchema,
   onboardingState: onboardingStateSchema,
   inferredStrengths: z.array(profileInsightSchema).max(50),

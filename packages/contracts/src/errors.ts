@@ -6,8 +6,18 @@ export const errorDefinitions = {
   "not-found": { code: "OD_NOT_FOUND", messageKey: "errors.notFound" },
   conflict: { code: "OD_CONFLICT", messageKey: "errors.conflict" },
   "stale-data-root": { code: "OD_DATA_ROOT_STALE", messageKey: "errors.staleDataRoot" },
+  "data-root-busy": { code: "OD_DATA_ROOT_BUSY", messageKey: "errors.dataRootBusy" },
   database: { code: "OD_DATABASE_FAILED", messageKey: "errors.database" },
   "app-server": { code: "OD_APP_SERVER_FAILED", messageKey: "errors.appServer" },
+  "ai-policy": { code: "OD_APP_SERVER_POLICY_VIOLATION", messageKey: "errors.aiPolicy" },
+  "ai-timeout": {
+    code: "OD_APP_SERVER_OPERATION_TIMEOUT",
+    messageKey: "errors.aiTimeout",
+  },
+  "model-unavailable": {
+    code: "OD_APP_SERVER_MODEL_UNAVAILABLE",
+    messageKey: "errors.modelUnavailable",
+  },
   authentication: { code: "OD_AUTHENTICATION_REQUIRED", messageKey: "errors.authentication" },
   "unsupported-codex-version": {
     code: "OD_CODEX_VERSION_UNSUPPORTED",
@@ -80,38 +90,76 @@ export type OpenDeutschError = z.infer<typeof openDeutschErrorSchema>;
 
 export const safeErrorMessages = {
   en: {
-    validation: "Some information is invalid. Check it and try again.",
-    "not-found": "The requested item is no longer available.",
-    conflict: "This item changed before the operation could finish. Refresh and try again.",
-    "stale-data-root": "The selected data folder changed. Reopen this action and try again.",
-    database: "Open Deutsch could not access its local learning data.",
-    "app-server": "Codex is temporarily unavailable to Open Deutsch.",
-    authentication: "Connect your Codex account to continue.",
-    "unsupported-codex-version": "This Codex version is not supported by Open Deutsch.",
-    "rate-limit": "Codex usage is temporarily limited. Try again later.",
+    validation:
+      "Some information is invalid or incomplete. Check the required fields and try again.",
+    "not-found": "This item is no longer available. Reopen the list and select another item.",
+    conflict:
+      "This item changed before the action finished. Reopen it to load the current version, then try again.",
+    "stale-data-root":
+      "The selected learning folder changed. Reopen this view before trying again.",
+    "data-root-busy": "Wait for the active AI work to finish or cancel it before changing folders.",
+    database:
+      "Open Deutsch could not read or save local learning data. Check that the selected folder is available and writable in Settings/Account, then retry.",
+    "app-server":
+      "The AI action could not finish. Retry once. If it fails again, check Codex in Settings/Account and report the diagnostic reference.",
+    authentication:
+      "Codex needs you to sign in. Open Settings/Account, connect your Codex account, then retry.",
+    "unsupported-codex-version":
+      "Open Deutsch could not use this Codex installation. Check its status in Settings/Account and update or reinstall Codex if needed.",
+    "rate-limit":
+      "Your Codex usage limit was reached. Check Settings/Account for the reset time and try again after it resets.",
     cancellation: "The operation was cancelled.",
-    "model-output": "Codex returned a result Open Deutsch could not safely use.",
-    mcp: "The Open Deutsch Codex integration could not complete the operation.",
-    handoff: "Open Deutsch could not open the related activity.",
-    "unsupported-operation": "This operation is not supported.",
+    "model-output":
+      "Codex returned an incomplete or unusable result. Try again; if it keeps happening, try another model or report the diagnostic reference.",
+    mcp:
+      "The Codex integration could not complete this action. Check its status in Settings/Account and install or refresh the integration if needed.",
+    handoff:
+      "Open Deutsch could not open the related activity. Check the Codex integration in Settings/Account, then try again.",
+    "unsupported-operation":
+      "This action is unavailable in the current setup. Check Settings/Account for supported options.",
+    "ai-policy":
+      "Open Deutsch stopped this AI action because it encountered an operation outside the allowed learning workflow. Retry once. If it happens again, report the diagnostic reference.",
+    "ai-timeout":
+      "Codex did not finish within the time limit. Try again with a shorter request or a smaller activity.",
+    "model-unavailable":
+      "The selected model or reasoning setting is unavailable. Choose Automatic or another available option in the model selector, then retry.",
   },
   de: {
-    validation: "Einige Angaben sind ungültig. Prüfe sie und versuche es erneut.",
-    "not-found": "Das angeforderte Element ist nicht mehr verfügbar.",
+    validation:
+      "Einige Angaben sind ungültig oder unvollständig. Prüfe die Pflichtfelder und versuche es erneut.",
+    "not-found":
+      "Dieses Element ist nicht mehr verfügbar. Öffne die Liste erneut und wähle ein anderes Element.",
     conflict:
-      "Das Element wurde zwischenzeitlich geändert. Aktualisiere es und versuche es erneut.",
-    "stale-data-root": "Der ausgewählte Datenordner wurde geändert. Öffne die Aktion erneut.",
-    database: "Open Deutsch konnte nicht auf die lokalen Lerndaten zugreifen.",
-    "app-server": "Codex ist für Open Deutsch vorübergehend nicht verfügbar.",
-    authentication: "Verbinde dein Codex-Konto, um fortzufahren.",
-    "unsupported-codex-version": "Diese Codex-Version wird von Open Deutsch nicht unterstützt.",
-    "rate-limit": "Die Codex-Nutzung ist vorübergehend begrenzt. Versuche es später erneut.",
+      "Dieses Element wurde vor Abschluss geändert. Öffne es erneut, um die aktuelle Version zu laden, und versuche es noch einmal.",
+    "stale-data-root":
+      "Der ausgewählte Lernordner wurde geändert. Öffne diese Ansicht erneut, bevor du es noch einmal versuchst.",
+    "data-root-busy":
+      "Beende oder stoppe zuerst die laufende KI-Aktion, bevor du den Ordner wechselst.",
+    database:
+      "Open Deutsch konnte lokale Lerndaten nicht lesen oder speichern. Prüfe unter Einstellungen/Konto, ob der gewählte Ordner verfügbar und beschreibbar ist, und versuche es erneut.",
+    "app-server":
+      "Die KI-Aktion konnte nicht abgeschlossen werden. Versuche es einmal erneut. Prüfe bei erneutem Fehler Codex unter Einstellungen/Konto und melde die Diagnosereferenz.",
+    authentication:
+      "Du musst dich bei Codex anmelden. Verbinde dein Codex-Konto unter Einstellungen/Konto und versuche es erneut.",
+    "unsupported-codex-version":
+      "Open Deutsch konnte diese Codex-Installation nicht verwenden. Prüfe den Status unter Einstellungen/Konto und aktualisiere oder installiere Codex bei Bedarf neu.",
+    "rate-limit":
+      "Dein Codex-Nutzungslimit wurde erreicht. Prüfe unter Einstellungen/Konto den Zeitpunkt der Zurücksetzung und versuche es danach erneut.",
     cancellation: "Der Vorgang wurde abgebrochen.",
     "model-output":
-      "Codex hat ein Ergebnis geliefert, das Open Deutsch nicht sicher verwenden kann.",
-    mcp: "Die Codex-Integration von Open Deutsch konnte den Vorgang nicht abschließen.",
-    handoff: "Open Deutsch konnte die zugehörige Aktivität nicht öffnen.",
-    "unsupported-operation": "Dieser Vorgang wird nicht unterstützt.",
+      "Codex hat ein unvollständiges oder unbrauchbares Ergebnis geliefert. Versuche es erneut. Wähle bei wiederholtem Fehler ein anderes Modell oder melde die Diagnosereferenz.",
+    mcp:
+      "Die Codex-Integration konnte diese Aktion nicht abschließen. Prüfe den Status unter Einstellungen/Konto und installiere oder aktualisiere die Integration bei Bedarf.",
+    handoff:
+      "Open Deutsch konnte die zugehörige Aktivität nicht öffnen. Prüfe die Codex-Integration unter Einstellungen/Konto und versuche es erneut.",
+    "unsupported-operation":
+      "Diese Aktion ist in der aktuellen Einrichtung nicht verfügbar. Prüfe die verfügbaren Optionen unter Einstellungen/Konto.",
+    "ai-policy":
+      "Open Deutsch hat diese KI-Aktion gestoppt, weil ein Vorgang außerhalb des erlaubten Lernablaufs auftrat. Versuche es einmal erneut. Melde bei erneutem Auftreten die Diagnosereferenz.",
+    "ai-timeout":
+      "Codex wurde innerhalb des Zeitlimits nicht fertig. Versuche es mit einer kürzeren Anfrage oder einer kleineren Übung erneut.",
+    "model-unavailable":
+      "Das gewählte Modell oder die Denkeinstellung ist nicht verfügbar. Wähle in der Modellauswahl Automatisch oder eine andere verfügbare Option und versuche es erneut.",
   },
 } as const satisfies Record<"en" | "de", Record<ErrorKind, string>>;
 

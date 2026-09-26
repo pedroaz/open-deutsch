@@ -13,11 +13,6 @@ export type ModelCatalog = z.output<typeof modelCatalogSchema>;
 type ProjectedModel = ModelCatalog["models"][number];
 type PendingUpgrade = Readonly<{ targetModelId: string; description: string | null }> | null;
 
-const openDeutschModels = [
-  { id: "gpt-5.6-sol", displayName: "GPT-5.6 Sol" },
-  { id: "gpt-5.6-terra", displayName: "GPT-5.6 Terra" },
-  { id: "gpt-5.6-luna", displayName: "GPT-5.6 Luna" },
-] as const;
 const openDeutschReasoningEfforts = ["low", "medium", "high", "xhigh"] as const;
 
 function projectEfforts(value: unknown): string[] {
@@ -39,20 +34,17 @@ function projectEfforts(value: unknown): string[] {
 
 function projectModalities(value: unknown): ("text" | "image")[] {
   if (value === undefined) return ["text", "image"];
-  if (!Array.isArray(value) || value.length === 0 || value.length > 2) {
+  if (!Array.isArray(value) || value.length === 0 || value.length > 20) {
     throw new AppServerProjectionError("APP_SERVER_MODEL_CATALOG_INVALID");
   }
   const entries: unknown[] = value;
-  const modalities = entries.map((entry) => {
-    if (entry !== "text" && entry !== "image") {
-      throw new AppServerProjectionError("APP_SERVER_MODEL_CATALOG_INVALID");
-    }
-    return entry;
-  });
+  const modalities = entries.map((entry) => requiredNonblankString(entry, 100));
   if (new Set(modalities).size !== modalities.length) {
     throw new AppServerProjectionError("APP_SERVER_MODEL_CATALOG_INVALID");
   }
-  return modalities;
+  return modalities.filter(
+    (entry): entry is "text" | "image" => entry === "text" || entry === "image",
+  );
 }
 
 function projectUpgrade(entry: Record<string, unknown>): PendingUpgrade {
@@ -79,12 +71,13 @@ export function projectModelCatalog(value: unknown): ModelCatalog {
   const pending: { model: Omit<ProjectedModel, "upgrade">; upgrade: PendingUpgrade }[] = [];
   const seen = new Set<string>();
   for (const entry of value["data"]) {
-    if (!isJsonObject(entry) || entry["hidden"] === true) {
+    if (!isJsonObject(entry)) {
       throw new AppServerProjectionError("APP_SERVER_MODEL_CATALOG_INVALID");
     }
     if (entry["hidden"] !== undefined && typeof entry["hidden"] !== "boolean") {
       throw new AppServerProjectionError("APP_SERVER_MODEL_CATALOG_INVALID");
     }
+    if (entry["hidden"] === true) continue;
     if (entry["isDefault"] !== undefined && typeof entry["isDefault"] !== "boolean") {
       throw new AppServerProjectionError("APP_SERVER_MODEL_CATALOG_INVALID");
     }
@@ -114,10 +107,8 @@ export function projectModelCatalog(value: unknown): ModelCatalog {
   }
   const defaults = pending.filter(({ model }) => model.isDefault);
   if (defaults.length > 1) throw new AppServerProjectionError("APP_SERVER_MODEL_CATALOG_INVALID");
-  const pendingById = new Map(pending.map((entry) => [entry.model.id, entry]));
-  const selectable = openDeutschModels.flatMap(({ id, displayName }) => {
-    const entry = pendingById.get(id);
-    if (!entry) return [];
+  const selectable = pending.flatMap((entry) => {
+    if (!entry.model.inputModalities.includes("text")) return [];
     const supportedReasoningEfforts = openDeutschReasoningEfforts.filter((effort) =>
       entry.model.supportedReasoningEfforts.includes(effort),
     );
@@ -133,13 +124,18 @@ export function projectModelCatalog(value: unknown): ModelCatalog {
         ...entry,
         model: {
           ...entry.model,
-          displayName,
           defaultReasoningEffort,
           supportedReasoningEfforts,
         },
       },
     ];
   });
+  const preferredOrder = ["gpt-6-sol", "gpt-6-luna", "gpt-6-astra"];
+  const rank = (id: string) => {
+    const index = preferredOrder.indexOf(id);
+    return index < 0 ? preferredOrder.length : index;
+  };
+  selectable.sort((left, right) => rank(left.model.id) - rank(right.model.id));
   const selectableIds = new Set(selectable.map(({ model }) => model.id));
   const displayNames = new Map(selectable.map(({ model }) => [model.id, model.displayName]));
   return modelCatalogSchema.parse({

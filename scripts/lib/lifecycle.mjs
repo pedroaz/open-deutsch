@@ -15,7 +15,7 @@ import {
 import { constants as fsConstants } from "node:fs";
 import path from "node:path";
 
-export const lifecycleModes = ["dev", "prd"];
+export const lifecycleModes = ["dev", "prd", "verify"];
 const maxLogBytes = 5 * 1024 * 1024;
 const retainedLogs = 10;
 
@@ -66,7 +66,9 @@ export async function applicationLogFiles() {
   }
   for (const bootstrap of candidates) {
     for (let index = 0; index < retainedLogs; index += 1) {
-      files.push(path.join(path.dirname(bootstrap), `bootstrap.log${index === 0 ? "" : `.${index}`}`));
+      files.push(
+        path.join(path.dirname(bootstrap), `bootstrap.log${index === 0 ? "" : `.${index}`}`),
+      );
     }
   }
   return [...new Set(files)];
@@ -228,7 +230,42 @@ async function terminateStartedProcess(
   return true;
 }
 
-export async function startMode({
+// Serialize starts across modes, including verification, without signalling another app.
+export async function startMode(options) {
+  const root = path.resolve(options.runtimeRoot);
+  await mkdir(root, { recursive: true, mode: 0o700 });
+  const lock = path.join(root, "start.lock");
+  try {
+    await mkdir(lock, { mode: 0o700 });
+  } catch (error) {
+    if (error.code === "EEXIST")
+      throw new Error(
+        "LIFECYCLE_START_LOCKED: another start is in progress; retain the lock until ownership is inspected.",
+      );
+    throw error;
+  }
+  try {
+    await writeJsonAtomic(path.join(lock, "owner.json"), {
+      pid: process.pid,
+      startTicks: await processStartTicks(process.pid),
+    });
+    for (const mode of lifecycleModes) {
+      const current = await statusMode({ mode, runtimeRoot: root });
+      if (
+        !["stopped", "stale"].includes(current.status) ||
+        (current.status === "stale" && current.reason !== "not-running")
+      ) {
+        throw new Error(`LIFECYCLE_APP_ALREADY_RUNNING_OR_RETAINED:${mode}`);
+      }
+    }
+    return await startModeUnlocked(options);
+  } finally {
+    await rm(path.join(lock, "owner.json"), { force: true });
+    await rm(lock, { recursive: true });
+  }
+}
+
+async function startModeUnlocked({
   mode,
   runtimeRoot,
   command,
@@ -370,7 +407,13 @@ export async function statusMode({ mode, runtimeRoot }) {
       pid: state.pid,
     };
   }
-  return { mode, status: state.status, pid: state.pid, runId: state.runId };
+  return {
+    mode,
+    status: state.status,
+    pid: state.pid,
+    runId: state.runId,
+    startedAt: state.startedAt,
+  };
 }
 
 export async function killMode({ mode, runtimeRoot, graceMs = 5_000 }) {

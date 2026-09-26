@@ -14,8 +14,6 @@ export const dataRootRelativeLayout = Object.freeze({
   manifest: dataRootManifestFilename,
   database: "open-deutsch.sqlite3",
   attachments: "attachments",
-  researchStaging: "research/staging",
-  researchCache: "research/cache",
   logs: "logs",
   diagnostics: "diagnostics/redacted",
   testData: "test-data",
@@ -64,8 +62,6 @@ export function resolveDataRootLayout(root: string) {
     manifest: containedPath(dataRoot, dataRootRelativeLayout.manifest),
     database: containedPath(dataRoot, dataRootRelativeLayout.database),
     attachments: containedPath(dataRoot, dataRootRelativeLayout.attachments),
-    researchStaging: containedPath(dataRoot, dataRootRelativeLayout.researchStaging),
-    researchCache: containedPath(dataRoot, dataRootRelativeLayout.researchCache),
     logs: containedPath(dataRoot, dataRootRelativeLayout.logs),
     diagnostics: containedPath(dataRoot, dataRootRelativeLayout.diagnostics),
     testData: containedPath(dataRoot, dataRootRelativeLayout.testData),
@@ -75,8 +71,6 @@ export function resolveDataRootLayout(root: string) {
 export function dataRootDirectories(layout: DataRootLayout, options: { testMode: boolean }) {
   const productionDirectories = [
     layout.attachments,
-    layout.researchStaging,
-    layout.researchCache,
     layout.logs,
     layout.diagnostics,
   ] as const;

@@ -1,5 +1,3 @@
-
-
 .optionGroup {
   display: grid;
   gap: var(--od-space-3);
@@ -135,4 +133,18 @@
   flex-basis: 100%;
   line-height: var(--od-line-normal);
   overflow-wrap: anywhere;
+}
+.activeExercise {
+  display: flex;
+  flex-direction: column;
+  min-height: min(var(--od-exercise-min), calc(100dvh - var(--od-exercise-chrome)));
+}
+.exerciseActions {
+  margin-top: auto;
+  border-top: var(--od-border-thin) solid var(--od-color-border);
+  padding-top: var(--od-space-3);
+}
+.exerciseBlanks input {
+  min-width: 0;
+  max-width: 100%;
 }

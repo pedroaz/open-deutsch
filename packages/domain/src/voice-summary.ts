@@ -1,3 +1,4 @@
+import { activityIdSchema, courseEvidenceSchema } from "@open-deutsch/contracts";
 import {
   strictBoundaryObject,
   utcInstantSchema,
@@ -57,6 +58,7 @@ export const voiceNextStepSchema = z.strictObject({
 
 export const voiceSummarySchema = strictBoundaryObject({
   schemaVersion: z.literal(1),
+  activity: z.strictObject({ activityId: activityIdSchema, outcome: z.enum(["completed", "partially-completed", "abandoned"]), objectiveResults: z.array(courseEvidenceSchema).min(1).max(4) }).optional(),
   voiceSessionId: voiceSessionIdSchema,
   summarizedAt: utcInstantSchema,
   scenario: z.strictObject({

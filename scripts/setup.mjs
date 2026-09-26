@@ -10,5 +10,5 @@ function run(command, args) {
 }
 
 run(process.execPath, ["scripts/check-toolchain.mjs"]);
-run("pnpm", ["install", "--frozen-lockfile"]);
+run("pnpm", ["install", "--frozen-lockfile", "--prod=false"]);
 run("pnpm", ["peers", "check"]);

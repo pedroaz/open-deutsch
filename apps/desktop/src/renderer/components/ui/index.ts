@@ -5,3 +5,5 @@ export * from "./Disclosure.js";
 export * from "./Feedback.js";
 export * from "./Fields.js";
 export * from "./Surface.js";
+export * from "./InfoHint.js";
+export * from "./Tabs.js";

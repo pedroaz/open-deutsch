@@ -216,21 +216,6 @@ export {
   type VocabularyReviewSchedule,
 } from "./vocabulary.js";
 export {
-  weeklyPlanActivityContextSchema,
-  weeklyPlanActivityKindSchema,
-  weeklyPlanActivityKinds,
-  weeklyPlanGoalSchema,
-  selectWeeklyPlanRecommendation,
-  weeklyPlanRecommendationSchema,
-  weeklyPlanSchema,
-  weeklyPlanSuggestedActivitySchema,
-  type WeeklyPlan,
-  type WeeklyPlanActivityKind,
-  type WeeklyPlanGoal,
-  type WeeklyPlanRecommendation,
-  type WeeklyPlanSuggestedActivity,
-} from "./weekly-plan.js";
-export {
   voiceNextStepSchema,
   voiceObservedIssueCategories,
   voiceObservedIssueCategorySchema,
@@ -243,3 +228,6 @@ export {
   type VoiceSummary,
   type VoiceVocabularyItem,
 } from "./voice-summary.js";
+
+export { buildPracticeSuggestions, isCurrentStudyWeek } from "./practice-suggestions.js";
+export * from "./learning-path.js";

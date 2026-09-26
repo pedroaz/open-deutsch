@@ -18,7 +18,6 @@ export function claimIdempotentWrite(
       | "vocabulary-candidate"
       | "vocabulary-confirmation"
       | "vocabulary-review"
-      | "weekly-plan"
       | "voice-summary"
       | "prepared-activity"
       | "attempt-completion";
